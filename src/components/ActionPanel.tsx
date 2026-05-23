@@ -212,12 +212,23 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Today's activity</span>
-          {activeShift && (
-            <span className="flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
-              On duty
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {activeShift && (
+              <span className="flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+                On duty
+              </span>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setAutoExportOpen(true)}
+              title="Automatic Notion export"
+            >
+              <Cloud className="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
