@@ -59,8 +59,6 @@ export const exportDailyTotalsToNotion = createServerFn({ method: "POST" })
     return exportDailyTotalsRange(supabase, userId, data.databaseId, from, to);
   });
 
-// Re-export for backwards-compat with any callers that imported the helper.
-export { computeDailyTotals };
 
 // List vehicles (pages) from a Notion database. Returns each page's title.
 export const listVehiclesFromNotion = createServerFn({ method: "POST" })
