@@ -17,17 +17,20 @@ import { Download, Upload } from "lucide-react";
 import { formatHm, ranges, type Shift, type Session } from "@/lib/stats";
 import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
+import { RowActions } from "@/components/RowActions";
+import { EditShiftDialog } from "@/components/EditShiftDialog";
 
-type Props = { shifts: Shift[]; sessions: Session[] };
+type Props = { shifts: Shift[]; sessions: Session[]; onChanged: () => void };
 type Period = "day" | "week" | "month" | "year";
 
 const LS_KEY = "notion_shifts_database_id";
 
-export function ShiftsTable({ shifts, sessions }: Props) {
+export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
   const [period, setPeriod] = useState<Period>("week");
   const [exportOpen, setExportOpen] = useState(false);
   const [dbId, setDbId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Shift | null>(null);
   const exportFn = useServerFn(exportShiftsToNotion);
 
   useEffect(() => {
@@ -105,6 +108,7 @@ export function ShiftsTable({ shifts, sessions }: Props) {
                 <TableHead>On duty</TableHead>
                 <TableHead>Off duty</TableHead>
                 <TableHead className="text-right">Duration</TableHead>
+                <TableHead className="w-[90px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -116,12 +120,21 @@ export function ShiftsTable({ shifts, sessions }: Props) {
                     {end ? format(end, "HH:mm") : <span className="text-primary">live</span>}
                   </TableCell>
                   <TableCell className="text-right font-mono">{formatHm(durMs)}</TableCell>
+                  <TableCell>
+                    <RowActions table="shifts" id={s.id} label="On-duty session"
+                      onEdit={() => setEditing(s)} onDeleted={onChanged} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+
+      {editing && (
+        <EditShiftDialog shift={editing} open={!!editing}
+          onOpenChange={(v) => !v && setEditing(null)} onSaved={onChanged} />
+      )}
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>
