@@ -138,8 +138,8 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           )}
         </section>
 
-        <ShiftsTable shifts={shifts} sessions={sessions} />
-        <SessionsTable shifts={shifts} sessions={sessions} />
+        <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
+        <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
 
         <p className="text-center text-xs text-muted-foreground">
