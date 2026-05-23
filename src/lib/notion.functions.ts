@@ -82,7 +82,7 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
     }
 
     // Inspect the target database to discover available properties.
-    const db = await notionFetch(`/databases/${data.databaseId}`);
+    const db = await notionFetch(`/databases/${databaseId}`);
     const propsMap = (db as { properties: Record<string, NotionProp> }).properties;
     const propsByName = Object.entries(propsMap).reduce<Record<string, NotionProp>>(
       (acc, [name, p]) => {
