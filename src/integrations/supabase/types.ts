@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      driving_sessions: {
+        Row: {
+          created_at: string
+          end_at: string | null
+          id: string
+          km_end: number | null
+          km_start: number | null
+          shift_id: string | null
+          start_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          km_end?: number | null
+          km_start?: number | null
+          shift_id?: string | null
+          start_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string | null
+          id?: string
+          km_end?: number | null
+          km_start?: number | null
+          shift_id?: string | null
+          start_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driving_sessions_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          off_duty_at: string | null
+          on_duty_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          off_duty_at?: string | null
+          on_duty_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          off_duty_at?: string | null
+          on_duty_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
