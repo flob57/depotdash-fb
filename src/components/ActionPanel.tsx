@@ -20,8 +20,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { listVehiclesFromNotion } from "@/lib/notion.functions";
+import { NotionSettingsDialog } from "@/components/NotionSettingsDialog";
 import { toast } from "sonner";
-import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw } from "lucide-react";
+import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw, Cloud } from "lucide-react";
 import type { Shift, Session } from "@/lib/stats";
 import { formatHm } from "@/lib/stats";
 
