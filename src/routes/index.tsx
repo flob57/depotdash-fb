@@ -9,6 +9,7 @@ import { ActionPanel } from "@/components/ActionPanel";
 import { SessionsTable } from "@/components/SessionsTable";
 import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
+import { KmSummaryTable } from "@/components/KmSummaryTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
@@ -141,6 +142,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
+        <KmSummaryTable sessions={sessions} />
 
         <p className="text-center text-xs text-muted-foreground">
           Contracted hours: 7h30 per weekday · 37h30 per week
