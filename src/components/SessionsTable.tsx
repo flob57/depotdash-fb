@@ -17,15 +17,18 @@ import { Upload, Download } from "lucide-react";
 import { formatHm, ranges, type Session, type Shift } from "@/lib/stats";
 import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
+import { RowActions } from "@/components/RowActions";
+import { EditSessionDialog } from "@/components/EditSessionDialog";
 
-type Props = { shifts: Shift[]; sessions: Session[] };
+type Props = { shifts: Shift[]; sessions: Session[]; onChanged: () => void };
 type Period = "day" | "week" | "month" | "year";
 
-export function SessionsTable({ shifts, sessions }: Props) {
+export function SessionsTable({ shifts, sessions, onChanged }: Props) {
   const [period, setPeriod] = useState<Period>("week");
   const [exportOpen, setExportOpen] = useState(false);
   const [dbId, setDbId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Session | null>(null);
   const exportFn = useServerFn(exportSessionsToNotion);
 
   useEffect(() => {
@@ -109,6 +112,7 @@ export function SessionsTable({ shifts, sessions }: Props) {
                 <TableHead className="text-right">km start</TableHead>
                 <TableHead className="text-right">km stop</TableHead>
                 <TableHead className="text-right">Distance</TableHead>
+                <TableHead className="w-[90px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,12 +128,21 @@ export function SessionsTable({ shifts, sessions }: Props) {
                   <TableCell className="text-right font-mono">{s.km_start ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{s.km_end ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{km != null ? `${km} km` : "—"}</TableCell>
+                  <TableCell>
+                    <RowActions table="driving_sessions" id={s.id} label="Driving session"
+                      onEdit={() => setEditing(s)} onDeleted={onChanged} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+
+      {editing && (
+        <EditSessionDialog session={editing} open={!!editing}
+          onOpenChange={(v) => !v && setEditing(null)} onSaved={onChanged} />
+      )}
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>
