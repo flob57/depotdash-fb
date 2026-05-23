@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { getNotionSettings, saveNotionSettings } from "@/lib/notion.functions";
+import { getNotionSettings, saveNotionSettings, runAutoExportNow } from "@/lib/notion.functions";
 import { toast } from "sonner";
 
 type Props = {
