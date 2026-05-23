@@ -31,6 +31,7 @@ function useNow() {
 export function ActionPanel({ userId, activeShift, activeSession, onChange }: Props) {
   const [kmDialog, setKmDialog] = useState<"start" | "stop" | null>(null);
   const [km, setKm] = useState("");
+  const [busRef, setBusRef] = useState("");
   const [busy, setBusy] = useState(false);
   const now = useNow();
 
@@ -57,7 +58,7 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     else { toast.success("Off duty"); onChange(); }
   };
 
-  const openStart = () => { setKm(""); setKmDialog("start"); };
+  const openStart = () => { setKm(""); setBusRef(""); setKmDialog("start"); };
   const openStop = () => { setKm(""); setKmDialog("stop"); };
 
   const confirmStart = async () => {
@@ -67,11 +68,13 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       toast.error("Enter a valid kilometer reading");
       return;
     }
+    const ref = busRef.trim();
     setBusy(true);
     const { error } = await supabase.from("driving_sessions").insert({
       user_id: userId,
       shift_id: activeShift.id,
       km_start: value,
+      bus_reference: ref === "" ? null : ref,
     });
     setBusy(false);
     if (error) toast.error(error.message);
@@ -163,16 +166,26 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {kmDialog === "start" ? "Vehicle kilometers at start" : "Vehicle kilometers at stop"}
+              {kmDialog === "start" ? "Start driving" : "Stop driving"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="km">Odometer reading (km)</Label>
-            <Input id="km" type="number" min={0} inputMode="numeric"
-              autoFocus value={km} onChange={(e) => setKm(e.target.value)}
-              placeholder={kmDialog === "stop" && activeSession?.km_start != null
-                ? `≥ ${activeSession.km_start}` : "e.g. 123456"} />
-            <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
+          <div className="space-y-4">
+            {kmDialog === "start" && (
+              <div className="space-y-2">
+                <Label htmlFor="busRef">Bus reference number</Label>
+                <Input id="busRef" autoFocus value={busRef}
+                  onChange={(e) => setBusRef(e.target.value)}
+                  placeholder="e.g. 1234 or AB-12-CD" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="km">Odometer reading (km)</Label>
+              <Input id="km" type="number" min={0} inputMode="numeric"
+                value={km} onChange={(e) => setKm(e.target.value)}
+                placeholder={kmDialog === "stop" && activeSession?.km_start != null
+                  ? `≥ ${activeSession.km_start}` : "e.g. 123456"} />
+              <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setKmDialog(null)}>Cancel</Button>

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { ActionPanel } from "@/components/ActionPanel";
+import { SessionsTable } from "@/components/SessionsTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
@@ -135,6 +136,8 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
             </div>
           )}
         </section>
+
+        <SessionsTable shifts={shifts} sessions={sessions} />
 
         <p className="text-center text-xs text-muted-foreground">
           Contracted hours: 7h30 per weekday · 37h30 per week

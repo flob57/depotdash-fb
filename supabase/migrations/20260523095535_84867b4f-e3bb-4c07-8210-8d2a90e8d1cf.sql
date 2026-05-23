@@ -1,0 +1,1 @@
+ALTER TABLE public.driving_sessions ADD COLUMN bus_reference text;
