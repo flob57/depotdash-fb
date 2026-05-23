@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,23 +31,27 @@ type Props = {
 export function EditShiftDialog({ shift, open, onOpenChange, onSaved }: Props) {
   const [onDuty, setOnDuty] = useState(toLocalInput(shift.on_duty_at));
   const [offDuty, setOffDuty] = useState(toLocalInput(shift.off_duty_at));
-  const [note, setNote] = useState(shift.note ?? "");
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
-    if (!onDuty) {
+    const onDutyIso = fromLocalInput(onDuty);
+    if (!onDutyIso) {
       toast.error("On-duty time is required");
       return;
     }
     setBusy(true);
+    const offDutyIso = fromLocalInput(offDuty);
     const { error } = await supabase
       .from("shifts")
       .update({
-        on_duty_at: fromLocalInput(onDuty),
-        off_duty_at: fromLocalInput(offDuty),
-        note: note.trim() || null,
+        on_duty_at: onDutyIso,
+        off_duty_at: offDutyIso ?? undefined,
       })
       .eq("id", shift.id);
+    if (!error && !offDutyIso) {
+      // Explicitly clear off_duty_at if the user emptied it.
+      await supabase.from("shifts").update({ off_duty_at: null as never }).eq("id", shift.id);
+    }
     setBusy(false);
     if (error) {
       toast.error(error.message);
@@ -76,10 +79,6 @@ export function EditShiftDialog({ shift, open, onOpenChange, onSaved }: Props) {
             <Input id="off-duty" type="datetime-local" value={offDuty}
               onChange={(e) => setOffDuty(e.target.value)} />
             <p className="text-xs text-muted-foreground">Leave empty if still on duty.</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="note">Note</Label>
-            <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         </div>
         <DialogFooter>

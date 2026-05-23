@@ -37,7 +37,8 @@ export function EditSessionDialog({ session, open, onOpenChange, onSaved }: Prop
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
-    if (!startAt) {
+    const startIso = fromLocalInput(startAt);
+    if (!startIso) {
       toast.error("Start time is required");
       return;
     }
@@ -45,11 +46,11 @@ export function EditSessionDialog({ session, open, onOpenChange, onSaved }: Prop
     const { error } = await supabase
       .from("driving_sessions")
       .update({
-        bus_reference: bus.trim() || null,
-        start_at: fromLocalInput(startAt),
-        end_at: fromLocalInput(endAt),
-        km_start: kmStart ? Number(kmStart) : null,
-        km_end: kmEnd ? Number(kmEnd) : null,
+        bus_reference: bus.trim() || (null as never),
+        start_at: startIso,
+        end_at: (fromLocalInput(endAt) ?? null) as never,
+        km_start: kmStart ? Number(kmStart) : (null as never),
+        km_end: kmEnd ? Number(kmEnd) : (null as never),
       })
       .eq("id", session.id);
     setBusy(false);
