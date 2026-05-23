@@ -9,6 +9,7 @@ import { ActionPanel } from "@/components/ActionPanel";
 import { SessionsTable } from "@/components/SessionsTable";
 import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
+import { KmSummaryTable } from "@/components/KmSummaryTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
