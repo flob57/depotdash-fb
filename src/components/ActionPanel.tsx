@@ -422,6 +422,8 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <NotionSettingsDialog open={autoExportOpen} onOpenChange={setAutoExportOpen} />
     </Card>
   );
 }
