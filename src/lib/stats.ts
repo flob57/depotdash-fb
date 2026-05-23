@@ -17,6 +17,7 @@ export type Session = {
   end_at: string | null;
   km_start: number | null;
   km_end: number | null;
+  bus_reference: string | null;
 };
 
 export const DAILY_DUE_MS = 7.5 * 3600 * 1000; // 7h30
