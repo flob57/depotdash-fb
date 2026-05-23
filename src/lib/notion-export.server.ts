@@ -307,8 +307,8 @@ export async function exportDailyTotalsRange(
   if (sessionsRes.error) throw new Error(sessionsRes.error.message);
 
   const totals = computeDailyTotals(
-    (shiftsRes.data ?? []) as Shift[],
-    (sessionsRes.data ?? []) as DrivingSession[],
+    (shiftsRes.data ?? []) as never,
+    (sessionsRes.data ?? []) as never,
   );
   if (totals.length === 0) return { exported: 0, skipped: 0, total: 0, errors: [] };
 
