@@ -11,7 +11,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { exportDailyTotalsToNotion, computeDailyTotals } from "@/lib/notion.functions";
+import { exportDailyTotalsToNotion } from "@/lib/notion.functions";
+import { computeDailyTotals } from "@/lib/daily-totals";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { formatHm, ranges, type Shift, type Session } from "@/lib/stats";
