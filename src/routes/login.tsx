@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Bus } from "lucide-react";
+import logoOcelorn from "@/assets/logo-ocelorn.jpg";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Sign in — Bus Depot Tracker" }] }),
+  head: () => ({ meta: [{ title: "Connexion — Océlorn" }] }),
 });
 
 function LoginPage() {
@@ -66,12 +66,10 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Bus className="h-6 w-6" />
-          </div>
-          <CardTitle className="text-2xl">Bus Depot Tracker</CardTitle>
+          <img src={logoOcelorn} alt="Océlorn" className="mx-auto mb-2 h-14 w-auto rounded-md bg-black p-2" />
+          <CardTitle className="text-2xl">Océlorn</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to your account" : "Create your account"}
+            {mode === "signin" ? "Connectez-vous à votre compte" : "Créer votre compte"}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
