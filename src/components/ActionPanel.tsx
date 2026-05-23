@@ -4,10 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -58,10 +66,18 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
   }, []);
 
   const loadVehicles = async (dbId: string) => {
-    if (!dbId) { setVehicles([]); return; }
+    if (!dbId) {
+      setVehicles([]);
+      return;
+    }
     setVehiclesLoading(true);
     try {
       const res = await fetchVehicles({ data: { databaseId: dbId } });
+      if ("error" in res && res.error) {
+        toast.error(res.error);
+        setVehicles([]);
+        return;
+      }
       setVehicles(res.vehicles);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load vehicles");
@@ -96,7 +112,10 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     const { error } = await supabase.from("shifts").insert({ user_id: userId });
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("On duty"); onChange(); }
+    else {
+      toast.success("On duty");
+      onChange();
+    }
   };
 
   const goOffDuty = async () => {
@@ -106,19 +125,33 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       return;
     }
     setBusy(true);
-    const { error } = await supabase.from("shifts")
+    const { error } = await supabase
+      .from("shifts")
       .update({ off_duty_at: new Date().toISOString() })
       .eq("id", activeShift.id);
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("Off duty"); onChange(); }
+    else {
+      toast.success("Off duty");
+      onChange();
+    }
   };
 
-  const openStart = () => { setKm(""); setBusRef(""); setKmDialog("start"); };
-  const openStop = () => { setKm(""); setKmDialog("stop"); };
+  const openStart = () => {
+    setKm("");
+    setBusRef("");
+    setKmDialog("start");
+  };
+  const openStop = () => {
+    setKm("");
+    setKmDialog("stop");
+  };
 
   const confirmStart = async () => {
-    if (!activeShift) { toast.error("Go on duty first"); return; }
+    if (!activeShift) {
+      toast.error("Go on duty first");
+      return;
+    }
     const value = km === "" ? null : Number(km);
     if (value != null && (!Number.isFinite(value) || value < 0)) {
       toast.error("Enter a valid kilometer reading");
@@ -134,7 +167,11 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     });
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("Driving started"); setKmDialog(null); onChange(); }
+    else {
+      toast.success("Driving started");
+      setKmDialog(null);
+      onChange();
+    }
   };
 
   const confirmStop = async () => {
@@ -149,12 +186,17 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       return;
     }
     setBusy(true);
-    const { error } = await supabase.from("driving_sessions")
+    const { error } = await supabase
+      .from("driving_sessions")
       .update({ end_at: new Date().toISOString(), km_end: value })
       .eq("id", activeSession.id);
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("Driving stopped"); setKmDialog(null); onChange(); }
+    else {
+      toast.success("Driving stopped");
+      setKmDialog(null);
+      onChange();
+    }
   };
 
   const shiftMs = activeShift ? now - new Date(activeShift.on_duty_at).getTime() : 0;
@@ -185,7 +227,9 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
               </div>
               <div className="mt-1 font-mono text-xl font-semibold">{formatHm(shiftMs)}</div>
             </div>
-            <div className={`rounded-lg border p-3 ${activeSession ? "bg-primary/10 border-primary/30" : "bg-secondary/40"}`}>
+            <div
+              className={`rounded-lg border p-3 ${activeSession ? "bg-primary/10 border-primary/30" : "bg-secondary/40"}`}
+            >
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Gauge className="h-3.5 w-3.5" /> Driving
               </div>
@@ -208,12 +252,23 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                   <Play className="mr-2 h-4 w-4" /> Start driving
                 </Button>
               ) : (
-                <Button onClick={openStop} disabled={busy} size="lg" variant="default" className="col-span-2">
+                <Button
+                  onClick={openStop}
+                  disabled={busy}
+                  size="lg"
+                  variant="default"
+                  className="col-span-2"
+                >
                   <Square className="mr-2 h-4 w-4" /> Stop driving
                 </Button>
               )}
-              <Button onClick={goOffDuty} disabled={busy || !!activeSession} size="lg"
-                variant="outline" className="col-span-2">
+              <Button
+                onClick={goOffDuty}
+                disabled={busy || !!activeSession}
+                size="lg"
+                variant="outline"
+                className="col-span-2"
+              >
                 <LogOut className="mr-2 h-4 w-4" /> Go off duty
               </Button>
             </>
@@ -224,9 +279,7 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       <Dialog open={kmDialog !== null} onOpenChange={(o) => !o && setKmDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {kmDialog === "start" ? "Start driving" : "Stop driving"}
-            </DialogTitle>
+            <DialogTitle>{kmDialog === "start" ? "Start driving" : "Stop driving"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {kmDialog === "start" && (
@@ -235,12 +288,24 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                   <Label htmlFor="busRef">Vehicle</Label>
                   <div className="flex items-center gap-1">
                     {hasVehiclesDb && (
-                      <Button type="button" variant="ghost" size="sm"
-                        onClick={() => loadVehicles(vehiclesDbId)} disabled={vehiclesLoading}>
-                        <RefreshCw className={`h-3.5 w-3.5 ${vehiclesLoading ? "animate-spin" : ""}`} />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => loadVehicles(vehiclesDbId)}
+                        disabled={vehiclesLoading}
+                      >
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 ${vehiclesLoading ? "animate-spin" : ""}`}
+                        />
                       </Button>
                     )}
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSettingsOpen(true)}
+                    >
                       <Settings className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -248,18 +313,22 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
 
                 {hasVehiclesDb && (
                   <Select
-                    value={vehicles.some((v) => v.name === busRef) ? busRef : (busRef ? MANUAL : "")}
+                    value={vehicles.some((v) => v.name === busRef) ? busRef : busRef ? MANUAL : ""}
                     onValueChange={(v) => {
                       if (v === MANUAL) setBusRef("");
                       else setBusRef(v);
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={vehiclesLoading ? "Loading vehicles…" : "Select a vehicle"} />
+                      <SelectValue
+                        placeholder={vehiclesLoading ? "Loading vehicles…" : "Select a vehicle"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                        <SelectItem key={v.id} value={v.name}>
+                          {v.name}
+                        </SelectItem>
                       ))}
                       <SelectItem value={MANUAL}>Type manually…</SelectItem>
                     </SelectContent>
@@ -267,9 +336,13 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                 )}
 
                 {usingManual && (
-                  <Input id="busRef" autoFocus={!hasVehiclesDb} value={busRef === MANUAL ? "" : busRef}
+                  <Input
+                    id="busRef"
+                    autoFocus={!hasVehiclesDb}
+                    value={busRef === MANUAL ? "" : busRef}
                     onChange={(e) => setBusRef(e.target.value)}
-                    placeholder="e.g. 1234 or AB-12-CD" />
+                    placeholder="e.g. 1234 or AB-12-CD"
+                  />
                 )}
 
                 {!hasVehiclesDb && (
@@ -281,15 +354,26 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
             )}
             <div className="space-y-2">
               <Label htmlFor="km">Odometer reading (km)</Label>
-              <Input id="km" type="number" min={0} inputMode="numeric"
-                value={km} onChange={(e) => setKm(e.target.value)}
-                placeholder={kmDialog === "stop" && activeSession?.km_start != null
-                  ? `≥ ${activeSession.km_start}` : "e.g. 123456"} />
+              <Input
+                id="km"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={km}
+                onChange={(e) => setKm(e.target.value)}
+                placeholder={
+                  kmDialog === "stop" && activeSession?.km_start != null
+                    ? `≥ ${activeSession.km_start}`
+                    : "e.g. 123456"
+                }
+              />
               <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setKmDialog(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setKmDialog(null)}>
+              Cancel
+            </Button>
             <Button onClick={kmDialog === "start" ? confirmStart : confirmStop} disabled={busy}>
               Confirm
             </Button>
@@ -305,17 +389,22 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="vehiclesDb">Notion database link or ID</Label>
-              <Input id="vehiclesDb" value={settingsInput}
+              <Input
+                id="vehiclesDb"
+                value={settingsInput}
                 onChange={(e) => setSettingsInput(e.target.value)}
-                placeholder="https://www.notion.so/…" />
+                placeholder="https://www.notion.so/…"
+              />
               <p className="text-xs text-muted-foreground">
-                Each page in the database becomes a selectable vehicle (its title is used as the reference).
-                Make sure the database is shared with the Lovable Notion integration.
+                Each page in the database becomes a selectable vehicle (its title is used as the
+                reference). Make sure the database is shared with the Lovable Notion integration.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSettingsOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setSettingsOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={saveSettings}>Save</Button>
           </DialogFooter>
         </DialogContent>

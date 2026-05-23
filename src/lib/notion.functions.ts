@@ -32,7 +32,15 @@ async function notionFetch(path: string, init: RequestInit = {}) {
 }
 
 function extractId(raw: string): string {
-  const cleaned = raw.replace(/-/g, "");
+  const source = raw.trim();
+  let idSource = source;
+  try {
+    const url = new URL(source);
+    idSource = url.pathname;
+  } catch {
+    /* plain ID, not a URL */
+  }
+  const cleaned = idSource.replace(/-/g, "");
   const matches = cleaned.match(/[0-9a-f]{32}/gi);
   if (!matches || matches.length === 0) {
     throw new Error("Could not find a Notion database ID in the value provided.");
@@ -46,20 +54,24 @@ function toDashed(id: string): string {
   return `${c.slice(0, 8)}-${c.slice(8, 12)}-${c.slice(12, 16)}-${c.slice(16, 20)}-${c.slice(20)}`;
 }
 
-async function searchForDatabase(targetId: string): Promise<{ id: string; properties: NotionDb["properties"] } | null> {
+async function searchForDatabase(
+  targetId: string,
+): Promise<{ id: string; properties: NotionDb["properties"] } | null> {
   const target = targetId.replace(/-/g, "").toLowerCase();
   try {
-    const res = await notionFetch(`/search`, {
+    const res = (await notionFetch(`/search`, {
       method: "POST",
       body: JSON.stringify({ filter: { value: "database", property: "object" }, page_size: 100 }),
-    }) as { results: Array<{ id: string; object: string; properties?: NotionDb["properties"] }> };
+    })) as { results: Array<{ id: string; object: string; properties?: NotionDb["properties"] }> };
     const hit = res.results.find(
       (r) => r.object === "database" && r.id.replace(/-/g, "").toLowerCase() === target,
     );
     if (hit && hit.properties) return { id: hit.id, properties: hit.properties };
     const dbs = res.results.filter((r) => r.object === "database" && r.properties);
     if (dbs.length === 1) return { id: dbs[0].id, properties: dbs[0].properties! };
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
@@ -68,20 +80,24 @@ async function resolveDatabase(rawId: string): Promise<{ id: string; db: NotionD
   const dashed = toDashed(id);
   for (const tryId of [dashed, id]) {
     try {
-      const db = await notionFetch(`/databases/${tryId}`) as NotionDb;
+      const db = (await notionFetch(`/databases/${tryId}`)) as NotionDb;
       return { id: tryId, db };
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
   try {
-    const children = await notionFetch(`/blocks/${dashed}/children?page_size=100`) as {
+    const children = (await notionFetch(`/blocks/${dashed}/children?page_size=100`)) as {
       results: Array<{ id: string; type: string }>;
     };
     const childDb = children.results.find((b) => b.type === "child_database");
     if (childDb) {
-      const db = await notionFetch(`/databases/${childDb.id}`) as NotionDb;
+      const db = (await notionFetch(`/databases/${childDb.id}`)) as NotionDb;
       return { id: childDb.id, db };
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   const found = await searchForDatabase(id);
   if (found) return { id: found.id, db: { properties: found.properties } };
   throw new Error(
@@ -90,13 +106,10 @@ async function resolveDatabase(rawId: string): Promise<{ id: string; db: NotionD
 }
 
 function propFinder(db: NotionDb) {
-  const map = Object.entries(db.properties).reduce<Record<string, NotionProp>>(
-    (acc, [name, p]) => {
-      acc[name.toLowerCase()] = { ...p, name };
-      return acc;
-    },
-    {},
-  );
+  const map = Object.entries(db.properties).reduce<Record<string, NotionProp>>((acc, [name, p]) => {
+    acc[name.toLowerCase()] = { ...p, name };
+    return acc;
+  }, {});
   const title = Object.values(db.properties).find((p) => p.type === "title");
   if (!title) throw new Error("Target Notion database has no title property.");
   const find = (name: string, type: string) => {
@@ -167,22 +180,27 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
     const kmStartProp = find("km start", "number") ?? find("KM start", "number");
     const kmEndProp = find("km end", "number") ?? find("KM end", "number");
 
-    let exported = 0, skipped = 0;
+    let exported = 0,
+      skipped = 0;
     const errors: string[] = [];
 
     for (const s of sessions) {
-      if (!s.end_at) { skipped++; continue; }
+      if (!s.end_at) {
+        skipped++;
+        continue;
+      }
       const start = new Date(s.start_at);
       const end = new Date(s.end_at);
       const durMin = Math.round((end.getTime() - start.getTime()) / 60000);
-      const distance = s.km_start != null && s.km_end != null
-        ? Math.max(0, s.km_end - s.km_start) : null;
+      const distance =
+        s.km_start != null && s.km_end != null ? Math.max(0, s.km_end - s.km_start) : null;
       const titleText = `${start.toISOString().slice(0, 10)} · ${s.bus_reference ?? "bus"}`;
 
       const properties: Record<string, unknown> = {
         [title.name]: { title: [{ text: { content: titleText } }] },
       };
-      if (busProp) properties[busProp] = { rich_text: [{ text: { content: s.bus_reference ?? "" } }] };
+      if (busProp)
+        properties[busProp] = { rich_text: [{ text: { content: s.bus_reference ?? "" } }] };
       if (startProp) properties[startProp] = { date: { start: start.toISOString() } };
       if (stopProp) properties[stopProp] = { date: { start: end.toISOString() } };
       if (durationProp) properties[durationProp] = { number: durMin };
@@ -190,8 +208,12 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
       if (kmStartProp && s.km_start != null) properties[kmStartProp] = { number: s.km_start };
       if (kmEndProp && s.km_end != null) properties[kmEndProp] = { number: s.km_end };
 
-      try { await createPage(dbId, properties); exported++; }
-      catch (e) { errors.push((e as Error).message); }
+      try {
+        await createPage(dbId, properties);
+        exported++;
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
     }
 
     return { exported, skipped, total: sessions.length, errors: errors.slice(0, 3) };
@@ -222,11 +244,15 @@ export const exportShiftsToNotion = createServerFn({ method: "POST" })
     const offProp = find("Off duty", "date") ?? find("Stop", "date") ?? find("End", "date");
     const durationProp = find("Duration (min)", "number") ?? find("Duration", "number");
 
-    let exported = 0, skipped = 0;
+    let exported = 0,
+      skipped = 0;
     const errors: string[] = [];
 
     for (const s of shifts) {
-      if (!s.off_duty_at) { skipped++; continue; }
+      if (!s.off_duty_at) {
+        skipped++;
+        continue;
+      }
       const start = new Date(s.on_duty_at);
       const end = new Date(s.off_duty_at);
       const durMin = Math.round((end.getTime() - start.getTime()) / 60000);
@@ -239,8 +265,12 @@ export const exportShiftsToNotion = createServerFn({ method: "POST" })
       if (offProp) properties[offProp] = { date: { start: end.toISOString() } };
       if (durationProp) properties[durationProp] = { number: durMin };
 
-      try { await createPage(dbId, properties); exported++; }
-      catch (e) { errors.push((e as Error).message); }
+      try {
+        await createPage(dbId, properties);
+        exported++;
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
     }
 
     return { exported, skipped, total: shifts.length, errors: errors.slice(0, 3) };
@@ -254,12 +284,14 @@ export const exportDailyTotalsToNotion = createServerFn({ method: "POST" })
     const { from, to } = rangeFor(data.period);
 
     const [shiftsRes, sessionsRes] = await Promise.all([
-      supabase.from("shifts")
+      supabase
+        .from("shifts")
         .select("id, on_duty_at, off_duty_at")
         .eq("user_id", userId)
         .gte("on_duty_at", from.toISOString())
         .lte("on_duty_at", to.toISOString()),
-      supabase.from("driving_sessions")
+      supabase
+        .from("driving_sessions")
         .select("id, start_at, end_at")
         .eq("user_id", userId)
         .gte("start_at", from.toISOString())
@@ -291,8 +323,12 @@ export const exportDailyTotalsToNotion = createServerFn({ method: "POST" })
       if (drivingProp) properties[drivingProp] = { number: Math.round(t.drivingMs / 60000) };
       if (pctProp) properties[pctProp] = { number: Math.round(t.percent * 10) / 10 };
 
-      try { await createPage(dbId, properties); exported++; }
-      catch (e) { errors.push((e as Error).message); }
+      try {
+        await createPage(dbId, properties);
+        exported++;
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
     }
 
     return { exported, skipped: 0, total: totals.length, errors: errors.slice(0, 3) };
@@ -309,19 +345,28 @@ export function computeDailyTotals(shifts: ShiftLite[], sessions: SessionLite[])
   const acc = new Map<string, { onDutyMs: number; drivingMs: number; anyOpen: boolean }>();
   const ensure = (k: string) => {
     let v = acc.get(k);
-    if (!v) { v = { onDutyMs: 0, drivingMs: 0, anyOpen: false }; acc.set(k, v); }
+    if (!v) {
+      v = { onDutyMs: 0, drivingMs: 0, anyOpen: false };
+      acc.set(k, v);
+    }
     return v;
   };
   for (const s of shifts) {
     const k = dayKey(s.on_duty_at);
     const v = ensure(k);
-    if (!s.off_duty_at) { v.anyOpen = true; continue; }
+    if (!s.off_duty_at) {
+      v.anyOpen = true;
+      continue;
+    }
     v.onDutyMs += new Date(s.off_duty_at).getTime() - new Date(s.on_duty_at).getTime();
   }
   for (const s of sessions) {
     const k = dayKey(s.start_at);
     const v = ensure(k);
-    if (!s.end_at) { v.anyOpen = true; continue; }
+    if (!s.end_at) {
+      v.anyOpen = true;
+      continue;
+    }
     v.drivingMs += new Date(s.end_at).getTime() - new Date(s.start_at).getTime();
   }
   return Array.from(acc.entries())
@@ -340,24 +385,39 @@ export const listVehiclesFromNotion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ databaseId: z.string().min(1).max(500) }).parse(input))
   .handler(async ({ data }) => {
-    const { id: dbId } = await resolveDatabase(data.databaseId);
+    let dbId: string;
+    try {
+      const resolved = await resolveDatabase(data.databaseId);
+      dbId = resolved.id;
+    } catch (e) {
+      return {
+        vehicles: [],
+        error: e instanceof Error ? e.message : "Failed to find the Notion database",
+      };
+    }
     const vehicles: { id: string; name: string }[] = [];
     let cursor: string | undefined;
     let hasMore = true;
     while (hasMore) {
       const body: Record<string, unknown> = { page_size: 100 };
       if (cursor) body.start_cursor = cursor;
-      const res = await notionFetch(`/databases/${dbId}/query`, {
+      const res = (await notionFetch(`/databases/${dbId}/query`, {
         method: "POST",
         body: JSON.stringify(body),
-      }) as {
-        results: Array<{ id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }> }>;
+      })) as {
+        results: Array<{
+          id: string;
+          properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }>;
+        }>;
         has_more: boolean;
         next_cursor: string | null;
       };
       for (const page of res.results) {
         const titleProp = Object.values(page.properties).find((p) => p.type === "title");
-        const name = (titleProp?.title ?? []).map((t) => t.plain_text).join("").trim();
+        const name = (titleProp?.title ?? [])
+          .map((t) => t.plain_text)
+          .join("")
+          .trim();
         if (name) vehicles.push({ id: page.id, name });
       }
       hasMore = res.has_more;
