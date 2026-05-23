@@ -12,15 +12,16 @@ import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
-import { Bus, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
+import logoOcelorn from "@/assets/logo-ocelorn.jpg";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Bus Depot Tracker — Daily activity" },
-      { name: "description", content: "Track on-duty, driving time and kilometers for bus drivers. Compare against weekly contracted hours." },
+      { title: "Océlorn — Suivi d'activité" },
+      { name: "description", content: "Suivi du temps de service, du temps de conduite et des kilomètres pour les conducteurs Océlorn." },
     ],
   }),
 });
