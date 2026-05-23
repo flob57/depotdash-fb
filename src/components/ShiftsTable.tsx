@@ -108,6 +108,7 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
                 <TableHead>On duty</TableHead>
                 <TableHead>Off duty</TableHead>
                 <TableHead className="text-right">Duration</TableHead>
+                <TableHead className="w-[90px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,12 +120,21 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
                     {end ? format(end, "HH:mm") : <span className="text-primary">live</span>}
                   </TableCell>
                   <TableCell className="text-right font-mono">{formatHm(durMs)}</TableCell>
+                  <TableCell>
+                    <RowActions table="shifts" id={s.id} label="On-duty session"
+                      onEdit={() => setEditing(s)} onDeleted={onChanged} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+
+      {editing && (
+        <EditShiftDialog shift={editing} open={!!editing}
+          onOpenChange={(v) => !v && setEditing(null)} onSaved={onChanged} />
+      )}
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>
