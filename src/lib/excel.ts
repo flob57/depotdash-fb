@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { formatHm, ranges, type Session, type Shift } from "@/lib/stats";
-import { computeDailyTotals } from "@/lib/notion.functions";
+import { computeDailyTotals } from "@/lib/daily-totals";
 
 type Period = "day" | "week" | "month" | "year";
 
