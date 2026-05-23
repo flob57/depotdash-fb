@@ -21,6 +21,7 @@ type Props = {
 export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const fetchSettings = useServerFn(getNotionSettings);
   const saveSettings = useServerFn(saveNotionSettings);
+  const runNow = useServerFn(runAutoExportNow);
 
   const [shifts, setShifts] = useState("");
   const [sessions, setSessions] = useState("");
@@ -29,6 +30,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
