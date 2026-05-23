@@ -41,26 +41,31 @@ function extractId(raw: string): string {
 }
 
 async function resolveDatabase(rawId: string): Promise<{ id: string; db: NotionDb }> {
-  let id = extractId(rawId);
-  let db: NotionDb;
+  const id = extractId(rawId);
   try {
-    db = await notionFetch(`/databases/${id}`) as NotionDb;
+    const db = await notionFetch(`/databases/${id}`) as NotionDb;
+    return { id, db };
   } catch (e) {
     const msg = (e as Error).message;
-    if (!/is a page/i.test(msg)) throw e;
-    const children = await notionFetch(`/blocks/${id}/children?page_size=100`) as {
-      results: Array<{ id: string; type: string }>;
-    };
+    const mayBePage = /is a page/i.test(msg) || /\[404\]/.test(msg) || /Could not find database/i.test(msg);
+    if (!mayBePage) throw e;
+    let children: { results: Array<{ id: string; type: string }> };
+    try {
+      children = await notionFetch(`/blocks/${id}/children?page_size=100`) as typeof children;
+    } catch {
+      throw new Error(
+        `Notion can't see this database or page. Open it in Notion → "..." menu → Connections → add "Lovable", then retry.`,
+      );
+    }
     const childDb = children.results.find((b) => b.type === "child_database");
     if (!childDb) {
       throw new Error(
         "That Notion link points to a page with no database inside. Create a database on that page (or share an existing database with the integration) and paste its link.",
       );
     }
-    id = childDb.id;
-    db = await notionFetch(`/databases/${id}`) as NotionDb;
+    const db = await notionFetch(`/databases/${childDb.id}`) as NotionDb;
+    return { id: childDb.id, db };
   }
-  return { id, db };
 }
 
 function propFinder(db: NotionDb) {
