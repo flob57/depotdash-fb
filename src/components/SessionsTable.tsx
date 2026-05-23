@@ -52,12 +52,15 @@ export function SessionsTable({ shifts, sessions }: Props) {
   }, [sessions, period]);
 
   const runExport = async () => {
-    const id = dbId.trim().replace(/-/g, "");
-    if (id.length < 16) { toast.error("Enter a valid Notion database ID"); return; }
-    localStorage.setItem("notion_database_id", dbId.trim());
+    const value = dbId.trim();
+    if (!value || !/[0-9a-f]{32}/i.test(value.replace(/-/g, ""))) {
+      toast.error("Paste a Notion database URL or its 32-char ID");
+      return;
+    }
+    localStorage.setItem("notion_database_id", value);
     setBusy(true);
     try {
-      const res = await exportFn({ data: { databaseId: dbId.trim(), period } });
+      const res = await exportFn({ data: { databaseId: value, period } });
       toast.success(`Exported ${res.exported} session(s) to Notion${res.skipped ? ` (${res.skipped} skipped)` : ""}`);
       setExportOpen(false);
     } catch (e) {
@@ -80,6 +83,10 @@ export function SessionsTable({ shifts, sessions }: Props) {
               <TabsTrigger value="year">Year</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button size="sm" variant="outline"
+            onClick={() => exportToExcel(shifts, sessions, period)}>
+            <Download className="mr-1.5 h-4 w-4" /> Excel
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
             <Upload className="mr-1.5 h-4 w-4" /> Notion
           </Button>
