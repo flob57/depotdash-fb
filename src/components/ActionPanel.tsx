@@ -58,7 +58,7 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     else { toast.success("Off duty"); onChange(); }
   };
 
-  const openStart = () => { setKm(""); setKmDialog("start"); };
+  const openStart = () => { setKm(""); setBusRef(""); setKmDialog("start"); };
   const openStop = () => { setKm(""); setKmDialog("stop"); };
 
   const confirmStart = async () => {
@@ -68,11 +68,13 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
       toast.error("Enter a valid kilometer reading");
       return;
     }
+    const ref = busRef.trim();
     setBusy(true);
     const { error } = await supabase.from("driving_sessions").insert({
       user_id: userId,
       shift_id: activeShift.id,
       km_start: value,
+      bus_reference: ref === "" ? null : ref,
     });
     setBusy(false);
     if (error) toast.error(error.message);
