@@ -137,6 +137,8 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           )}
         </section>
 
+        <SessionsTable shifts={shifts} sessions={sessions} />
+
         <p className="text-center text-xs text-muted-foreground">
           Contracted hours: 7h30 per weekday · 37h30 per week
         </p>
