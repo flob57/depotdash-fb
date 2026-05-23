@@ -6,6 +6,7 @@ import {
   exportDailyTotalsRange,
   exportDistanceSummary,
   localDayInfo,
+  localHour,
   weekRangeLocal,
   monthRangeLocal,
   yearRangeLocal,
