@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       driving_sessions: {
         Row: {
+          bus_reference: string | null
           created_at: string
           end_at: string | null
           id: string
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bus_reference?: string | null
           created_at?: string
           end_at?: string | null
           id?: string
@@ -36,6 +38,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bus_reference?: string | null
           created_at?: string
           end_at?: string | null
           id?: string
