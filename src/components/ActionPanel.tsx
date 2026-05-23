@@ -31,6 +31,7 @@ function useNow() {
 export function ActionPanel({ userId, activeShift, activeSession, onChange }: Props) {
   const [kmDialog, setKmDialog] = useState<"start" | "stop" | null>(null);
   const [km, setKm] = useState("");
+  const [busRef, setBusRef] = useState("");
   const [busy, setBusy] = useState(false);
   const now = useNow();
 
