@@ -1,18 +1,36 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { exportSessionsToNotion } from "@/lib/notion.functions";
+import { toast } from "sonner";
+import { Upload } from "lucide-react";
 import { formatHm, ranges, type Session, type Shift } from "@/lib/stats";
 import { format } from "date-fns";
 
 type Props = { shifts: Shift[]; sessions: Session[] };
-
 type Period = "day" | "week" | "month" | "year";
 
 export function SessionsTable({ sessions }: Props) {
   const [period, setPeriod] = useState<Period>("week");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [dbId, setDbId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const exportFn = useServerFn(exportSessionsToNotion);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("notion_database_id");
+    if (saved) setDbId(saved);
+  }, []);
 
   const rows = useMemo(() => {
     const r = ranges()[period];
@@ -32,18 +50,39 @@ export function SessionsTable({ sessions }: Props) {
       });
   }, [sessions, period]);
 
+  const runExport = async () => {
+    const id = dbId.trim().replace(/-/g, "");
+    if (id.length < 16) { toast.error("Enter a valid Notion database ID"); return; }
+    localStorage.setItem("notion_database_id", dbId.trim());
+    setBusy(true);
+    try {
+      const res = await exportFn({ data: { databaseId: dbId.trim(), period } });
+      toast.success(`Exported ${res.exported} session(s) to Notion${res.skipped ? ` (${res.skipped} skipped)` : ""}`);
+      setExportOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-base">Driving sessions</CardTitle>
-        <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
-          <TabsList>
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="year">Year</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
+            <TabsList>
+              <TabsTrigger value="day">Day</TabsTrigger>
+              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
+            <Upload className="mr-1.5 h-4 w-4" /> Notion
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
@@ -83,6 +122,34 @@ export function SessionsTable({ sessions }: Props) {
           </Table>
         )}
       </CardContent>
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export to Notion</DialogTitle>
+            <DialogDescription>
+              Share a Notion database with your integration, then paste its ID below.
+              The {period} sessions will be added as new pages. Recognised columns
+              (optional): <span className="font-mono">Bus, Start, Stop, Duration (min), Distance (km), km start, km end</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="dbId">Notion database ID</Label>
+            <Input id="dbId" autoFocus value={dbId}
+              onChange={(e) => setDbId(e.target.value)}
+              placeholder="e.g. 1a2b3c4d5e6f7890abcdef1234567890" />
+            <p className="text-xs text-muted-foreground">
+              Open the database in Notion · ••• menu · Copy link · the ID is the 32-char string in the URL.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExportOpen(false)}>Cancel</Button>
+            <Button onClick={runExport} disabled={busy}>
+              {busy ? "Exporting…" : `Export ${period}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
