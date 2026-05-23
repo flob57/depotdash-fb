@@ -82,7 +82,27 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
     }
 
     // Inspect the target database to discover available properties.
-    const db = await notionFetch(`/databases/${databaseId}`);
+    // If the ID actually refers to a page, look for a child database inside it.
+    let resolvedDbId = databaseId;
+    let db: { properties: Record<string, NotionProp> };
+    try {
+      db = await notionFetch(`/databases/${resolvedDbId}`) as typeof db;
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (!/is a page/i.test(msg)) throw e;
+      // It's a page — find the first child database block.
+      const children = await notionFetch(`/blocks/${databaseId}/children?page_size=100`) as {
+        results: Array<{ id: string; type: string }>;
+      };
+      const childDb = children.results.find((b) => b.type === "child_database");
+      if (!childDb) {
+        throw new Error(
+          "That Notion link points to a page with no database inside. Create a database on that page (or share an existing database with the integration) and paste its link.",
+        );
+      }
+      resolvedDbId = childDb.id;
+      db = await notionFetch(`/databases/${resolvedDbId}`) as typeof db;
+    }
     const propsMap = (db as { properties: Record<string, NotionProp> }).properties;
     const propsByName = Object.entries(propsMap).reduce<Record<string, NotionProp>>(
       (acc, [name, p]) => {
