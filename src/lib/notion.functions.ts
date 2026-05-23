@@ -163,3 +163,54 @@ export const saveNotionSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
+// Manually trigger the same logic as the nightly cron, for the current user.
+// Useful for testing the configured databases without waiting for 23:59.
+export const runAutoExportNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("user_notion_settings")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("No Notion settings saved yet.");
+
+    const tz = data.timezone || "Europe/Brussels";
+    const now = new Date();
+    const day = localDayInfo(tz, now);
+    const summary: Record<string, unknown> = {};
+
+    if (data.shifts_db_id) {
+      summary.shifts = await exportShiftsRange(
+        supabase, userId, data.shifts_db_id, day.from, day.to,
+      );
+    }
+    if (data.sessions_db_id) {
+      summary.sessions = await exportSessionsRange(
+        supabase, userId, data.sessions_db_id, day.from, day.to,
+      );
+    }
+    if (data.daily_totals_db_id) {
+      summary.daily_totals = await exportDailyTotalsRange(
+        supabase, userId, data.daily_totals_db_id, day.from, day.to,
+      );
+    }
+    if (data.distance_summary_db_id) {
+      const w = weekRangeLocal(tz, now);
+      summary.week = await exportDistanceSummary(
+        supabase, userId, data.distance_summary_db_id, "This week", w.from, w.to,
+      );
+      const m = monthRangeLocal(tz, now);
+      summary.month = await exportDistanceSummary(
+        supabase, userId, data.distance_summary_db_id, "This month", m.from, m.to,
+      );
+      const y = yearRangeLocal(tz, now);
+      summary.year = await exportDistanceSummary(
+        supabase, userId, data.distance_summary_db_id, "This year", y.from, y.to,
+      );
+    }
+    return summary;
+  });
