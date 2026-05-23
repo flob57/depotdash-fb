@@ -136,18 +136,18 @@ export function SessionsTable({ shifts, sessions }: Props) {
           <DialogHeader>
             <DialogTitle>Export to Notion</DialogTitle>
             <DialogDescription>
-              Share a Notion database with your integration, then paste its ID below.
+              Share a Notion database with your integration, then paste its URL or ID below.
               The {period} sessions will be added as new pages. Recognised columns
               (optional): <span className="font-mono">Bus, Start, Stop, Duration (min), Distance (km), km start, km end</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="dbId">Notion database ID</Label>
+            <Label htmlFor="dbId">Notion database URL or ID</Label>
             <Input id="dbId" autoFocus value={dbId}
               onChange={(e) => setDbId(e.target.value)}
-              placeholder="e.g. 1a2b3c4d5e6f7890abcdef1234567890" />
+              placeholder="https://www.notion.so/… or 32-char ID" />
             <p className="text-xs text-muted-foreground">
-              Open the database in Notion · ••• menu · Copy link · the ID is the 32-char string in the URL.
+              Open the database in Notion · ••• menu · Copy link · paste the whole link here.
             </p>
           </div>
           <DialogFooter>
