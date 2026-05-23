@@ -181,7 +181,10 @@ export const runAutoExportNow = createServerFn({ method: "POST" })
     const tz = data.timezone || "Europe/Brussels";
     const now = new Date();
     const day = localDayInfo(tz, now);
-    const summary: Record<string, unknown> = {};
+    type R = { exported: number; skipped: number; total: number; errors: string[] };
+    const summary: {
+      shifts?: R; sessions?: R; daily_totals?: R; week?: R; month?: R; year?: R;
+    } = {};
 
     if (data.shifts_db_id) {
       summary.shifts = await exportShiftsRange(
