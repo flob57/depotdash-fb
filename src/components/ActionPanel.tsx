@@ -62,6 +62,11 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     setVehiclesLoading(true);
     try {
       const res = await fetchVehicles({ data: { databaseId: dbId } });
+      if ("error" in res && res.error) {
+        toast.error(res.error);
+        setVehicles([]);
+        return;
+      }
       setVehicles(res.vehicles);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load vehicles");
