@@ -472,6 +472,12 @@ export type LocalDayInfo = {
   isLastDayOfYear: boolean;
 };
 
+export function localHour(tz: string, now = new Date()): number {
+  const offMin = tzOffsetMinutes(tz, now);
+  const shifted = new Date(now.getTime() + offMin * 60000);
+  return shifted.getUTCHours();
+}
+
 export function localDayInfo(tz: string, now = new Date()): LocalDayInfo {
   const offMin = tzOffsetMinutes(tz, now);
   const shifted = new Date(now.getTime() + offMin * 60000);
