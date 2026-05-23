@@ -72,14 +72,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Dépôt Log" },
+      { name: "description", content: "Daily Driver Log tracks bus driver activities, logs mileage, and provides detailed statistics." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Dépôt Log" },
+      { property: "og:description", content: "Daily Driver Log tracks bus driver activities, logs mileage, and provides detailed statistics." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Dépôt Log" },
+      { name: "twitter:description", content: "Daily Driver Log tracks bus driver activities, logs mileage, and provides detailed statistics." },
     ],
     links: [
       {
