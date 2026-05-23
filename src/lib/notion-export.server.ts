@@ -145,32 +145,9 @@ function setDurationProp(
   if (numProp) properties[numProp] = { number: minutes };
 }
 
-// ---- Minimal supabase client shape we need ----
-type Sb = {
-  from: (t: string) => {
-    select: (cols: string) => {
-      eq: (
-        c: string,
-        v: string,
-      ) => {
-        gte: (
-          c: string,
-          v: string,
-        ) => {
-          lte: (
-            c: string,
-            v: string,
-          ) => {
-            order: (
-              c: string,
-              o: { ascending: boolean },
-            ) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
-          };
-        };
-      };
-    };
-  };
-};
+// Accept any Supabase-like client (browser, auth-middleware, or admin).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Sb = any;
 
 type DrivingSession = {
   start_at: string;
