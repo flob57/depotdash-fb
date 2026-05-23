@@ -313,3 +313,35 @@ export function computeDailyTotals(shifts: ShiftLite[], sessions: SessionLite[])
       percent: v.onDutyMs > 0 ? (v.drivingMs / v.onDutyMs) * 100 : 0,
     }));
 }
+
+// List vehicles (pages) from a Notion database. Returns each page's title.
+export const listVehiclesFromNotion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ databaseId: z.string().min(1).max(500) }).parse(input))
+  .handler(async ({ data }) => {
+    const { id: dbId } = await resolveDatabase(data.databaseId);
+    const vehicles: { id: string; name: string }[] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+    while (hasMore) {
+      const body: Record<string, unknown> = { page_size: 100 };
+      if (cursor) body.start_cursor = cursor;
+      const res = await notionFetch(`/databases/${dbId}/query`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }) as {
+        results: Array<{ id: string; properties: Record<string, { type: string; title?: Array<{ plain_text: string }> }> }>;
+        has_more: boolean;
+        next_cursor: string | null;
+      };
+      for (const page of res.results) {
+        const titleProp = Object.values(page.properties).find((p) => p.type === "title");
+        const name = (titleProp?.title ?? []).map((t) => t.plain_text).join("").trim();
+        if (name) vehicles.push({ id: page.id, name });
+      }
+      hasMore = res.has_more;
+      cursor = res.next_cursor ?? undefined;
+    }
+    vehicles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    return { vehicles };
+  });
