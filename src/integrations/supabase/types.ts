@@ -106,6 +106,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notion_settings: {
+        Row: {
+          created_at: string
+          daily_totals_db_id: string | null
+          distance_summary_db_id: string | null
+          sessions_db_id: string | null
+          shifts_db_id: string | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_totals_db_id?: string | null
+          distance_summary_db_id?: string | null
+          sessions_db_id?: string | null
+          shifts_db_id?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_totals_db_id?: string | null
+          distance_summary_db_id?: string | null
+          sessions_db_id?: string | null
+          shifts_db_id?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
