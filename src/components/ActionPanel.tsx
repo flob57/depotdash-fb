@@ -59,6 +59,7 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsInput, setSettingsInput] = useState("");
+  const [autoExportOpen, setAutoExportOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(VEHICLES_DB_KEY) ?? "";
