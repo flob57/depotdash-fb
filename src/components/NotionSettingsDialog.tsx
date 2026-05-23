@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { getNotionSettings, saveNotionSettings } from "@/lib/notion.functions";
+import { getNotionSettings, saveNotionSettings, runAutoExportNow } from "@/lib/notion.functions";
 import { toast } from "sonner";
 
 type Props = {
@@ -21,6 +21,7 @@ type Props = {
 export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const fetchSettings = useServerFn(getNotionSettings);
   const saveSettings = useServerFn(saveNotionSettings);
+  const runNow = useServerFn(runAutoExportNow);
 
   const [shifts, setShifts] = useState("");
   const [sessions, setSessions] = useState("");
@@ -29,6 +30,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -148,7 +150,29 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
             If left as a number, minutes are still written for backwards compatibility.
           </p>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              setTesting(true);
+              try {
+                const r = await runNow();
+                const parts: string[] = [];
+                for (const [k, v] of Object.entries(r)) {
+                  if (!v) continue;
+                  parts.push(`${k}: ${v.exported}/${v.total}${v.errors.length ? ` (${v.errors[0]})` : ""}`);
+                }
+                toast.success(`Test export done — ${parts.join(" · ") || "nothing to export"}`);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Test export failed");
+              } finally {
+                setTesting(false);
+              }
+            }}
+            disabled={testing || saving || loading}
+          >
+            {testing ? "Testing…" : "Test now"}
+          </Button>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>

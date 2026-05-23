@@ -21,11 +21,11 @@ type Settings = {
   timezone: string;
 };
 
-async function runForUser(s: Settings) {
+async function runForUser(s: Settings, force = false) {
   const tz = s.timezone || "Europe/Brussels";
   const now = new Date();
   // Only run at the user's local 23:xx hour (the cron pings hourly).
-  if (localHour(tz, now) !== 23) return { user_id: s.user_id, skipped: "not 23:xx local" };
+  if (!force && localHour(tz, now) !== 23) return { user_id: s.user_id, skipped: "not 23:xx local" };
   const day = localDayInfo(tz, now);
   const summary: Record<string, unknown> = { user_id: s.user_id, timezone: tz };
 
@@ -104,7 +104,9 @@ async function runForUser(s: Settings) {
 export const Route = createFileRoute("/api/public/cron/nightly-export")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const url = new URL(request.url);
+        const force = url.searchParams.get("force") === "1";
         const { data, error } = await supabaseAdmin
           .from("user_notion_settings")
           .select(
@@ -126,7 +128,7 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             !s.distance_summary_db_id
           )
             continue;
-          results.push(await runForUser(s));
+          results.push(await runForUser(s, force));
         }
         return new Response(
           JSON.stringify({ ran_at: new Date().toISOString(), users: results.length, results }),
