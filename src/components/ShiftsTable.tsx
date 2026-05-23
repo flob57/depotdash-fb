@@ -1,11 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { exportShiftsToNotion } from "@/lib/notion.functions";
+import { toast } from "sonner";
+import { Download, Upload } from "lucide-react";
 import { formatHm, ranges, type Shift, type Session } from "@/lib/stats";
 import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
@@ -13,8 +21,19 @@ import { format } from "date-fns";
 type Props = { shifts: Shift[]; sessions: Session[] };
 type Period = "day" | "week" | "month" | "year";
 
+const LS_KEY = "notion_shifts_database_id";
+
 export function ShiftsTable({ shifts, sessions }: Props) {
   const [period, setPeriod] = useState<Period>("week");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [dbId, setDbId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const exportFn = useServerFn(exportShiftsToNotion);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) setDbId(saved);
+  }, []);
 
   const rows = useMemo(() => {
     const r = ranges()[period];
@@ -32,6 +51,25 @@ export function ShiftsTable({ shifts, sessions }: Props) {
       });
   }, [shifts, period]);
 
+  const runExport = async () => {
+    const value = dbId.trim();
+    if (!value || !/[0-9a-f]{32}/i.test(value.replace(/-/g, ""))) {
+      toast.error("Paste a Notion database URL or its 32-char ID");
+      return;
+    }
+    localStorage.setItem(LS_KEY, value);
+    setBusy(true);
+    try {
+      const res = await exportFn({ data: { databaseId: value, period } });
+      toast.success(`Exported ${res.exported} shift(s) to Notion${res.skipped ? ` (${res.skipped} skipped)` : ""}`);
+      setExportOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -48,6 +86,9 @@ export function ShiftsTable({ shifts, sessions }: Props) {
           <Button size="sm" variant="outline"
             onClick={() => exportToExcel(shifts, sessions, period)}>
             <Download className="mr-1.5 h-4 w-4" /> Excel
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
+            <Upload className="mr-1.5 h-4 w-4" /> Notion
           </Button>
         </div>
       </CardHeader>
@@ -81,6 +122,30 @@ export function ShiftsTable({ shifts, sessions }: Props) {
           </Table>
         )}
       </CardContent>
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export on-duty to Notion</DialogTitle>
+            <DialogDescription>
+              Recognised columns (optional):{" "}
+              <span className="font-mono">On duty, Off duty, Duration (min)</span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="shiftsDbId">Notion database URL or ID</Label>
+            <Input id="shiftsDbId" autoFocus value={dbId}
+              onChange={(e) => setDbId(e.target.value)}
+              placeholder="https://www.notion.so/… or 32-char ID" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExportOpen(false)}>Cancel</Button>
+            <Button onClick={runExport} disabled={busy}>
+              {busy ? "Exporting…" : `Export ${period}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
