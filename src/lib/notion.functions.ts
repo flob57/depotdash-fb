@@ -32,7 +32,13 @@ async function notionFetch(path: string, init: RequestInit = {}) {
 }
 
 function extractId(raw: string): string {
-  const cleaned = raw.replace(/-/g, "");
+  const source = raw.trim();
+  let idSource = source;
+  try {
+    const url = new URL(source);
+    idSource = url.pathname;
+  } catch { /* plain ID, not a URL */ }
+  const cleaned = idSource.replace(/-/g, "");
   const matches = cleaned.match(/[0-9a-f]{32}/gi);
   if (!matches || matches.length === 0) {
     throw new Error("Could not find a Notion database ID in the value provided.");
@@ -340,7 +346,13 @@ export const listVehiclesFromNotion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ databaseId: z.string().min(1).max(500) }).parse(input))
   .handler(async ({ data }) => {
-    const { id: dbId } = await resolveDatabase(data.databaseId);
+    let dbId: string;
+    try {
+      const resolved = await resolveDatabase(data.databaseId);
+      dbId = resolved.id;
+    } catch (e) {
+      return { vehicles: [], error: e instanceof Error ? e.message : "Failed to find the Notion database" };
+    }
     const vehicles: { id: string; name: string }[] = [];
     let cursor: string | undefined;
     let hasMore = true;
