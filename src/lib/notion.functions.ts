@@ -157,7 +157,7 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
         await notionFetch(`/pages`, {
           method: "POST",
           body: JSON.stringify({
-            parent: { database_id: databaseId },
+            parent: { database_id: resolvedDbId },
             properties,
           }),
         });
