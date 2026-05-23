@@ -24,6 +24,8 @@ type Settings = {
 async function runForUser(s: Settings) {
   const tz = s.timezone || "Europe/Brussels";
   const now = new Date();
+  // Only run at the user's local 23:xx hour (the cron pings hourly).
+  if (localHour(tz, now) !== 23) return { user_id: s.user_id, skipped: "not 23:xx local" };
   const day = localDayInfo(tz, now);
   const summary: Record<string, unknown> = { user_id: s.user_id, timezone: tz };
 
