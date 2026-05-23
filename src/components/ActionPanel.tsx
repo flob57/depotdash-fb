@@ -166,16 +166,26 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {kmDialog === "start" ? "Vehicle kilometers at start" : "Vehicle kilometers at stop"}
+              {kmDialog === "start" ? "Start driving" : "Stop driving"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="km">Odometer reading (km)</Label>
-            <Input id="km" type="number" min={0} inputMode="numeric"
-              autoFocus value={km} onChange={(e) => setKm(e.target.value)}
-              placeholder={kmDialog === "stop" && activeSession?.km_start != null
-                ? `≥ ${activeSession.km_start}` : "e.g. 123456"} />
-            <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
+          <div className="space-y-4">
+            {kmDialog === "start" && (
+              <div className="space-y-2">
+                <Label htmlFor="busRef">Bus reference number</Label>
+                <Input id="busRef" autoFocus value={busRef}
+                  onChange={(e) => setBusRef(e.target.value)}
+                  placeholder="e.g. 1234 or AB-12-CD" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="km">Odometer reading (km)</Label>
+              <Input id="km" type="number" min={0} inputMode="numeric"
+                value={km} onChange={(e) => setKm(e.target.value)}
+                placeholder={kmDialog === "stop" && activeSession?.km_start != null
+                  ? `≥ ${activeSession.km_start}` : "e.g. 123456"} />
+              <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setKmDialog(null)}>Cancel</Button>
