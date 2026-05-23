@@ -60,6 +60,14 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { from, to } = rangeFor(data.period);
 
+    // Accept full Notion URL or raw ID; extract the trailing 32-char hex.
+    const cleaned = data.databaseId.replace(/-/g, "");
+    const matches = cleaned.match(/[0-9a-f]{32}/gi);
+    if (!matches || matches.length === 0) {
+      throw new Error("Could not find a Notion database ID in the value provided.");
+    }
+    const databaseId = matches[matches.length - 1];
+
     const { data: sessions, error } = await supabase
       .from("driving_sessions")
       .select("id, start_at, end_at, km_start, km_end, bus_reference")
@@ -74,7 +82,7 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
     }
 
     // Inspect the target database to discover available properties.
-    const db = await notionFetch(`/databases/${data.databaseId}`);
+    const db = await notionFetch(`/databases/${databaseId}`);
     const propsMap = (db as { properties: Record<string, NotionProp> }).properties;
     const propsByName = Object.entries(propsMap).reduce<Record<string, NotionProp>>(
       (acc, [name, p]) => {
@@ -129,7 +137,7 @@ export const exportSessionsToNotion = createServerFn({ method: "POST" })
         await notionFetch(`/pages`, {
           method: "POST",
           body: JSON.stringify({
-            parent: { database_id: data.databaseId },
+            parent: { database_id: databaseId },
             properties,
           }),
         });

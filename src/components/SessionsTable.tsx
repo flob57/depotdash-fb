@@ -13,14 +13,15 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { exportSessionsToNotion } from "@/lib/notion.functions";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Download } from "lucide-react";
 import { formatHm, ranges, type Session, type Shift } from "@/lib/stats";
+import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
 
 type Props = { shifts: Shift[]; sessions: Session[] };
 type Period = "day" | "week" | "month" | "year";
 
-export function SessionsTable({ sessions }: Props) {
+export function SessionsTable({ shifts, sessions }: Props) {
   const [period, setPeriod] = useState<Period>("week");
   const [exportOpen, setExportOpen] = useState(false);
   const [dbId, setDbId] = useState("");
@@ -51,12 +52,15 @@ export function SessionsTable({ sessions }: Props) {
   }, [sessions, period]);
 
   const runExport = async () => {
-    const id = dbId.trim().replace(/-/g, "");
-    if (id.length < 16) { toast.error("Enter a valid Notion database ID"); return; }
-    localStorage.setItem("notion_database_id", dbId.trim());
+    const value = dbId.trim();
+    if (!value || !/[0-9a-f]{32}/i.test(value.replace(/-/g, ""))) {
+      toast.error("Paste a Notion database URL or its 32-char ID");
+      return;
+    }
+    localStorage.setItem("notion_database_id", value);
     setBusy(true);
     try {
-      const res = await exportFn({ data: { databaseId: dbId.trim(), period } });
+      const res = await exportFn({ data: { databaseId: value, period } });
       toast.success(`Exported ${res.exported} session(s) to Notion${res.skipped ? ` (${res.skipped} skipped)` : ""}`);
       setExportOpen(false);
     } catch (e) {
@@ -79,6 +83,10 @@ export function SessionsTable({ sessions }: Props) {
               <TabsTrigger value="year">Year</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button size="sm" variant="outline"
+            onClick={() => exportToExcel(shifts, sessions, period)}>
+            <Download className="mr-1.5 h-4 w-4" /> Excel
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
             <Upload className="mr-1.5 h-4 w-4" /> Notion
           </Button>
@@ -128,18 +136,18 @@ export function SessionsTable({ sessions }: Props) {
           <DialogHeader>
             <DialogTitle>Export to Notion</DialogTitle>
             <DialogDescription>
-              Share a Notion database with your integration, then paste its ID below.
+              Share a Notion database with your integration, then paste its URL or ID below.
               The {period} sessions will be added as new pages. Recognised columns
               (optional): <span className="font-mono">Bus, Start, Stop, Duration (min), Distance (km), km start, km end</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="dbId">Notion database ID</Label>
+            <Label htmlFor="dbId">Notion database URL or ID</Label>
             <Input id="dbId" autoFocus value={dbId}
               onChange={(e) => setDbId(e.target.value)}
-              placeholder="e.g. 1a2b3c4d5e6f7890abcdef1234567890" />
+              placeholder="https://www.notion.so/… or 32-char ID" />
             <p className="text-xs text-muted-foreground">
-              Open the database in Notion · ••• menu · Copy link · the ID is the 32-char string in the URL.
+              Open the database in Notion · ••• menu · Copy link · paste the whole link here.
             </p>
           </div>
           <DialogFooter>
