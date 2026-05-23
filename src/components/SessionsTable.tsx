@@ -13,14 +13,15 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { exportSessionsToNotion } from "@/lib/notion.functions";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Download } from "lucide-react";
 import { formatHm, ranges, type Session, type Shift } from "@/lib/stats";
+import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
 
 type Props = { shifts: Shift[]; sessions: Session[] };
 type Period = "day" | "week" | "month" | "year";
 
-export function SessionsTable({ sessions }: Props) {
+export function SessionsTable({ shifts, sessions }: Props) {
   const [period, setPeriod] = useState<Period>("week");
   const [exportOpen, setExportOpen] = useState(false);
   const [dbId, setDbId] = useState("");
