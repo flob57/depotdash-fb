@@ -104,7 +104,9 @@ async function runForUser(s: Settings, force = false) {
 export const Route = createFileRoute("/api/public/cron/nightly-export")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const url = new URL(request.url);
+        const force = url.searchParams.get("force") === "1";
         const { data, error } = await supabaseAdmin
           .from("user_notion_settings")
           .select(
@@ -126,7 +128,7 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             !s.distance_summary_db_id
           )
             continue;
-          results.push(await runForUser(s));
+          results.push(await runForUser(s, force));
         }
         return new Response(
           JSON.stringify({ ran_at: new Date().toISOString(), users: results.length, results }),
