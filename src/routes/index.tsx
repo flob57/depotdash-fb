@@ -98,11 +98,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Bus className="h-5 w-5" />
-            </div>
+            <img src={logoOcelorn} alt="Océlorn" className="h-10 w-auto rounded-md bg-black p-1" />
             <div>
-              <h1 className="text-lg font-semibold leading-tight">Bus Depot Tracker</h1>
+              <h1 className="text-lg font-semibold leading-tight">Suivi d'activité</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
