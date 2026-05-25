@@ -22,7 +22,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listVehiclesFromNotion } from "@/lib/notion.functions";
 import { NotionSettingsDialog } from "@/components/NotionSettingsDialog";
 import { toast } from "sonner";
-import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw, Cloud } from "lucide-react";
+import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw, Cloud, Fuel } from "lucide-react";
 import type { Shift, Session } from "@/lib/stats";
 import { formatHm } from "@/lib/stats";
 
@@ -50,6 +50,9 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
   const [km, setKm] = useState("");
   const [busRef, setBusRef] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fuelOpen, setFuelOpen] = useState(false);
+  const [fuelKm, setFuelKm] = useState("");
+  const [fuelLiters, setFuelLiters] = useState("");
   const now = useNow();
 
   // Vehicles
