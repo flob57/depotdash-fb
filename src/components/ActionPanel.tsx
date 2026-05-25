@@ -476,6 +476,48 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
         </DialogContent>
       </Dialog>
 
+      <Dialog open={fuelOpen} onOpenChange={setFuelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Fuel fill-up{activeSession?.bus_reference ? ` · ${activeSession.bus_reference}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fuelKm">Odometer at fill-up (km)</Label>
+              <Input
+                id="fuelKm"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={fuelKm}
+                onChange={(e) => setFuelKm(e.target.value)}
+                placeholder="e.g. 123456"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fuelLiters">Litres added</Label>
+              <Input
+                id="fuelLiters"
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={fuelLiters}
+                onChange={(e) => setFuelLiters(e.target.value)}
+                placeholder="e.g. 145.32"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setFuelOpen(false)}>Cancel</Button>
+            <Button onClick={confirmFuel} disabled={busy}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <NotionSettingsDialog open={autoExportOpen} onOpenChange={setAutoExportOpen} />
     </Card>
   );
