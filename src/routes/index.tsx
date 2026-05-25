@@ -176,13 +176,6 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
-        {loading ? (
-          <div className="text-sm text-muted-foreground">Loading statistics…</div>
-        ) : (
-          <StatCard label="Today" workedMs={stats.day.worked} dueMs={stats.day.due}
-            drivingMs={stats.day.driving} km={stats.day.km} />
-        )}
-
         <OvertimeBanner overtimeMinutes={overtimeMinutes} leave={leaveBalance} />
         <div className="flex justify-end">
           <StartingBalancesDialog userId={userId} current={balanceSettings} onSaved={refresh} />
@@ -206,7 +199,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           {loading ? (
             <div className="text-sm text-muted-foreground">Loading statistics…</div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Today" workedMs={stats.day.worked} dueMs={stats.day.due}
+                drivingMs={stats.day.driving} km={stats.day.km} />
               <StatCard label="This week" workedMs={stats.week.worked} dueMs={stats.week.due}
                 drivingMs={stats.week.driving} km={stats.week.km} />
               <StatCard label="This month" workedMs={stats.month.worked} dueMs={stats.month.due}
