@@ -8,7 +8,7 @@ import { CalendarDays, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import { dateKey, type PublicHoliday } from "@/lib/stats";
+import { dateKey } from "@/lib/stats";
 import type { PublicHoliday as PH } from "@/hooks/useTrackingData";
 
 type Props = {
