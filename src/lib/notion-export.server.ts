@@ -172,6 +172,7 @@ export async function exportSessionsRange(
     .from("driving_sessions")
     .select("id, start_at, end_at, km_start, km_end, bus_reference")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("start_at", from.toISOString())
     .lte("start_at", to.toISOString())
     .order("start_at", { ascending: true });
@@ -192,6 +193,7 @@ export async function exportSessionsRange(
   let exported = 0,
     skipped = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const s of sessions) {
     if (!s.end_at) {
       skipped++;
@@ -218,9 +220,16 @@ export async function exportSessionsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(s.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("driving_sessions")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped, total: sessions.length, errors: errors.slice(0, 3) };
 }
