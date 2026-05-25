@@ -204,6 +204,41 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     }
   };
 
+  const confirmFuel = async () => {
+    if (!activeSession) return;
+    const vehicle = (activeSession.bus_reference ?? "").trim();
+    if (!vehicle) {
+      toast.error("No vehicle on the current driving session");
+      return;
+    }
+    const kmVal = Number(fuelKm);
+    const litersVal = Number(fuelLiters);
+    if (!Number.isFinite(kmVal) || kmVal < 0) {
+      toast.error("Enter a valid odometer reading");
+      return;
+    }
+    if (!Number.isFinite(litersVal) || litersVal <= 0) {
+      toast.error("Enter a valid number of litres");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("fuel_fillups").insert({
+      user_id: userId,
+      session_id: activeSession.id,
+      bus_reference: vehicle,
+      km_at_fillup: Math.round(kmVal),
+      liters: litersVal,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Fuel fill-up recorded");
+      setFuelOpen(false);
+      onChange();
+    }
+  };
+
+
   const shiftMs = activeShift ? now - new Date(activeShift.on_duty_at).getTime() : 0;
   const driveMs = activeSession ? now - new Date(activeSession.start_at).getTime() : 0;
 
