@@ -120,6 +120,7 @@ const SettingsSchema = z.object({
   sessions_db_id: z.string().max(500).nullable().optional(),
   daily_totals_db_id: z.string().max(500).nullable().optional(),
   distance_summary_db_id: z.string().max(500).nullable().optional(),
+  fuel_fillups_db_id: z.string().max(500).nullable().optional(),
   timezone: z.string().min(1).max(100).optional(),
 });
 
@@ -140,6 +141,7 @@ export const getNotionSettings = createServerFn({ method: "GET" })
         sessions_db_id: null,
         daily_totals_db_id: null,
         distance_summary_db_id: null,
+        fuel_fillups_db_id: null,
         timezone: "Europe/Brussels",
       }
     );
@@ -156,6 +158,7 @@ export const saveNotionSettings = createServerFn({ method: "POST" })
       sessions_db_id: data.sessions_db_id ?? null,
       daily_totals_db_id: data.daily_totals_db_id ?? null,
       distance_summary_db_id: data.distance_summary_db_id ?? null,
+      fuel_fillups_db_id: data.fuel_fillups_db_id ?? null,
       timezone: data.timezone ?? "Europe/Brussels",
     };
     const { error } = await supabase
@@ -184,7 +187,8 @@ export const runAutoExportNow = createServerFn({ method: "POST" })
     const day = localDayInfo(tz, now);
     type R = { exported: number; skipped: number; total: number; errors: string[] };
     const summary: {
-      shifts?: R; sessions?: R; daily_totals?: R; week?: R; month?: R; year?: R;
+      shifts?: R; sessions?: R; daily_totals?: R; fuel?: R;
+      week?: R; month?: R; year?: R;
     } = {};
 
     if (data.shifts_db_id) {
