@@ -404,6 +404,94 @@ export async function exportDistanceSummary(
   }
 }
 
+// ---- Fuel fill-ups ----
+
+type FuelFillupRow = {
+  id: string;
+  bus_reference: string;
+  km_at_fillup: number;
+  liters: number;
+  filled_at: string;
+};
+
+export async function exportFuelFillupsRange(
+  supabase: Sb,
+  userId: string,
+  databaseId: string,
+  from: Date,
+  to: Date,
+): Promise<ExportResult> {
+  const { data, error } = await supabase
+    .from("fuel_fillups")
+    .select("id, bus_reference, km_at_fillup, liters, filled_at")
+    .eq("user_id", userId)
+    .gte("filled_at", from.toISOString())
+    .lte("filled_at", to.toISOString())
+    .order("filled_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as FuelFillupRow[];
+  if (rows.length === 0) return { exported: 0, skipped: 0, total: 0, errors: [] };
+
+  // Compute per-vehicle consumption across ALL fill-ups for context (not just range)
+  const { data: allData } = await supabase
+    .from("fuel_fillups")
+    .select("id, bus_reference, km_at_fillup, liters, filled_at")
+    .eq("user_id", userId)
+    .order("km_at_fillup", { ascending: true });
+  const allByBus = new Map<string, FuelFillupRow[]>();
+  for (const f of (allData ?? []) as FuelFillupRow[]) {
+    const arr = allByBus.get(f.bus_reference) ?? [];
+    arr.push(f);
+    allByBus.set(f.bus_reference, arr);
+  }
+
+  const { id: dbId, db } = await resolveDatabase(databaseId);
+  const { title, find } = propFinder(db);
+
+  const busProp = find("Bus", "rich_text") ?? find("Vehicle", "rich_text") ?? find("Bus reference", "rich_text");
+  const dateProp = find("Date", "date") ?? find("Filled at", "date");
+  const kmProp = find("km", "number") ?? find("Odometer", "number") ?? find("Km", "number");
+  const litersProp = find("Liters", "number") ?? find("Litres", "number") ?? find("L", "number");
+  const consumptionProp =
+    find("Consumption (L/100km)", "number") ??
+    find("L/100km", "number") ??
+    find("Consumption", "number");
+
+  let exported = 0;
+  const errors: string[] = [];
+  for (const f of rows) {
+    const titleText = `${f.filled_at.slice(0, 10)} · ${f.bus_reference} · ${Number(f.liters).toFixed(2)} L`;
+    const properties: Record<string, unknown> = {
+      [title.name]: { title: [{ text: { content: titleText } }] },
+    };
+    if (busProp) properties[busProp] = { rich_text: [{ text: { content: f.bus_reference } }] };
+    if (dateProp) properties[dateProp] = { date: { start: f.filled_at } };
+    if (kmProp) properties[kmProp] = { number: f.km_at_fillup };
+    if (litersProp) properties[litersProp] = { number: Number(f.liters) };
+
+    // Consumption since previous fill-up for the same vehicle
+    if (consumptionProp) {
+      const series = allByBus.get(f.bus_reference) ?? [];
+      const idx = series.findIndex((x) => x.id === f.id);
+      if (idx > 0) {
+        const dk = series[idx].km_at_fillup - series[idx - 1].km_at_fillup;
+        if (dk > 0) {
+          const cons = (Number(f.liters) / dk) * 100;
+          properties[consumptionProp] = { number: Math.round(cons * 100) / 100 };
+        }
+      }
+    }
+
+    try {
+      await createPage(dbId, properties);
+      exported++;
+    } catch (e) {
+      errors.push((e as Error).message);
+    }
+  }
+  return { exported, skipped: 0, total: rows.length, errors: errors.slice(0, 3) };
+}
+
 // ---- Timezone helpers ----
 
 function tzOffsetMinutes(tz: string, at: Date): number {

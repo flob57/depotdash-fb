@@ -8,6 +8,7 @@ import {
   exportShiftsRange,
   exportDailyTotalsRange,
   exportDistanceSummary,
+  exportFuelFillupsRange,
   weekRangeLocal,
   monthRangeLocal,
   yearRangeLocal,
