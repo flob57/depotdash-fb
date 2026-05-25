@@ -150,13 +150,14 @@ function setDurationProp(
 type Sb = any;
 
 type DrivingSession = {
+  id: string;
   start_at: string;
   end_at: string | null;
   km_start: number | null;
   km_end: number | null;
   bus_reference: string | null;
 };
-type Shift = { on_duty_at: string; off_duty_at: string | null };
+type Shift = { id: string; on_duty_at: string; off_duty_at: string | null };
 
 export type ExportResult = { exported: number; skipped: number; total: number; errors: string[] };
 
