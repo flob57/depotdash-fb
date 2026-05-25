@@ -150,13 +150,14 @@ function setDurationProp(
 type Sb = any;
 
 type DrivingSession = {
+  id: string;
   start_at: string;
   end_at: string | null;
   km_start: number | null;
   km_end: number | null;
   bus_reference: string | null;
 };
-type Shift = { on_duty_at: string; off_duty_at: string | null };
+type Shift = { id: string; on_duty_at: string; off_duty_at: string | null };
 
 export type ExportResult = { exported: number; skipped: number; total: number; errors: string[] };
 
@@ -171,6 +172,7 @@ export async function exportSessionsRange(
     .from("driving_sessions")
     .select("id, start_at, end_at, km_start, km_end, bus_reference")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("start_at", from.toISOString())
     .lte("start_at", to.toISOString())
     .order("start_at", { ascending: true });
@@ -191,6 +193,7 @@ export async function exportSessionsRange(
   let exported = 0,
     skipped = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const s of sessions) {
     if (!s.end_at) {
       skipped++;
@@ -217,9 +220,16 @@ export async function exportSessionsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(s.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("driving_sessions")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped, total: sessions.length, errors: errors.slice(0, 3) };
 }
@@ -235,6 +245,7 @@ export async function exportShiftsRange(
     .from("shifts")
     .select("id, on_duty_at, off_duty_at")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("on_duty_at", from.toISOString())
     .lte("on_duty_at", to.toISOString())
     .order("on_duty_at", { ascending: true });
@@ -251,6 +262,7 @@ export async function exportShiftsRange(
   let exported = 0,
     skipped = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const s of shifts) {
     if (!s.off_duty_at) {
       skipped++;
@@ -270,9 +282,16 @@ export async function exportShiftsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(s.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("shifts")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped, total: shifts.length, errors: errors.slice(0, 3) };
 }
@@ -425,6 +444,7 @@ export async function exportFuelFillupsRange(
     .from("fuel_fillups")
     .select("id, bus_reference, km_at_fillup, liters, filled_at")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("filled_at", from.toISOString())
     .lte("filled_at", to.toISOString())
     .order("filled_at", { ascending: true });
@@ -459,6 +479,7 @@ export async function exportFuelFillupsRange(
 
   let exported = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const f of rows) {
     const titleText = `${f.filled_at.slice(0, 10)} · ${f.bus_reference} · ${Number(f.liters).toFixed(2)} L`;
     const properties: Record<string, unknown> = {
@@ -485,9 +506,16 @@ export async function exportFuelFillupsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(f.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("fuel_fillups")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped: 0, total: rows.length, errors: errors.slice(0, 3) };
 }

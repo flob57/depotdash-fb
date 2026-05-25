@@ -22,6 +22,7 @@ export type Database = {
           id: string
           km_end: number | null
           km_start: number | null
+          notion_synced_at: string | null
           shift_id: string | null
           start_at: string
           user_id: string
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           km_end?: number | null
           km_start?: number | null
+          notion_synced_at?: string | null
           shift_id?: string | null
           start_at?: string
           user_id: string
@@ -44,6 +46,7 @@ export type Database = {
           id?: string
           km_end?: number | null
           km_start?: number | null
+          notion_synced_at?: string | null
           shift_id?: string | null
           start_at?: string
           user_id?: string
@@ -66,6 +69,7 @@ export type Database = {
           id: string
           km_at_fillup: number
           liters: number
+          notion_synced_at: string | null
           session_id: string | null
           user_id: string
         }
@@ -76,6 +80,7 @@ export type Database = {
           id?: string
           km_at_fillup: number
           liters: number
+          notion_synced_at?: string | null
           session_id?: string | null
           user_id: string
         }
@@ -86,6 +91,7 @@ export type Database = {
           id?: string
           km_at_fillup?: number
           liters?: number
+          notion_synced_at?: string | null
           session_id?: string | null
           user_id?: string
         }
@@ -125,6 +131,7 @@ export type Database = {
           created_at: string
           id: string
           note: string | null
+          notion_synced_at: string | null
           off_duty_at: string | null
           on_duty_at: string
           user_id: string
@@ -133,6 +140,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          notion_synced_at?: string | null
           off_duty_at?: string | null
           on_duty_at?: string
           user_id: string
@@ -141,6 +149,7 @@ export type Database = {
           created_at?: string
           id?: string
           note?: string | null
+          notion_synced_at?: string | null
           off_duty_at?: string | null
           on_duty_at?: string
           user_id?: string
