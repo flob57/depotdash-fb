@@ -59,11 +59,19 @@ export function sumKm(sessions: Session[], from: Date, to: Date): number {
   return total;
 }
 
-export function dueHoursMs(from: Date, to: Date): number {
-  // 7h30 per weekday (Mon-Fri)
+export function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function isHoliday(d: Date, holidays?: Set<string>): boolean {
+  return !!holidays && holidays.has(dateKey(d));
+}
+
+export function dueHoursMs(from: Date, to: Date, holidays?: Set<string>): number {
+  // 7h30 per weekday (Mon-Fri), excluding public holidays
   const days = eachDayOfInterval({ start: startOfDay(from), end: startOfDay(to) });
   let count = 0;
-  for (const d of days) if (!isWeekend(d)) count++;
+  for (const d of days) if (!isWeekend(d) && !isHoliday(d, holidays)) count++;
   return count * DAILY_DUE_MS;
 }
 
