@@ -1,71 +1,71 @@
 ## Goal
 
-Run a scheduled job every night at **23:59** that pushes the day's data into Notion automatically, plus weekly / monthly / yearly distance rollups on the right dates. Also switch all "Duration (min)" outputs to a readable `Xh YYm` format.
+Add a "Declared hours" tracking system with overtime counter, plus a French-style paid leave (CP) counter, and let days be marked as Public Holiday or Paid Leave.
 
-## Key design decisions
+## What you'll see in the app
 
-1. **Storing target Notion databases per user.**
-   Today, the database ID is typed into the export dialog each time and only the vehicles DB is saved in `localStorage`. A cron job has no browser, so we need to persist the destination databases server-side.
+**Top of dashboard — two new counter cards:**
+- **Overtime balance** — green if ≥ 0, red if < 0. Computed as: sum(declared hours) − sum(due hours over the same days, excluding holidays/CP/weekends) + starting overtime balance.
+- **Paid leave (CP)** — shows `N-1: X.X days` and `N: Y.Y days` with total remaining. Color-coded.
 
-   New table `user_notion_settings` (1 row per user, RLS = owner only):
-   - `shifts_db_id` (on-duty exports)
-   - `sessions_db_id` (driving exports)
-   - `daily_totals_db_id`
-   - `distance_summary_db_id`
-   - `notion_api_key` *(optional — see point 2)*
-   - `timezone` (IANA, e.g. `Europe/Brussels`) so "today" / "Sunday" / "last day of month" match the user's local day
+**New "Declared hours" card** (below ActionPanel):
+- Date picker + hours input (e.g. `7.5` or `7:30`) + optional note → "Save".
+- List of recent declarations with edit/delete.
 
-   A new **Settings** dialog (or extending the existing one) lets the user paste each database URL/ID once and pick their timezone.
+**Public Holidays card → renamed "Day off"** with a type selector:
+- `Public holiday` (existing behavior — no due hours, no deficit)
+- `Paid leave (CP)` — same effect on due hours, plus deducts 1 day from CP counter (N-1 first, then N)
 
-2. **Notion auth for cron.**
-   `NOTION_API_KEY` is currently a single project-level secret tied to the connector. That works as long as **all users share the same Notion workspace/integration**. If different users have their own Notion workspaces, this whole feature only works for the workspace owner — the others would need to paste their own integration token, which Notion's connector flow doesn't expose to us.
+**Settings card "Starting balances"** (one-time setup):
+- Manual input for current overtime balance (hours, can be negative) and starting CP balances (N-1 days, N days).
+- Set once; future calculations build on top.
 
-   **Question for you:** is this app used only by you (single Notion workspace), or do other users also connect their own Notion? I'll assume **single workspace (yours)** unless you say otherwise — that keeps it simple and uses the existing connector key.
+## Rules implemented
 
-3. **Schedule strategy — one cron, one route.**
-   `pg_cron` runs in UTC. Rather than fighting timezones at the SQL layer, I'll schedule **one job every day at 23:00 UTC** that calls a single endpoint. The endpoint computes, **in each user's timezone**, whether "now" is close to 23:59 local; if not, it just exits. When it is:
-   - Always export: today's on-duty sessions, today's driving sessions, today's daily totals.
-   - If today is **Sunday** locally → also export `This week` distance.
-   - If tomorrow is the **1st of next month** locally → also export `This month` distance.
-   - If tomorrow is **Jan 1** locally → also export `This year` distance.
-
-   (Running every UTC hour is also an option if you want sub-hour precision across many timezones. For a single-user app in one timezone, daily at 22:59 UTC for Europe/Brussels is fine.)
-
-4. **Endpoint location.**
-   New public route `src/routes/api/public/cron/nightly-export.ts`. Protected by the standard pg_cron `apikey` header (Supabase anon key) — no extra secret needed.
-
-5. **Duration format change (`Xh YYm`).**
-   Notion's `number` property can't display `7h30`. Two options:
-   - **(A) Switch the property type to `rich_text`** in the target databases and write `"7h30"` strings. *Recommended* — matches what you asked for visually.
-   - **(B) Keep `number` and write decimal hours (7.5)**. Less readable.
-
-   I'll implement (A): the export code will look for the duration column as `rich_text` first; if it only finds the old `number` column it falls back to minutes (so nothing breaks until you update the Notion schema). You'll need to **change the "Duration (min)" columns in your three Notion databases to text** for the new format to show up.
-
-6. **Server-side export refactor.**
-   The current `exportSessionsToNotion` / `exportShiftsToNotion` / `exportDailyTotalsToNotion` server functions are user-scoped via `requireSupabaseAuth`. I'll extract their core logic into plain helpers (`src/lib/notion.server.ts`) that take `(userId, supabaseAdmin, databaseId, range)` and reuse them from both the existing UI server functions and the new cron route.
-
-## Files to change / add
-
-```text
-supabase migration         user_notion_settings table + RLS + updated_at trigger
-src/lib/notion.server.ts   shared export helpers (run per user, server-only)
-src/lib/notion.functions.ts
-                           - refactor to call shared helpers
-                           - rich_text duration support (Xh YYm)
-src/routes/api/public/cron/nightly-export.ts
-                           cron endpoint
-src/components/NotionSettingsDialog.tsx
-                           UI to save the 4 DB IDs + timezone
-src/components/ActionPanel.tsx
-                           open the new settings dialog from the gear menu
-pg_cron job                daily at 22:59 UTC → POST /api/public/cron/nightly-export
+**Overtime:**
 ```
+overtime = startingOvertimeMs
+         + Σ(declaredMs per day)
+         − Σ(dueMs per day where day is weekday AND not holiday AND not CP)
+```
+Days with no declaration but in the past still count as 0 declared (so a missed day creates negative overtime). Today and future days are excluded from "due" until declared, to avoid a constantly-growing deficit.
 
-## Open questions before I build
+**Paid leave (CP) — French system:**
+- Leave year N = 1 May → 30 April.
+- On the 1st of each month, credit 2.5 days to year N (the currently-accruing year).
+- A CP day taken: deduct from N-1 first, then N.
+- On 1 May: any unused N-1 expires; remaining N rolls over → N becomes N-1, new N starts at 0.
+- Starting balances seed both N-1 and N counters at the date the user enters them.
 
-1. **Multi-user Notion?** Single workspace (yours), or do you want each user to save their own Notion integration token?
-2. **Timezone** — confirm `Europe/Brussels`? (I'll default to that.)
-3. **Duration format option A (text "7h30") vs B (decimal hours)?** I recommend A.
-4. **Distance summary**: export to the **same** daily-totals database, or a **separate** "Distance summary" database? (Different schemas — totals has Date/On duty/Driving/%, distance has Period/Total km.) I'd recommend a separate database; let me know if you already have one.
+Implemented as a pure function `computeLeaveBalance(startingBalance, cpDaysTaken, today)` that:
+1. Walks months from the starting-balance date to today.
+2. On each "1st of month", adds 2.5 to N.
+3. On each "1 May" rollover, expires old N-1 and promotes N → N-1.
+4. Deducts CP days taken (N-1 first, then N) in date order.
 
-Once you confirm these four points I'll implement everything in one pass.
+## Technical details
+
+**Database migration:**
+- New table `declared_hours` — `id`, `user_id`, `work_date` (date, unique per user), `hours_minutes` (int, minutes), `note`. RLS scoped to `auth.uid()`.
+- Extend `public_holidays` → add `kind` text column with check (`'holiday' | 'paid_leave'`), default `'holiday'`. Existing rows become `'holiday'`.
+- New table `user_balance_settings` — `user_id` PK, `starting_overtime_minutes` int default 0, `starting_cp_n_minus_1` numeric default 0, `starting_cp_n` numeric default 0, `starting_balance_date` date (defaults to today on insert). RLS scoped to `auth.uid()`.
+
+**Files to add:**
+- `src/lib/declared.ts` — types + sum helpers.
+- `src/lib/leave.ts` — `computeLeaveBalance()` pure function with full year-N/N-1 logic.
+- `src/components/DeclaredHoursCard.tsx` — input + list.
+- `src/components/OvertimeBanner.tsx` — top counter (overtime + CP).
+- `src/components/StartingBalancesDialog.tsx` — settings dialog.
+
+**Files to edit:**
+- `src/hooks/useTrackingData.tsx` — load `declared_hours` + `user_balance_settings`; expose `declared`, `startingBalances`.
+- `src/components/PublicHolidaysCard.tsx` — add kind toggle (`Public holiday` / `Paid leave`); rename header to "Days off".
+- `src/lib/stats.ts` — `dueHoursMs()` already excludes holidays; extend to also exclude paid-leave days (treat both the same for "due" purposes).
+- `src/routes/index.tsx` — render `OvertimeBanner` at top, add `DeclaredHoursCard`, pass `cpDays` to leave computation.
+
+**Notion export:** out of scope for this turn (existing pipeline keeps working; declared hours stay local). Can be added later if you want.
+
+## Out of scope (ask if you want them)
+- Auto-syncing declared hours / CP to Notion.
+- Half-day CP support (current spec: whole days).
+- Editing per-day hours via a calendar view (current: date picker + list).
