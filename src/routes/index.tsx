@@ -12,7 +12,7 @@ import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import { KmSummaryTable } from "@/components/KmSummaryTable";
 import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
 import {
-  ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
+  ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, DAILY_DUE_MS,
   dateKey,
 } from "@/lib/stats";
 import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
@@ -154,6 +154,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
 
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
+        <PublicHolidaysCard userId={userId} holidays={holidays} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
         <KmSummaryTable sessions={sessions} />
 
