@@ -13,7 +13,8 @@ import { KmSummaryTable } from "@/components/KmSummaryTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
-import { LogOut } from "lucide-react";
+import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
+import { Fuel, LogOut } from "lucide-react";
 import logoOcelorn from "@/assets/logo-ocelorn.jpg";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -47,7 +48,7 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
   // Re-render every minute so active counters and "due" stay fresh
