@@ -27,6 +27,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [sessions, setSessions] = useState("");
   const [totals, setTotals] = useState("");
   const [distance, setDistance] = useState("");
+  const [fuel, setFuel] = useState("");
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -41,6 +42,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
         setSessions(s.sessions_db_id ?? "");
         setTotals(s.daily_totals_db_id ?? "");
         setDistance(s.distance_summary_db_id ?? "");
+        setFuel(s.fuel_fillups_db_id ?? "");
         setTimezone(s.timezone ?? "Europe/Brussels");
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load settings"))
@@ -56,6 +58,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           sessions_db_id: sessions.trim() || null,
           daily_totals_db_id: totals.trim() || null,
           distance_summary_db_id: distance.trim() || null,
+          fuel_fillups_db_id: fuel.trim() || null,
           timezone: timezone.trim() || "Europe/Brussels",
         },
       });
@@ -127,6 +130,21 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
               Receives one row each Sunday (This week), each last day of the month (This month),
               and each Dec 31 (This year). Expected columns: a title, "Period" (text), "Total km"
               (number), optional "Date" (date).
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fuelDb">Fuel fill-ups database</Label>
+            <Input
+              id="fuelDb"
+              value={fuel}
+              onChange={(e) => setFuel(e.target.value)}
+              placeholder="https://www.notion.so/…"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: a title, "Vehicle" (text), "Date" (date), "km" (number),
+              "Liters" (number), optional "Consumption (L/100km)" (number).
             </p>
           </div>
 
