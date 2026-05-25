@@ -10,8 +10,10 @@ import { SessionsTable } from "@/components/SessionsTable";
 import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import { KmSummaryTable } from "@/components/KmSummaryTable";
+import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
 import {
-  ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
+  ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, DAILY_DUE_MS,
+  dateKey,
 } from "@/lib/stats";
 import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
 import { Fuel, LogOut } from "lucide-react";
@@ -48,7 +50,7 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, fillups, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, holidays, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
   // Re-render every minute so active counters and "due" stay fresh
@@ -57,10 +59,17 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
     return () => clearInterval(id);
   }, []);
 
+  const holidaySet = useMemo(
+    () => new Set(holidays.map((h) => h.holiday_date)),
+    [holidays],
+  );
+
   const stats = useMemo(() => {
     const r = ranges();
     const now = new Date();
-    const dayDue = DAILY_DUE_MS * ([0, 6].includes(now.getDay()) ? 0 : 1);
+    const isWeekend = [0, 6].includes(now.getDay());
+    const isTodayHoliday = holidaySet.has(dateKey(now));
+    const dayDue = isWeekend || isTodayHoliday ? 0 : DAILY_DUE_MS;
     return {
       day: {
         worked: sumShiftsMs(shifts, r.day.from, r.day.to, now),
@@ -72,23 +81,23 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         worked: sumShiftsMs(shifts, r.week.from, r.week.to, now),
         driving: sumDrivingMs(sessions, r.week.from, r.week.to, now),
         km: sumKm(sessions, r.week.from, r.week.to),
-        due: WEEKLY_DUE_MS,
+        due: dueHoursMs(r.week.from, r.week.to, holidaySet),
       },
       month: {
         worked: sumShiftsMs(shifts, r.month.from, r.month.to, now),
         driving: sumDrivingMs(sessions, r.month.from, r.month.to, now),
         km: sumKm(sessions, r.month.from, r.month.to),
-        due: dueHoursMs(r.month.from, r.month.to),
+        due: dueHoursMs(r.month.from, r.month.to, holidaySet),
       },
       year: {
         worked: sumShiftsMs(shifts, r.year.from, r.year.to, now),
         driving: sumDrivingMs(sessions, r.year.from, r.year.to, now),
         km: sumKm(sessions, r.year.from, r.year.to),
-        due: dueHoursMs(r.year.from, r.year.to),
+        due: dueHoursMs(r.year.from, r.year.to, holidaySet),
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shifts, sessions, tick]);
+  }, [shifts, sessions, holidaySet, tick]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -145,6 +154,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
 
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
+        <PublicHolidaysCard userId={userId} holidays={holidays} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
         <KmSummaryTable sessions={sessions} />
 
