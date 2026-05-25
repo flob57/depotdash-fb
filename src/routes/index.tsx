@@ -155,3 +155,43 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
     </div>
   );
 }
+
+function FuelBanner({ fillups }: { fillups: Parameters<typeof overallConsumption>[0] }) {
+  const overall = overallConsumption(fillups);
+  const perVehicle = computeVehicleConsumption(fillups).filter((v) => v.litersPer100km != null);
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Fuel className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Average fuel consumption
+          </span>
+        </div>
+        <div className="font-mono text-2xl font-semibold">
+          {overall.litersPer100km != null ? `${overall.litersPer100km.toFixed(2)} L/100km` : "—"}
+        </div>
+      </div>
+      {perVehicle.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {perVehicle.map((v) => (
+            <span
+              key={v.bus_reference}
+              className="rounded-full bg-secondary px-2.5 py-1 text-xs"
+            >
+              <span className="font-medium">{v.bus_reference}</span>
+              <span className="ml-1.5 font-mono text-muted-foreground">
+                {v.litersPer100km!.toFixed(2)} L/100km
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      {overall.litersPer100km == null && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Record at least two fill-ups for the same vehicle to see consumption.
+        </p>
+      )}
+    </section>
+  );
+}
