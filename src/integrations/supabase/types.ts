@@ -58,6 +58,47 @@ export type Database = {
           },
         ]
       }
+      fuel_fillups: {
+        Row: {
+          bus_reference: string
+          created_at: string
+          filled_at: string
+          id: string
+          km_at_fillup: number
+          liters: number
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          bus_reference: string
+          created_at?: string
+          filled_at?: string
+          id?: string
+          km_at_fillup: number
+          liters: number
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          bus_reference?: string
+          created_at?: string
+          filled_at?: string
+          id?: string
+          km_at_fillup?: number
+          liters?: number
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_fillups_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "driving_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -111,6 +152,7 @@ export type Database = {
           created_at: string
           daily_totals_db_id: string | null
           distance_summary_db_id: string | null
+          fuel_fillups_db_id: string | null
           sessions_db_id: string | null
           shifts_db_id: string | null
           timezone: string
@@ -121,6 +163,7 @@ export type Database = {
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
+          fuel_fillups_db_id?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string
@@ -131,6 +174,7 @@ export type Database = {
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
+          fuel_fillups_db_id?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string
