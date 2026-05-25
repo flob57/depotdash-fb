@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      declared_hours: {
+        Row: {
+          created_at: string
+          id: string
+          minutes: number
+          note: string | null
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          minutes?: number
+          note?: string | null
+          updated_at?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          minutes?: number
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: []
+      }
       driving_sessions: {
         Row: {
           bus_reference: string | null
@@ -131,6 +161,7 @@ export type Database = {
           created_at: string
           holiday_date: string
           id: string
+          kind: string
           label: string | null
           user_id: string
         }
@@ -138,6 +169,7 @@ export type Database = {
           created_at?: string
           holiday_date: string
           id?: string
+          kind?: string
           label?: string | null
           user_id: string
         }
@@ -145,6 +177,7 @@ export type Database = {
           created_at?: string
           holiday_date?: string
           id?: string
+          kind?: string
           label?: string | null
           user_id?: string
         }
@@ -176,6 +209,36 @@ export type Database = {
           notion_synced_at?: string | null
           off_duty_at?: string | null
           on_duty_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_balance_settings: {
+        Row: {
+          created_at: string
+          starting_balance_date: string
+          starting_cp_n: number
+          starting_cp_n_minus_1: number
+          starting_overtime_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          starting_balance_date?: string
+          starting_cp_n?: number
+          starting_cp_n_minus_1?: number
+          starting_overtime_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          starting_balance_date?: string
+          starting_cp_n?: number
+          starting_cp_n_minus_1?: number
+          starting_overtime_minutes?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

@@ -11,12 +11,18 @@ import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import { KmSummaryTable } from "@/components/KmSummaryTable";
 import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
+import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
+import { OvertimeBanner } from "@/components/OvertimeBanner";
+import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, DAILY_DUE_MS,
   dateKey,
 } from "@/lib/stats";
 import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
+import { computeLeaveBalance } from "@/lib/leave";
+import { sumDeclaredMs } from "@/lib/declared";
 import { Fuel, LogOut } from "lucide-react";
+import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 import logoOcelorn from "@/assets/logo-ocelorn.jpg";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -50,26 +56,32 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, fillups, holidays, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, holidays, declared, balanceSettings, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
-  // Re-render every minute so active counters and "due" stay fresh
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60000);
     return () => clearInterval(id);
   }, []);
 
-  const holidaySet = useMemo(
+  // Union of holidays + paid leave — both exempt days from "due hours".
+  const offDaySet = useMemo(
     () => new Set(holidays.map((h) => h.holiday_date)),
+    [holidays],
+  );
+
+  // CP days only — for leave balance deductions.
+  const cpDays = useMemo(
+    () => holidays.filter((h) => h.kind === "paid_leave").map((h) => h.holiday_date),
     [holidays],
   );
 
   const stats = useMemo(() => {
     const r = ranges();
     const now = new Date();
-    const isWeekend = [0, 6].includes(now.getDay());
-    const isTodayHoliday = holidaySet.has(dateKey(now));
-    const dayDue = isWeekend || isTodayHoliday ? 0 : DAILY_DUE_MS;
+    const isWknd = [0, 6].includes(now.getDay());
+    const isTodayOff = offDaySet.has(dateKey(now));
+    const dayDue = isWknd || isTodayOff ? 0 : DAILY_DUE_MS;
     return {
       day: {
         worked: sumShiftsMs(shifts, r.day.from, r.day.to, now),
@@ -81,27 +93,68 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         worked: sumShiftsMs(shifts, r.week.from, r.week.to, now),
         driving: sumDrivingMs(sessions, r.week.from, r.week.to, now),
         km: sumKm(sessions, r.week.from, r.week.to),
-        due: dueHoursMs(r.week.from, r.week.to, holidaySet),
+        due: dueHoursMs(r.week.from, r.week.to, offDaySet),
       },
       month: {
         worked: sumShiftsMs(shifts, r.month.from, r.month.to, now),
         driving: sumDrivingMs(sessions, r.month.from, r.month.to, now),
         km: sumKm(sessions, r.month.from, r.month.to),
-        due: dueHoursMs(r.month.from, r.month.to, holidaySet),
+        due: dueHoursMs(r.month.from, r.month.to, offDaySet),
       },
       year: {
         worked: sumShiftsMs(shifts, r.year.from, r.year.to, now),
         driving: sumDrivingMs(sessions, r.year.from, r.year.to, now),
         km: sumKm(sessions, r.year.from, r.year.to),
-        due: dueHoursMs(r.year.from, r.year.to, holidaySet),
+        due: dueHoursMs(r.year.from, r.year.to, offDaySet),
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shifts, sessions, holidaySet, tick]);
+  }, [shifts, sessions, offDaySet, tick]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  // Overtime: starting + Σ declared − Σ due over the same span of declared dates.
+  // Span = from starting_balance_date (exclusive) to max(today, last declared date).
+  const overtimeMinutes = useMemo(() => {
+    const startMins = balanceSettings?.starting_overtime_minutes ?? 0;
+    const startDateStr = balanceSettings?.starting_balance_date;
+    if (!startDateStr) {
+      // No starting balance set: still compute net from declared vs due over declared dates only.
+      const decMins = declared.reduce((a, d) => a + d.minutes, 0);
+      const dueMins = declared.reduce((a, d) => {
+        const day = parseISO(d.work_date);
+        if (isWeekend(day) || offDaySet.has(d.work_date)) return a;
+        return a + (DAILY_DUE_MS / 60000);
+      }, 0);
+      return decMins - dueMins;
+    }
+    const startDate = parseISO(startDateStr);
+    const today = startOfDay(new Date());
+    // declared total (from any date)
+    const declaredMap = new Map(declared.map((d) => [d.work_date, d.minutes]));
+    // Walk every day from (start+1) to today.
+    const days = eachDayOfInterval({ start: startOfDay(new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1)), end: today });
+    let declaredMins = 0;
+    let dueMins = 0;
+    for (const d of days) {
+      const k = dateKey(d);
+      const dec = declaredMap.get(k);
+      if (dec != null) declaredMins += dec;
+      if (!isWeekend(d) && !offDaySet.has(k)) {
+        // Only count due on past days OR today if user has declared
+        if (d < today || dec != null) dueMins += DAILY_DUE_MS / 60000;
+      }
+    }
+    return startMins + declaredMins - dueMins;
+  }, [balanceSettings, declared, offDaySet]);
+
+  const leaveBalance = useMemo(() => {
+    const start = balanceSettings
+      ? { date: balanceSettings.starting_balance_date, nMinus1: balanceSettings.starting_cp_n_minus_1, n: balanceSettings.starting_cp_n }
+      : { date: dateKey(new Date()), nMinus1: 0, n: 0 };
+    return computeLeaveBalance(start, cpDays, startOfDay(new Date()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balanceSettings, cpDays, tick]);
+
+  const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,8 +175,12 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
-        <FuelBanner fillups={fillups} />
+        <OvertimeBanner overtimeMinutes={overtimeMinutes} leave={leaveBalance} />
+        <div className="flex justify-end">
+          <StartingBalancesDialog userId={userId} current={balanceSettings} onSaved={refresh} />
+        </div>
 
+        <FuelBanner fillups={fillups} />
 
         <ActionPanel
           userId={userId}
@@ -131,6 +188,8 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           activeSession={activeSession}
           onChange={refresh}
         />
+
+        <DeclaredHoursCard userId={userId} declared={declared} onChanged={refresh} />
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">

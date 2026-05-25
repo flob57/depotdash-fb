@@ -68,12 +68,14 @@ export function isHoliday(d: Date, holidays?: Set<string>): boolean {
 }
 
 export function dueHoursMs(from: Date, to: Date, holidays?: Set<string>): number {
-  // 7h30 per weekday (Mon-Fri), excluding public holidays
+  // 7h30 per weekday (Mon-Fri), excluding public holidays AND paid leave days.
+  // `holidays` should be the union of both kinds.
   const days = eachDayOfInterval({ start: startOfDay(from), end: startOfDay(to) });
   let count = 0;
   for (const d of days) if (!isWeekend(d) && !isHoliday(d, holidays)) count++;
   return count * DAILY_DUE_MS;
 }
+
 
 export function ranges(now = new Date()) {
   return {
