@@ -444,6 +444,7 @@ export async function exportFuelFillupsRange(
     .from("fuel_fillups")
     .select("id, bus_reference, km_at_fillup, liters, filled_at")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("filled_at", from.toISOString())
     .lte("filled_at", to.toISOString())
     .order("filled_at", { ascending: true });
@@ -478,6 +479,7 @@ export async function exportFuelFillupsRange(
 
   let exported = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const f of rows) {
     const titleText = `${f.filled_at.slice(0, 10)} · ${f.bus_reference} · ${Number(f.liters).toFixed(2)} L`;
     const properties: Record<string, unknown> = {
@@ -504,9 +506,16 @@ export async function exportFuelFillupsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(f.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("fuel_fillups")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped: 0, total: rows.length, errors: errors.slice(0, 3) };
 }
