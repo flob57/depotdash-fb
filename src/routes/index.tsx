@@ -11,6 +11,7 @@ import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import { KmSummaryTable } from "@/components/KmSummaryTable";
 import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
+import { FuelFillupsCard } from "@/components/FuelFillupsCard";
 import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
@@ -214,6 +215,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <PublicHolidaysCard userId={userId} holidays={holidays} onChanged={refresh} />
+        <FuelFillupsCard fillups={fillups} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
         <KmSummaryTable sessions={sessions} />
 
