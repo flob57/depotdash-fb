@@ -5,6 +5,7 @@ import {
   exportShiftsRange,
   exportDailyTotalsRange,
   exportDistanceSummary,
+  exportFuelFillupsRange,
   localDayInfo,
   localHour,
   weekRangeLocal,
@@ -18,6 +19,7 @@ type Settings = {
   sessions_db_id: string | null;
   daily_totals_db_id: string | null;
   distance_summary_db_id: string | null;
+  fuel_fillups_db_id: string | null;
   timezone: string;
 };
 
