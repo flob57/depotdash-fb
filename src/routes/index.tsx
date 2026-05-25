@@ -13,7 +13,8 @@ import { KmSummaryTable } from "@/components/KmSummaryTable";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, WEEKLY_DUE_MS, DAILY_DUE_MS,
 } from "@/lib/stats";
-import { LogOut } from "lucide-react";
+import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
+import { Fuel, LogOut } from "lucide-react";
 import logoOcelorn from "@/assets/logo-ocelorn.jpg";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -47,7 +48,7 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
   // Re-render every minute so active counters and "due" stay fresh
@@ -112,6 +113,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <FuelBanner fillups={fillups} />
+
+
         <ActionPanel
           userId={userId}
           activeShift={activeShift}
@@ -149,5 +153,45 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         </p>
       </main>
     </div>
+  );
+}
+
+function FuelBanner({ fillups }: { fillups: Parameters<typeof overallConsumption>[0] }) {
+  const overall = overallConsumption(fillups);
+  const perVehicle = computeVehicleConsumption(fillups).filter((v) => v.litersPer100km != null);
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Fuel className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Average fuel consumption
+          </span>
+        </div>
+        <div className="font-mono text-2xl font-semibold">
+          {overall.litersPer100km != null ? `${overall.litersPer100km.toFixed(2)} L/100km` : "—"}
+        </div>
+      </div>
+      {perVehicle.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {perVehicle.map((v) => (
+            <span
+              key={v.bus_reference}
+              className="rounded-full bg-secondary px-2.5 py-1 text-xs"
+            >
+              <span className="font-medium">{v.bus_reference}</span>
+              <span className="ml-1.5 font-mono text-muted-foreground">
+                {v.litersPer100km!.toFixed(2)} L/100km
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      {overall.litersPer100km == null && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Record at least two fill-ups for the same vehicle to see consumption.
+        </p>
+      )}
+    </section>
   );
 }

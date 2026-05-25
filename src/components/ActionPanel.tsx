@@ -22,7 +22,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { listVehiclesFromNotion } from "@/lib/notion.functions";
 import { NotionSettingsDialog } from "@/components/NotionSettingsDialog";
 import { toast } from "sonner";
-import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw, Cloud } from "lucide-react";
+import { LogIn, LogOut, Play, Square, Gauge, Clock, Settings, RefreshCw, Cloud, Fuel } from "lucide-react";
 import type { Shift, Session } from "@/lib/stats";
 import { formatHm } from "@/lib/stats";
 
@@ -50,6 +50,9 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
   const [km, setKm] = useState("");
   const [busRef, setBusRef] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fuelOpen, setFuelOpen] = useState(false);
+  const [fuelKm, setFuelKm] = useState("");
+  const [fuelLiters, setFuelLiters] = useState("");
   const now = useNow();
 
   // Vehicles
@@ -201,6 +204,41 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
     }
   };
 
+  const confirmFuel = async () => {
+    if (!activeSession) return;
+    const vehicle = (activeSession.bus_reference ?? "").trim();
+    if (!vehicle) {
+      toast.error("No vehicle on the current driving session");
+      return;
+    }
+    const kmVal = Number(fuelKm);
+    const litersVal = Number(fuelLiters);
+    if (!Number.isFinite(kmVal) || kmVal < 0) {
+      toast.error("Enter a valid odometer reading");
+      return;
+    }
+    if (!Number.isFinite(litersVal) || litersVal <= 0) {
+      toast.error("Enter a valid number of litres");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("fuel_fillups").insert({
+      user_id: userId,
+      session_id: activeSession.id,
+      bus_reference: vehicle,
+      km_at_fillup: Math.round(kmVal),
+      liters: litersVal,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Fuel fill-up recorded");
+      setFuelOpen(false);
+      onChange();
+    }
+  };
+
+
   const shiftMs = activeShift ? now - new Date(activeShift.on_duty_at).getTime() : 0;
   const driveMs = activeSession ? now - new Date(activeSession.start_at).getTime() : 0;
 
@@ -273,6 +311,21 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                   className="col-span-2"
                 >
                   <Square className="mr-2 h-4 w-4" /> Stop driving
+                </Button>
+              )}
+              {activeSession && (
+                <Button
+                  onClick={() => {
+                    setFuelKm("");
+                    setFuelLiters("");
+                    setFuelOpen(true);
+                  }}
+                  disabled={busy}
+                  size="lg"
+                  variant="secondary"
+                  className="col-span-2"
+                >
+                  <Fuel className="mr-2 h-4 w-4" /> Fuel fill-up
                 </Button>
               )}
               <Button
@@ -419,6 +472,48 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
               Cancel
             </Button>
             <Button onClick={saveSettings}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={fuelOpen} onOpenChange={setFuelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Fuel fill-up{activeSession?.bus_reference ? ` · ${activeSession.bus_reference}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fuelKm">Odometer at fill-up (km)</Label>
+              <Input
+                id="fuelKm"
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={fuelKm}
+                onChange={(e) => setFuelKm(e.target.value)}
+                placeholder="e.g. 123456"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fuelLiters">Litres added</Label>
+              <Input
+                id="fuelLiters"
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={fuelLiters}
+                onChange={(e) => setFuelLiters(e.target.value)}
+                placeholder="e.g. 145.32"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setFuelOpen(false)}>Cancel</Button>
+            <Button onClick={confirmFuel} disabled={busy}>Confirm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

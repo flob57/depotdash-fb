@@ -5,6 +5,7 @@ import {
   exportShiftsRange,
   exportDailyTotalsRange,
   exportDistanceSummary,
+  exportFuelFillupsRange,
   localDayInfo,
   localHour,
   weekRangeLocal,
@@ -18,6 +19,7 @@ type Settings = {
   sessions_db_id: string | null;
   daily_totals_db_id: string | null;
   distance_summary_db_id: string | null;
+  fuel_fillups_db_id: string | null;
   timezone: string;
 };
 
@@ -95,6 +97,15 @@ async function runForUser(s: Settings, force = false) {
         );
       }
     }
+    if (s.fuel_fillups_db_id) {
+      summary.fuel = await exportFuelFillupsRange(
+        supabaseAdmin,
+        s.user_id,
+        s.fuel_fillups_db_id,
+        day.from,
+        day.to,
+      );
+    }
   } catch (e) {
     summary.error = e instanceof Error ? e.message : String(e);
   }
@@ -110,7 +121,7 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
         const { data, error } = await supabaseAdmin
           .from("user_notion_settings")
           .select(
-            "user_id, shifts_db_id, sessions_db_id, daily_totals_db_id, distance_summary_db_id, timezone",
+            "user_id, shifts_db_id, sessions_db_id, daily_totals_db_id, distance_summary_db_id, fuel_fillups_db_id, timezone",
           );
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
@@ -125,7 +136,8 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             !s.shifts_db_id &&
             !s.sessions_db_id &&
             !s.daily_totals_db_id &&
-            !s.distance_summary_db_id
+            !s.distance_summary_db_id &&
+            !s.fuel_fillups_db_id
           )
             continue;
           results.push(await runForUser(s, force));
