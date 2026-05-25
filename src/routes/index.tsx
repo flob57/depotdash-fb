@@ -11,6 +11,7 @@ import { ShiftsTable } from "@/components/ShiftsTable";
 import { DailyTotalsTable } from "@/components/DailyTotalsTable";
 import { KmSummaryTable } from "@/components/KmSummaryTable";
 import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
+import { FuelFillupsCard } from "@/components/FuelFillupsCard";
 import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
