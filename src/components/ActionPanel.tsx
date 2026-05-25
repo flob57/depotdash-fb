@@ -278,6 +278,21 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                   <Square className="mr-2 h-4 w-4" /> Stop driving
                 </Button>
               )}
+              {activeSession && (
+                <Button
+                  onClick={() => {
+                    setFuelKm("");
+                    setFuelLiters("");
+                    setFuelOpen(true);
+                  }}
+                  disabled={busy}
+                  size="lg"
+                  variant="secondary"
+                  className="col-span-2"
+                >
+                  <Fuel className="mr-2 h-4 w-4" /> Fuel fill-up
+                </Button>
+              )}
               <Button
                 onClick={goOffDuty}
                 disabled={busy || !!activeSession}
