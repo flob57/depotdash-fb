@@ -47,9 +47,11 @@ export function computeLeaveBalance(
     const month = cur.getMonth() + 1; // 1..12
 
     if (day === 1) {
-      // 1 May rollover happens before accrual
-      if (month === 5) {
-        nMinus1 = n; // remaining N rolls over (old N-1 expires)
+      // 1 July rollover happens before accrual:
+      // unused N remaining at end of 30 June carries over to N-1
+      // (any old N-1 still unused expires).
+      if (month === 7) {
+        nMinus1 = n;
         n = 0;
       }
       // Monthly accrual on the 1st
