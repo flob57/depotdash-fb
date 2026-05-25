@@ -113,6 +113,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <FuelBanner fillups={fillups} />
+
+
         <ActionPanel
           userId={userId}
           activeShift={activeShift}
