@@ -215,6 +215,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <PublicHolidaysCard userId={userId} holidays={holidays} onChanged={refresh} />
+        <FuelFillupsCard fillups={fillups} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
         <KmSummaryTable sessions={sessions} />
 
