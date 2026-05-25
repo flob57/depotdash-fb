@@ -220,5 +220,10 @@ export const runAutoExportNow = createServerFn({ method: "POST" })
         supabase, userId, data.distance_summary_db_id, "This year", y.from, y.to,
       );
     }
+    if (data.fuel_fillups_db_id) {
+      summary.fuel = await exportFuelFillupsRange(
+        supabase, userId, data.fuel_fillups_db_id, day.from, day.to,
+      );
+    }
     return summary;
   });
