@@ -245,6 +245,7 @@ export async function exportShiftsRange(
     .from("shifts")
     .select("id, on_duty_at, off_duty_at")
     .eq("user_id", userId)
+    .is("notion_synced_at", null)
     .gte("on_duty_at", from.toISOString())
     .lte("on_duty_at", to.toISOString())
     .order("on_duty_at", { ascending: true });
@@ -261,6 +262,7 @@ export async function exportShiftsRange(
   let exported = 0,
     skipped = 0;
   const errors: string[] = [];
+  const syncedIds: string[] = [];
   for (const s of shifts) {
     if (!s.off_duty_at) {
       skipped++;
@@ -280,9 +282,16 @@ export async function exportShiftsRange(
     try {
       await createPage(dbId, properties);
       exported++;
+      syncedIds.push(s.id);
     } catch (e) {
       errors.push((e as Error).message);
     }
+  }
+  if (syncedIds.length > 0) {
+    await supabase
+      .from("shifts")
+      .update({ notion_synced_at: new Date().toISOString() })
+      .in("id", syncedIds);
   }
   return { exported, skipped, total: shifts.length, errors: errors.slice(0, 3) };
 }
