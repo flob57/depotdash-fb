@@ -165,22 +165,73 @@ export function DeclaredHoursCard({ userId, declared, onChanged }: Props) {
           Saving the same date overwrites the previous declaration. Leave a range empty to skip it.
         </p>
 
-        {declared.length > 0 && (
-          <ul className="divide-y rounded-md border">
-            {declared.slice(0, 20).map((d) => (
-              <li key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <div>
-                  <span className="font-medium">{format(parseISO(d.work_date), "EEE dd MMM yyyy")}</span>
-                  <span className="ml-2 font-mono">{formatMinutes(d.minutes)}</span>
-                  {d.note && <span className="ml-2 text-muted-foreground">· {d.note}</span>}
-                </div>
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => remove(d.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {(() => {
+          const today = new Date();
+          const currentKey = `${getISOWeekYear(today)}-W${String(getISOWeek(today)).padStart(2, "0")}`;
+          const [selectedWeek, setSelectedWeek] = [weekKey, setWeekKey];
+          const weeks = Array.from(new Set([currentKey, ...declared.map((d) => {
+            const dt = parseISO(d.work_date);
+            return `${getISOWeekYear(dt)}-W${String(getISOWeek(dt)).padStart(2, "0")}`;
+          })])).sort().reverse();
+          const [yStr, wStr] = selectedWeek.split("-W");
+          // Compute week start/end from ISO week using jan 4 trick
+          const jan4 = new Date(parseInt(yStr, 10), 0, 4);
+          const weekStart = startOfISOWeek(addWeeks(jan4, parseInt(wStr, 10) - 1));
+          const weekEnd = endOfISOWeek(weekStart);
+          const filtered = declared.filter((d) => {
+            const dt = parseISO(d.work_date);
+            return dt >= weekStart && dt <= weekEnd;
+          });
+          const weekTotal = filtered.reduce((a, d) => a + d.minutes, 0);
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">Week</Label>
+                <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                  <SelectTrigger className="h-8 w-auto min-w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weeks.map((w) => {
+                      const [wy, ww] = w.split("-W");
+                      const ws = startOfISOWeek(addWeeks(new Date(parseInt(wy, 10), 0, 4), parseInt(ww, 10) - 1));
+                      const we = endOfISOWeek(ws);
+                      const isCur = w === currentKey;
+                      return (
+                        <SelectItem key={w} value={w}>
+                          Week {ww} · {format(ws, "dd MMM")} – {format(we, "dd MMM yyyy")}{isCur ? " (current)" : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              {filtered.length > 0 ? (
+                <>
+                  <ul className="divide-y rounded-md border">
+                    {filtered.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                        <div>
+                          <span className="font-medium">{format(parseISO(d.work_date), "EEE dd MMM yyyy")}</span>
+                          <span className="ml-2 font-mono">{formatMinutes(d.minutes)}</span>
+                          {d.note && <span className="ml-2 text-muted-foreground">· {d.note}</span>}
+                        </div>
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => remove(d.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-right text-xs text-muted-foreground">
+                    Week total: <span className="font-mono">{formatMinutes(weekTotal)}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">No declared hours for this week.</p>
+              )}
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
