@@ -24,7 +24,7 @@ import { computeLeaveBalance } from "@/lib/leave";
 import { sumDeclaredMs } from "@/lib/declared";
 import { Fuel, LogOut } from "lucide-react";
 import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
-import logoOcelorn from "@/assets/logo-ocelorn.jpg";
+import logoOcelorn from "@/assets/logo-lestonan.png";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/")({
@@ -163,7 +163,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <img src={logoOcelorn} alt="Océlorn" className="h-10 w-auto rounded-md bg-black p-1" />
+            <img src={logoOcelorn} alt="Lestonan" className="h-10 w-auto rounded-md bg-white p-1" />
             <div>
               <h1 className="text-lg font-semibold leading-tight">Suivi d'activité</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
