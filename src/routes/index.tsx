@@ -24,7 +24,7 @@ import { computeLeaveBalance } from "@/lib/leave";
 import { sumDeclaredMs } from "@/lib/declared";
 import { Fuel, LogOut } from "lucide-react";
 import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
-import logoOcelorn from "@/assets/logo-ocelorn.jpg";
+import logoOcelorn from "@/assets/logo-lestonan.png";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/")({
