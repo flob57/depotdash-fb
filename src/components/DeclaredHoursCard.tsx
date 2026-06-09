@@ -57,6 +57,10 @@ export function DeclaredHoursCard({ userId, declared, onChanged }: Props) {
   const [eEnd, setEEnd] = useState(initial.eEnd);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [weekKey, setWeekKey] = useState(() => {
+    const t = new Date();
+    return `${getISOWeekYear(t)}-W${String(getISOWeek(t)).padStart(2, "0")}`;
+  });
 
   const onDateChange = (v: string) => {
     setDate(v);
