@@ -86,6 +86,7 @@ export type Database = {
           route: string
           slot_index: number
           start_time: string
+          timetable: Json | null
           updated_at: string
           user_id: string
           vehicle: string
@@ -102,6 +103,7 @@ export type Database = {
           route?: string
           slot_index?: number
           start_time: string
+          timetable?: Json | null
           updated_at?: string
           user_id: string
           vehicle?: string
@@ -118,6 +120,7 @@ export type Database = {
           route?: string
           slot_index?: number
           start_time?: string
+          timetable?: Json | null
           updated_at?: string
           user_id?: string
           vehicle?: string
