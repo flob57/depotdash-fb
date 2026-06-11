@@ -294,7 +294,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         if (ov) r.weekdays = ov;
       }
       for (let i = 0; i < departuresRows.length; i += 500) {
-        const chunk = departuresRows.slice(i, i + 500);
+        const chunk = departuresRows.slice(i, i + 500).map(({ _routePageId, ...rest }) => rest);
         const { error: dErr } = await supabase.from("departures").insert(chunk);
         if (dErr) throw new Error(dErr.message);
       }
