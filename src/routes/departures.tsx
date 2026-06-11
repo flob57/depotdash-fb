@@ -291,51 +291,86 @@ function DeparturesView() {
                   Aucune course en circulation.
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-md border bg-card">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Départ</th>
-                        <th className="px-3 py-2 text-left">Course</th>
-                        <th className="px-3 py-2 text-left">Lieu</th>
-                        <th className="px-3 py-2 text-left">Conducteur</th>
-                        <th className="px-3 py-2 text-left">Véhicule</th>
-                        <th className="px-3 py-2 text-left">QUB</th>
-                        <th className="px-3 py-2 text-left">Arrivée</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {running.map((r) => {
-                        const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
-                        const isP = /^p/i.test(r.route?.trim() ?? "");
-                        return (
-                          <Fragment key={r.id}>
-                            <tr className="border-t bg-primary/5">
-                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
-                              <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
-                                <span className="inline-flex items-center gap-1.5">
-                                  <RouteIcon icon={r.route_icon} />
-                                  {routeLabel(r.route)}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2">{r.location || "—"}</td>
-                              <td className="px-3 py-2">{r.driver}</td>
-                              <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                              <td className="px-3 py-2">{r.qub}</td>
-                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
-                            </tr>
-                            <tr className="bg-primary/5">
-                              <td colSpan={7} className="p-0">
-                                <RouteProgressBar timetable={r.timetable} now={now} />
-                              </td>
-                            </tr>
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {/* Mobile cards */}
+                  <div className="sm:hidden space-y-2">
+                    {running.map((r) => {
+                      const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                      const isP = /^p/i.test(r.route?.trim() ?? "");
+                      return (
+                        <div key={r.id} className="rounded-md border bg-primary/5 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-3 py-2">
+                            <div className={cn("flex items-center gap-1.5 font-medium", isLigne && "text-orange-500", isP && "text-yellow-500")}>
+                              <RouteIcon icon={r.route_icon} />
+                              <span>{routeLabel(r.route)}</span>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-foreground">{r.location || "—"}</span>
+                            </div>
+                            <div className="font-mono text-xs tabular-nums text-muted-foreground shrink-0">
+                              {hm(r.start_time)} → {hm(r.arrival_time as string)}
+                            </div>
+                          </div>
+                          <div className="px-3 pb-2 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                            <span>{r.driver}</span>
+                            <span className="font-mono">{r.vehicle}</span>
+                            {r.qub && <span>QUB {r.qub}</span>}
+                          </div>
+                          <div className="border-t border-border/50">
+                            <RouteProgressBar timetable={r.timetable} now={now} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-hidden rounded-md border bg-card">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Départ</th>
+                          <th className="px-3 py-2 text-left">Course</th>
+                          <th className="px-3 py-2 text-left">Lieu</th>
+                          <th className="px-3 py-2 text-left">Conducteur</th>
+                          <th className="px-3 py-2 text-left">Véhicule</th>
+                          <th className="px-3 py-2 text-left">QUB</th>
+                          <th className="px-3 py-2 text-left">Arrivée</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {running.map((r) => {
+                          const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                          const isP = /^p/i.test(r.route?.trim() ?? "");
+                          return (
+                            <Fragment key={r.id}>
+                              <tr className="border-t bg-primary/5">
+                                <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                                <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <RouteIcon icon={r.route_icon} />
+                                    {routeLabel(r.route)}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">{r.location || "—"}</td>
+                                <td className="px-3 py-2">{r.driver}</td>
+                                <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                                <td className="px-3 py-2">{r.qub}</td>
+                                <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
+                              </tr>
+                              <tr className="bg-primary/5">
+                                <td colSpan={7} className="p-0">
+                                  <RouteProgressBar timetable={r.timetable} now={now} />
+                                </td>
+                              </tr>
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
+
             </section>
 
             <h2 className="text-sm font-semibold pt-2">Prochains départs</h2>
