@@ -104,45 +104,75 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
   }
   const nextIdx = stops.findIndex((s) => s.mins > now);
   return (
-    <div className="px-4 pt-4 pb-20">
-      <div className="relative mx-3 h-2 rounded-full bg-muted">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
-          style={{ width: `${pct}%` }}
-        />
-        {stops.map((s, i) => {
-          const left = (i / (stops.length - 1)) * 100;
-          const passed = now >= s.mins;
-          const isNext = i === nextIdx;
-          return (
-            <div
-              key={i}
-              className="absolute top-1/2"
-              style={{ left: `${left}%`, transform: "translate(-50%, -50%)" }}
-            >
+    <>
+      {/* Desktop: horizontal bar with rotated labels */}
+      <div className="hidden sm:block px-4 pt-4 pb-20">
+        <div className="relative mx-3 h-2 rounded-full bg-muted">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
+            style={{ width: `${pct}%` }}
+          />
+          {stops.map((s, i) => {
+            const left = (i / (stops.length - 1)) * 100;
+            const passed = now >= s.mins;
+            const isNext = i === nextIdx;
+            return (
               <div
-                className={cn(
-                  "h-3 w-3 rounded-full border-2 border-background",
-                  passed ? "bg-primary" : "bg-muted-foreground/40",
-                  isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
-                )}
-              />
-              <div className="absolute left-1/2 top-4 text-[10px] leading-tight text-muted-foreground whitespace-nowrap" style={{ transform: "translateX(-50%) rotate(-45deg)", transformOrigin: "top center" }}>
-                <div className="font-mono tabular-nums">{s.time}</div>
-                <div>{s.stop}</div>
+                key={i}
+                className="absolute top-1/2"
+                style={{ left: `${left}%`, transform: "translate(-50%, -50%)" }}
+              >
+                <div
+                  className={cn(
+                    "h-3 w-3 rounded-full border-2 border-background",
+                    passed ? "bg-primary" : "bg-muted-foreground/40",
+                    isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
+                  )}
+                />
+                <div className="absolute left-1/2 top-4 text-[10px] leading-tight text-muted-foreground whitespace-nowrap" style={{ transform: "translateX(-50%) rotate(-45deg)", transformOrigin: "top center" }}>
+                  <div className="font-mono tabular-nums">{s.time}</div>
+                  <div>{s.stop}</div>
+                </div>
               </div>
-            </div>
-          );
-        })}
-        <div
-          className="absolute -top-4 text-base"
-          style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
-          aria-label="Position théorique"
-        >
-          🚌
+            );
+          })}
+          <div
+            className="absolute -top-4 text-base"
+            style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+            aria-label="Position théorique"
+          >
+            🚌
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Mobile: vertical timeline */}
+      <div className="sm:hidden px-4 py-3">
+        <ol className="relative ml-2 border-l-2 border-muted">
+          {stops.map((s, i) => {
+            const passed = now >= s.mins;
+            const isNext = i === nextIdx;
+            return (
+              <li key={i} className="relative pl-4 py-1">
+                <span
+                  className={cn(
+                    "absolute -left-[7px] top-2 h-3 w-3 rounded-full border-2 border-background",
+                    passed ? "bg-primary" : "bg-muted-foreground/40",
+                    isNext && "ring-2 ring-primary",
+                  )}
+                />
+                <div className="flex items-baseline justify-between gap-2 text-xs">
+                  <span className={cn("truncate", passed && !isNext && "text-muted-foreground line-through")}>
+                    {isNext && "🚌 "}{s.stop}
+                  </span>
+                  <span className="font-mono tabular-nums text-muted-foreground shrink-0">{s.time}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </>
   );
 }
 
