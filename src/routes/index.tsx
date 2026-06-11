@@ -199,7 +199,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           onChange={refresh}
         />
 
-        <DeclaredHoursCard userId={userId} declared={declared} onChanged={refresh} />
+        <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
+
+        <DeclaredHoursCard userId={userId} declared={declared} schoolHolidays={schoolHolidays} onChanged={refresh} />
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
