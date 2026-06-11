@@ -151,6 +151,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
       ];
       for (let n = 1; n <= 12; n++) {
         candidates.push(findProp(props, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`));
+        candidates.push(findProp(props, `Lieu ${n}`, `Location ${n}`, `Lieu${n}`));
       }
       for (const c of candidates) for (const id of extractRelationIds(c)) allRelIds.add(id);
     }
@@ -163,7 +164,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     }> = [];
     const departuresRows: Array<{
       user_id: string; notion_page_id: string; slot_index: number;
-      start_time: string; route: string; qub: string; driver: string; vehicle: string; weekdays: number[];
+      start_time: string; route: string; qub: string; driver: string; vehicle: string; location: string; weekdays: number[];
     }> = [];
 
     let idx = 0;
@@ -189,14 +190,16 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
       for (let n = 1; n <= 12; n++) {
         const rProp = findProp(page.properties, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`);
         const tProp = findProp(page.properties, `Time ${n}`, `Heure ${n}`, `Horaire ${n}`, `H${n}`);
+        const lProp = findProp(page.properties, `Lieu ${n}`, `Location ${n}`, `Lieu${n}`);
         if (!rProp && !tProp) continue;
         const tParsed = parseTime(plain(tProp));
         if (!tParsed) continue;
         const rText = (rProp ? plain(rProp) : "") || (rProp ? await relationTitles(rProp, relCache) : "");
         if (!rText) continue;
+        const location = (lProp ? plain(lProp) : "") || (lProp ? await relationTitles(lProp, relCache) : "");
         departuresRows.push({
           user_id: userId, notion_page_id: page.id, slot_index: n,
-          start_time: tParsed, route: rText, qub, driver, vehicle,
+          start_time: tParsed, route: rText, qub, driver, vehicle, location,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
         });
       }

@@ -23,6 +23,7 @@ type Departure = {
   driver: string;
   vehicle: string;
   qub: string;
+  location: string;
   weekdays: number[];
 };
 
@@ -97,7 +98,7 @@ function DeparturesView() {
       const [{ data: depData }, { data: dutyData }] = await Promise.all([
         supabase
           .from("departures")
-          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,weekdays")
           .order("start_time", { ascending: true }),
         supabase
           .from("duties")
@@ -171,6 +172,7 @@ function DeparturesView() {
                   <th className="px-3 py-2 text-left">Départ</th>
                   <th className="px-3 py-2 text-left">Dans</th>
                   <th className="px-3 py-2 text-left">Course</th>
+                  <th className="px-3 py-2 text-left">Lieu</th>
                   <th className="px-3 py-2 text-left">Conducteur</th>
                   <th className="px-3 py-2 text-left">Véhicule</th>
                   <th className="px-3 py-2 text-left">QUB</th>
@@ -200,6 +202,7 @@ function DeparturesView() {
                         {eta <= 0 ? "maintenant" : `${eta} min`}
                       </td>
                       <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                      <td className="px-3 py-2">{r.location || "—"}</td>
                       <td className="px-3 py-2">{r.driver}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                       <td className="px-3 py-2">{r.qub}</td>
@@ -357,6 +360,7 @@ function AllRoutesTable({
             <tr>
               <th className="px-3 py-2 text-left">Départ</th>
               <th className="px-3 py-2 text-left">Course</th>
+              <th className="px-3 py-2 text-left">Lieu</th>
               <th className="px-3 py-2 text-left">Conducteur</th>
               <th className="px-3 py-2 text-left">Véhicule</th>
               <th className="px-3 py-2 text-left">Jours</th>
@@ -372,6 +376,7 @@ function AllRoutesTable({
                   <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
                     {routeLabel(r.route)}
                   </td>
+                  <td className="px-3 py-2">{r.location || "—"}</td>
                   <td className="px-3 py-2">{r.driver}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                   <td className="px-3 py-2">
@@ -387,7 +392,7 @@ function AllRoutesTable({
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
                   Aucun service.
                 </td>
               </tr>
