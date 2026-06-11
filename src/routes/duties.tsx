@@ -263,9 +263,12 @@ function DutiesView({ userId }: { userId: string }) {
                           <span className="font-mono">{d.vehicle}</span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="shrink-0 -mr-2" onClick={() => removeDuty(d.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex shrink-0 flex-col gap-1">
+                        <EditDutyDialog duty={d} onSaved={refresh} />
+                        <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
