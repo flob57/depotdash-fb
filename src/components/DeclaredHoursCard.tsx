@@ -10,20 +10,31 @@ import { toast } from "sonner";
 import { format, parseISO, startOfISOWeek, endOfISOWeek, getISOWeek, getISOWeekYear, addWeeks } from "date-fns";
 import { dateKey } from "@/lib/stats";
 import { formatMinutes, type DeclaredHour } from "@/lib/declared";
+import { isHoliday, type SchoolHoliday } from "@/lib/school-context";
 
 type Props = {
   userId: string;
   declared: DeclaredHour[];
+  schoolHolidays?: SchoolHoliday[];
   onChanged: () => void;
 };
 
 type Defaults = { mStart: string; mEnd: string; eStart: string; eEnd: string };
 
-// Mon(1), Tue(2), Thu(4), Fri(5): 06:15–10:30 + 15:00–18:15
-// Wed(3): 06:15–13:45 (no evening)
-// Weekend: empty
-function defaultsForDate(d: Date): Defaults {
+// School term (default):
+//   Mon(1), Tue(2), Thu(4), Fri(5): 06:15–10:30 + 15:00–18:15
+//   Wed(3): 06:15–13:45 (no evening)
+//   Weekend: empty
+// School holidays:
+//   Mon–Fri: 06:30–10:30 + 14:30–18:00
+//   Weekend: empty
+function defaultsForDate(d: Date, holidays: SchoolHoliday[] = []): Defaults {
   const dow = d.getDay();
+  const holiday = isHoliday(d, holidays);
+  if (holiday) {
+    if (dow >= 1 && dow <= 5) return { mStart: "06:30", mEnd: "10:30", eStart: "14:30", eEnd: "18:00" };
+    return { mStart: "", mEnd: "", eStart: "", eEnd: "" };
+  }
   if (dow === 3) return { mStart: "06:15", mEnd: "13:45", eStart: "", eEnd: "" };
   if (dow === 1 || dow === 2 || dow === 4 || dow === 5) {
     return { mStart: "06:15", mEnd: "10:30", eStart: "15:00", eEnd: "18:15" };
