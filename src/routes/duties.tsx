@@ -351,20 +351,54 @@ function WeekdayPicker({ value, onToggle }: { value: number[]; onToggle: (w: num
 }
 
 function NotionSyncDialog({
-  dbId, setDbId, onSync,
-}: { dbId: string; setDbId: (v: string) => void; onSync: () => Promise<void> }) {
+  dbIds, onSave, onSync, activeSlot,
+}: {
+  dbIds: Record<ServiceSlot, string>;
+  onSave: (next: Record<ServiceSlot, string>) => Promise<boolean>;
+  onSync: () => Promise<void>;
+  activeSlot: ServiceSlot;
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [local, setLocal] = useState(dbId);
-  useEffect(() => setLocal(dbId), [dbId]);
+  const [local, setLocal] = useState(dbIds);
+  useEffect(() => setLocal(dbIds), [dbIds]);
 
   const run = async () => {
     setBusy(true);
-    setDbId(local);
-    await onSync();
+    const ok = await onSave(local);
+    if (ok) await onSync();
     setBusy(false);
     setOpen(false);
   };
+
+  const saveOnly = async () => {
+    setBusy(true);
+    const ok = await onSave(local);
+    setBusy(false);
+    if (ok) {
+      toast.success("Bases Notion enregistrées.");
+      setOpen(false);
+    }
+  };
+
+  const field = (slot: ServiceSlot, label: string, hint?: string) => (
+    <div className="space-y-1">
+      <Label className="flex items-center gap-2">
+        {label}
+        {activeSlot === slot && (
+          <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            ACTIVE AUJOURD'HUI
+          </span>
+        )}
+      </Label>
+      <Input
+        value={local[slot]}
+        onChange={(e) => setLocal({ ...local, [slot]: e.target.value })}
+        placeholder="https://notion.so/…"
+      />
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -373,22 +407,129 @@ function NotionSyncDialog({
           <RefreshCw className="mr-1.5 h-4 w-4" /> Synchroniser depuis Notion
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importer depuis Notion</DialogTitle>
+          <DialogTitle>Bases Notion par jour</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label>ID ou URL de la base "Services Lestonan période scolaire"</Label>
-          <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="https://notion.so/…" />
+        <div className="space-y-4">
+          {field("weekday", "Services Lestonan période scolaire", "Utilisée le lundi, mardi, jeudi et vendredi en période scolaire.")}
+          {field("wed", "Services Mer PS", "Utilisée le mercredi en période scolaire.")}
+          {field("sat_hol", "Services Sam + PV", "Utilisée le samedi en période scolaire et du lundi au samedi pendant les vacances.")}
           <p className="text-xs text-muted-foreground">
-            Colonnes attendues : PS, QUB, Driver, Route 1, Vehicle. La base doit être partagée avec l'intégration Notion.
+            Colonnes attendues : PS, QUB, Driver, Route 1, Vehicle. Chaque base doit être partagée avec l'intégration Notion.
+            La synchronisation remplace les prises actuelles par celles de la base active aujourd'hui.
           </p>
         </div>
-        <DialogFooter>
-          <Button onClick={run} disabled={busy || !local}>
-            {busy ? "Synchronisation…" : "Lancer la synchronisation"}
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button variant="ghost" onClick={saveOnly} disabled={busy}>Enregistrer seulement</Button>
+          <Button onClick={run} disabled={busy}>
+            {busy ? "Synchronisation…" : `Synchroniser (${SLOT_LABELS[activeSlot]})`}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SchoolHolidaysDialog({ holidays, onChange }: { holidays: SchoolHoliday[]; onChange: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const add = async () => {
+    if (!label.trim() || !start || !end) {
+      toast.error("Renseignez le libellé et les deux dates.");
+      return;
+    }
+    if (end < start) {
+      toast.error("La date de fin doit être après la date de début.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("school_holidays").insert({
+      label: label.trim(),
+      start_date: start,
+      end_date: end,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      setLabel(""); setStart(""); setEnd("");
+      onChange();
+      toast.success("Période ajoutée");
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer cette période ?")) return;
+    const { error } = await supabase.from("school_holidays").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else onChange();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <CalendarDays className="mr-1.5 h-4 w-4" /> Vacances scolaires
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Calendrier des vacances scolaires (partagé)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            <div className="sm:col-span-2 space-y-1">
+              <Label>Libellé</Label>
+              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Vacances de Noël" />
+            </div>
+            <div className="space-y-1">
+              <Label>Début</Label>
+              <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Fin</Label>
+              <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+            </div>
+          </div>
+          <Button size="sm" onClick={add} disabled={busy}>
+            <Plus className="mr-1.5 h-4 w-4" /> Ajouter une période
+          </Button>
+
+          <div className="rounded-md border">
+            {holidays.length === 0 ? (
+              <p className="px-3 py-4 text-center text-sm text-muted-foreground">Aucune période enregistrée.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-2 py-2 text-left">Libellé</th>
+                    <th className="px-2 py-2 text-left">Du</th>
+                    <th className="px-2 py-2 text-left">Au</th>
+                    <th className="w-10 px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holidays.map((h) => (
+                    <tr key={h.id} className="border-t">
+                      <td className="px-2 py-2">{h.label}</td>
+                      <td className="px-2 py-2 font-mono text-xs">{h.start_date}</td>
+                      <td className="px-2 py-2 font-mono text-xs">{h.end_date}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button variant="ghost" size="icon" onClick={() => remove(h.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
