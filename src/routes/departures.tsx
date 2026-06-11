@@ -95,7 +95,7 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
   }
   const nextIdx = stops.findIndex((s) => s.mins > now);
   return (
-    <div className="px-4 pt-4 pb-20">
+    <div className="px-4 pt-4 pb-28">
       <div className="relative mx-3 h-2 rounded-full bg-muted">
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
@@ -118,7 +118,14 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
                   isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
                 )}
               />
-              <div className="absolute left-1/2 top-4 text-[10px] leading-tight text-muted-foreground whitespace-nowrap" style={{ transform: "translateX(-50%) rotate(-45deg)", transformOrigin: "top center" }}>
+              <div
+                className="absolute left-1/2 text-[10px] leading-tight text-muted-foreground whitespace-nowrap"
+                style={{
+                  top: i % 2 === 0 ? "1rem" : "2.75rem",
+                  transform: "translateX(-50%) rotate(-45deg)",
+                  transformOrigin: "top center",
+                }}
+              >
                 <div className="font-mono tabular-nums">{s.time}</div>
                 <div>{s.stop}</div>
               </div>
