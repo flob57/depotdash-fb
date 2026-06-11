@@ -235,88 +235,131 @@ function DutiesView({ userId }: { userId: string }) {
             Aucune prise de service prévue aujourd'hui. Synchronisez depuis Notion ou ajoutez-en manuellement.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-md border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="w-12 px-2 py-2 text-center">OK</th>
-                  <th
-                    className="cursor-pointer px-2 py-2 text-left select-none"
-                    onClick={() =>
-                      setSort((s) =>
-                        s?.key === "ps" ? { key: "ps", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "ps", dir: "asc" }
-                      )
-                    }
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {visible.map((d) => {
+                const checked = d.last_checked_date === today;
+                const overdue = !checked && timeMinutes(d.start_time) <= now && d.weekdays.includes(wd);
+                return (
+                  <div
+                    key={d.id}
+                    className={cn(
+                      "rounded-md border bg-card p-3",
+                      checked && "bg-green-500/10 border-green-500/30",
+                      overdue && "bg-destructive/15 border-destructive/40",
+                    )}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      PS
-                      {sort?.key === "ps" ? (
-                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                      )}
-                    </span>
-                  </th>
-                  <th
-                    className="cursor-pointer px-2 py-2 text-left select-none"
-                    onClick={() =>
-                      setSort((s) =>
-                        s?.key === "qub" ? { key: "qub", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "qub", dir: "asc" }
-                      )
-                    }
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      QUB
-                      {sort?.key === "qub" ? (
-                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-40" />
-                      )}
-                    </span>
-                  </th>
-                  <th className="px-2 py-2 text-left">Conducteur</th>
-                  <th className="px-2 py-2 text-left">Service</th>
-                  <th className="px-2 py-2 text-left">Véhicule</th>
-                  <th className="px-2 py-2 text-left">Jours</th>
-                  <th className="w-10 px-2 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((d) => {
-                  const checked = d.last_checked_date === today;
-                  const overdue = !checked && timeMinutes(d.start_time) <= now && d.weekdays.includes(wd);
-                  return (
-                    <tr
-                      key={d.id}
-                      className={cn(
-                        "border-t",
-                        checked && "bg-green-500/10",
-                        overdue && "bg-destructive/15 text-destructive-foreground",
-                      )}
+                    <div className="flex items-start gap-3">
+                      <Checkbox checked={checked} onCheckedChange={() => toggleCheck(d)} className="mt-1 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-mono text-lg font-semibold tabular-nums">{hm(d.start_time)}</span>
+                          <span className="text-xs text-muted-foreground">QUB {d.qub}</span>
+                        </div>
+                        <div className="mt-0.5 text-sm font-medium truncate">{d.driver}</div>
+                        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                          <span>{d.route}</span>
+                          <span className="font-mono">{d.vehicle}</span>
+                        </div>
+                        <div className="mt-2">
+                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="shrink-0 -mr-2" onClick={() => removeDuty(d.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block overflow-hidden rounded-md border bg-card">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="w-12 px-2 py-2 text-center">OK</th>
+                    <th
+                      className="cursor-pointer px-2 py-2 text-left select-none"
+                      onClick={() =>
+                        setSort((s) =>
+                          s?.key === "ps" ? { key: "ps", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "ps", dir: "asc" }
+                        )
+                      }
                     >
-                      <td className="px-2 py-2 text-center">
-                        <Checkbox checked={checked} onCheckedChange={() => toggleCheck(d)} />
-                      </td>
-                      <td className="px-2 py-2 font-mono font-semibold">{hm(d.start_time)}</td>
-                      <td className="px-2 py-2">{d.qub}</td>
-                      <td className="px-2 py-2">{d.driver}</td>
-                      <td className="px-2 py-2">{d.route}</td>
-                      <td className="px-2 py-2 font-mono text-xs">{d.vehicle}</td>
-                      <td className="px-2 py-2">
-                        <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      <span className="inline-flex items-center gap-1">
+                        PS
+                        {sort?.key === "ps" ? (
+                          sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </span>
+                    </th>
+                    <th
+                      className="cursor-pointer px-2 py-2 text-left select-none"
+                      onClick={() =>
+                        setSort((s) =>
+                          s?.key === "qub" ? { key: "qub", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "qub", dir: "asc" }
+                        )
+                      }
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        QUB
+                        {sort?.key === "qub" ? (
+                          sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </span>
+                    </th>
+                    <th className="px-2 py-2 text-left">Conducteur</th>
+                    <th className="px-2 py-2 text-left">Service</th>
+                    <th className="px-2 py-2 text-left">Véhicule</th>
+                    <th className="px-2 py-2 text-left">Jours</th>
+                    <th className="w-10 px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((d) => {
+                    const checked = d.last_checked_date === today;
+                    const overdue = !checked && timeMinutes(d.start_time) <= now && d.weekdays.includes(wd);
+                    return (
+                      <tr
+                        key={d.id}
+                        className={cn(
+                          "border-t",
+                          checked && "bg-green-500/10",
+                          overdue && "bg-destructive/15 text-destructive-foreground",
+                        )}
+                      >
+                        <td className="px-2 py-2 text-center">
+                          <Checkbox checked={checked} onCheckedChange={() => toggleCheck(d)} />
+                        </td>
+                        <td className="px-2 py-2 font-mono font-semibold">{hm(d.start_time)}</td>
+                        <td className="px-2 py-2">{d.qub}</td>
+                        <td className="px-2 py-2">{d.driver}</td>
+                        <td className="px-2 py-2">{d.route}</td>
+                        <td className="px-2 py-2 font-mono text-xs">{d.vehicle}</td>
+                        <td className="px-2 py-2">
+                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
+
         <p className="text-center text-xs text-muted-foreground">
           Les coches se réinitialisent automatiquement chaque jour à minuit.
         </p>
