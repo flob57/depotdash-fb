@@ -41,6 +41,11 @@ function todayWeekday() {
   const d = new Date().getDay();
   return d === 0 ? 7 : d;
 }
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function nowMinutes() {
   const d = new Date();
   return d.getHours() * 60 + d.getMinutes();
@@ -82,21 +87,31 @@ function DeparturesView() {
     return () => clearInterval(id);
   }, []);
 
+  const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
+  const today = todayKey();
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("departures")
-        .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
-        .order("start_time", { ascending: true });
+      const [{ data: depData }, { data: dutyData }] = await Promise.all([
+        supabase
+          .from("departures")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
+          .order("start_time", { ascending: true }),
+        supabase
+          .from("duties")
+          .select("notion_page_id,last_checked_date")
+          .eq("last_checked_date", today),
+      ]);
       if (!cancelled) {
-        setRows((data ?? []) as Departure[]);
-
+        setRows((depData ?? []) as Departure[]);
+        setCheckedPages(new Set((dutyData ?? []).map((d) => d.notion_page_id as string)));
         setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [today]);
+
 
   const wd = todayWeekday();
   const now = nowMinutes();
@@ -150,6 +165,7 @@ function DeparturesView() {
                   <th className="px-3 py-2 text-left">Véhicule</th>
                   <th className="px-3 py-2 text-left">QUB</th>
                   <th className="px-3 py-2 text-left">Jours</th>
+                  <th className="px-3 py-2 text-center">Vérifié</th>
                 </tr>
 
               </thead>
@@ -185,6 +201,10 @@ function DeparturesView() {
                           }
                         />
                       </td>
+                      <td className="px-3 py-2 text-center">
+                        {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
+                      </td>
+
                     </tr>
                   );
                 })}
