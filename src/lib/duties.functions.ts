@@ -162,7 +162,39 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         );
       if (error) throw new Error(error.message);
       upserted++;
+
+      // Unpivot Route N / Time N pairs into individual departures
+      for (let n = 1; n <= 12; n++) {
+        const rProp = findProp(page.properties, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`);
+        const tProp = findProp(page.properties, `Time ${n}`, `Heure ${n}`, `Horaire ${n}`, `H${n}`);
+        if (!rProp && !tProp) continue;
+        const rawT = plain(tProp);
+        const tParsed = parseTime(rawT);
+        if (!tParsed) continue;
+        const rText = (rProp ? plain(rProp) : "") || (rProp ? await relationTitles(rProp, relCache) : "");
+        if (!rText) continue;
+        departuresRows.push({
+          user_id: userId,
+          notion_page_id: page.id,
+          slot_index: n,
+          start_time: tParsed,
+          route: rText,
+          qub,
+          driver,
+          vehicle,
+          weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
+        });
+      }
     }
 
-    return { upserted, skipped, total: all.length };
+    if (departuresRows.length > 0) {
+      // Insert in chunks of 500 to stay well under any payload limit
+      for (let i = 0; i < departuresRows.length; i += 500) {
+        const chunk = departuresRows.slice(i, i + 500);
+        const { error: dErr } = await supabase.from("departures").insert(chunk);
+        if (dErr) throw new Error(dErr.message);
+      }
+    }
+
+    return { upserted, skipped, total: all.length, departures: departuresRows.length };
   });
