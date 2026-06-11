@@ -24,6 +24,7 @@ type Departure = {
   vehicle: string;
   qub: string;
   location: string;
+  arrival_time: string | null;
   weekdays: number[];
 };
 
@@ -98,7 +99,7 @@ function DeparturesView() {
       const [{ data: depData }, { data: dutyData }] = await Promise.all([
         supabase
           .from("departures")
-          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,weekdays")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays")
           .order("start_time", { ascending: true }),
         supabase
           .from("duties")
@@ -117,6 +118,14 @@ function DeparturesView() {
 
   const wd = todayWeekday();
   const now = nowMinutes();
+
+  const running = useMemo(() => {
+    return rows
+      .filter((r) => r.weekdays.includes(wd) && r.arrival_time)
+      .map((r) => ({ ...r, mins: timeMinutes(r.start_time), aMins: timeMinutes(r.arrival_time as string) }))
+      .filter((r) => now >= r.mins && now <= r.aMins)
+      .sort((a, b) => a.mins - b.mins);
+  }, [rows, wd, now]);
 
   const upcoming = useMemo(() => {
     return rows
@@ -160,71 +169,115 @@ function DeparturesView() {
           <div className="text-sm text-muted-foreground">Chargement…</div>
         ) : showAll ? (
           <AllRoutesTable rows={rows} setRows={setRows} />
-        ) : upcoming.length === 0 ? (
-          <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
-            Aucun départ prévu dans l'heure qui vient.
-          </div>
         ) : (
-          <div className="overflow-hidden rounded-md border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Départ</th>
-                  <th className="px-3 py-2 text-left">Dans</th>
-                  <th className="px-3 py-2 text-left">Course</th>
-                  <th className="px-3 py-2 text-left">Lieu</th>
-                  <th className="px-3 py-2 text-left">Conducteur</th>
-                  <th className="px-3 py-2 text-left">Véhicule</th>
-                  <th className="px-3 py-2 text-left">QUB</th>
-                  <th className="px-3 py-2 text-left">Jours</th>
-                  <th className="px-3 py-2 text-center">Vérifié</th>
-                </tr>
+          <>
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold">En circulation</h2>
+              {running.length === 0 ? (
+                <div className="rounded-md border bg-card p-6 text-center text-xs text-muted-foreground">
+                  Aucune course en circulation.
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-md border bg-card">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Départ</th>
+                        <th className="px-3 py-2 text-left">Course</th>
+                        <th className="px-3 py-2 text-left">Lieu</th>
+                        <th className="px-3 py-2 text-left">Conducteur</th>
+                        <th className="px-3 py-2 text-left">Véhicule</th>
+                        <th className="px-3 py-2 text-left">QUB</th>
+                        <th className="px-3 py-2 text-left">Arrivée</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {running.map((r) => {
+                        const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                        const isP = /^p/i.test(r.route?.trim() ?? "");
+                        return (
+                          <tr key={r.id} className="border-t bg-primary/5">
+                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                            <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                            <td className="px-3 py-2">{r.location || "—"}</td>
+                            <td className="px-3 py-2">{r.driver}</td>
+                            <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                            <td className="px-3 py-2">{r.qub}</td>
+                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
 
-              </thead>
-              <tbody>
-                {upcoming.map((r) => {
-                  const eta = r.mins - now;
-                  const imminent = eta <= 10;
-                  const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
-                  const isP = /^p/i.test(r.route?.trim() ?? "");
-                  return (
-                    <tr
-                      key={r.id}
-                      className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
-                    >
-                      <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
-                        <div className="flex items-center gap-2">
-                          <span>{hm(r.start_time)}</span>
-                          {isP && <span className="text-base leading-none">🚸</span>}
-                        </div>
-                      </td>
-                      <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
-                        {eta <= 0 ? "maintenant" : `${eta} min`}
-                      </td>
-                      <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
-                      <td className="px-3 py-2">{r.location || "—"}</td>
-                      <td className="px-3 py-2">{r.driver}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                      <td className="px-3 py-2">{r.qub}</td>
-                      <td className="px-3 py-2">
-                        <WeekdaysEditor
-                          departure={r}
-                          onSaved={(weekdays) =>
-                            setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
-                      </td>
-
+            <h2 className="text-sm font-semibold pt-2">Prochains départs</h2>
+            {upcoming.length === 0 ? (
+              <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
+                Aucun départ prévu dans l'heure qui vient.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-md border bg-card">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Départ</th>
+                      <th className="px-3 py-2 text-left">Dans</th>
+                      <th className="px-3 py-2 text-left">Course</th>
+                      <th className="px-3 py-2 text-left">Lieu</th>
+                      <th className="px-3 py-2 text-left">Conducteur</th>
+                      <th className="px-3 py-2 text-left">Véhicule</th>
+                      <th className="px-3 py-2 text-left">QUB</th>
+                      <th className="px-3 py-2 text-left">Jours</th>
+                      <th className="px-3 py-2 text-center">Vérifié</th>
                     </tr>
-                  );
-                })}
-
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {upcoming.map((r) => {
+                      const eta = r.mins - now;
+                      const imminent = eta <= 10;
+                      const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                      const isP = /^p/i.test(r.route?.trim() ?? "");
+                      return (
+                        <tr
+                          key={r.id}
+                          className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
+                        >
+                          <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
+                            <div className="flex items-center gap-2">
+                              <span>{hm(r.start_time)}</span>
+                              {isP && <span className="text-base leading-none">🚸</span>}
+                            </div>
+                          </td>
+                          <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
+                            {eta <= 0 ? "maintenant" : `${eta} min`}
+                          </td>
+                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                          <td className="px-3 py-2">{r.location || "—"}</td>
+                          <td className="px-3 py-2">{r.driver}</td>
+                          <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                          <td className="px-3 py-2">{r.qub}</td>
+                          <td className="px-3 py-2">
+                            <WeekdaysEditor
+                              departure={r}
+                              onSaved={(weekdays) =>
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                              }
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
         <span className="hidden">{tick}</span>
       </main>
