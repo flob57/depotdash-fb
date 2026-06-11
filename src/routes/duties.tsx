@@ -200,18 +200,19 @@ function DutiesView({ userId }: { userId: string }) {
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/"><ChevronLeft className="h-4 w-4" /> Retour</Link>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="px-2">
+              <Link to="/"><ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline ml-1">Retour</span></Link>
             </Button>
-            <h1 className="text-base font-semibold">Prises de service</h1>
+            <h1 className="truncate text-sm sm:text-base font-semibold">Prises de service</h1>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {checkedCount}/{visible.length} prises
+          <div className="shrink-0 text-xs text-muted-foreground">
+            {checkedCount}/{visible.length}
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
