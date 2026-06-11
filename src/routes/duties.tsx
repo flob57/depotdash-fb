@@ -200,8 +200,40 @@ function DutiesView({ userId }: { userId: string }) {
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="w-12 px-2 py-2 text-center">OK</th>
-                  <th className="px-2 py-2 text-left">PS</th>
-                  <th className="px-2 py-2 text-left">QUB</th>
+                  <th
+                    className="cursor-pointer px-2 py-2 text-left select-none"
+                    onClick={() =>
+                      setSort((s) =>
+                        s?.key === "ps" ? { key: "ps", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "ps", dir: "asc" }
+                      )
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      PS
+                      {sort?.key === "ps" ? (
+                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </span>
+                  </th>
+                  <th
+                    className="cursor-pointer px-2 py-2 text-left select-none"
+                    onClick={() =>
+                      setSort((s) =>
+                        s?.key === "qub" ? { key: "qub", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "qub", dir: "asc" }
+                      )
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      QUB
+                      {sort?.key === "qub" ? (
+                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </span>
+                  </th>
                   <th className="px-2 py-2 text-left">Conducteur</th>
                   <th className="px-2 py-2 text-left">Service</th>
                   <th className="px-2 py-2 text-left">Véhicule</th>
