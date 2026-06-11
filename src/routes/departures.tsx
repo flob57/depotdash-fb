@@ -326,3 +326,77 @@ function WeekdaysEditor({
   );
 }
 
+function AllRoutesTable({
+  rows,
+  setRows,
+}: {
+  rows: Departure[];
+  setRows: React.Dispatch<React.SetStateAction<Departure[]>>;
+}) {
+  const [query, setQuery] = useState("");
+  const sorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows
+      .filter((r) => !q || r.route.toLowerCase().includes(q) || r.driver?.toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => a.route.localeCompare(b.route) || a.start_time.localeCompare(b.start_time));
+  }, [rows, query]);
+
+  return (
+    <div className="space-y-3">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher une course ou un conducteur…"
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+      />
+      <div className="overflow-hidden rounded-md border bg-card">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Départ</th>
+              <th className="px-3 py-2 text-left">Course</th>
+              <th className="px-3 py-2 text-left">Conducteur</th>
+              <th className="px-3 py-2 text-left">Véhicule</th>
+              <th className="px-3 py-2 text-left">Jours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => {
+              const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+              const isP = /^p/i.test(r.route?.trim() ?? "");
+              return (
+                <tr key={r.id} className="border-t">
+                  <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                  <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                    {routeLabel(r.route)}
+                  </td>
+                  <td className="px-3 py-2">{r.driver}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                  <td className="px-3 py-2">
+                    <WeekdaysEditor
+                      departure={r}
+                      onSaved={(weekdays) =>
+                        setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                  Aucun service.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+
