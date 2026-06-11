@@ -379,69 +379,122 @@ function DeparturesView() {
                 Aucun départ prévu dans l'heure qui vient.
               </div>
             ) : (
-              <div className="overflow-hidden rounded-md border bg-card">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Départ</th>
-                      <th className="px-3 py-2 text-left">Dans</th>
-                      <th className="px-3 py-2 text-left">Course</th>
-                      <th className="px-3 py-2 text-left">Lieu</th>
-                      <th className="px-3 py-2 text-left">Conducteur</th>
-                      <th className="px-3 py-2 text-left">Véhicule</th>
-                      <th className="px-3 py-2 text-left">QUB</th>
-                      <th className="px-3 py-2 text-left">Jours</th>
-                      <th className="px-3 py-2 text-center">Vérifié</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {upcoming.map((r) => {
-                      const eta = r.mins - now;
-                      const imminent = eta <= 10;
-                      const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
-                      const isP = /^p/i.test(r.route?.trim() ?? "");
-                      return (
-                        <tr
-                          key={r.id}
-                          className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
-                        >
-                          <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
+              <>
+                {/* Mobile cards */}
+                <div className="sm:hidden space-y-2">
+                  {upcoming.map((r) => {
+                    const eta = r.mins - now;
+                    const imminent = eta <= 10;
+                    const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                    const isP = /^p/i.test(r.route?.trim() ?? "");
+                    const checked = r.notion_page_id && checkedPages.has(r.notion_page_id);
+                    return (
+                      <div
+                        key={r.id}
+                        className={cn(
+                          "rounded-md border bg-card p-3",
+                          imminent && "bg-destructive/10 border-destructive/40",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span>{hm(r.start_time)}</span>
+                              <span className="font-mono text-lg font-semibold tabular-nums">{hm(r.start_time)}</span>
+                              <span className={cn("font-mono text-xs tabular-nums", imminent ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                                {eta <= 0 ? "maintenant" : `dans ${eta} min`}
+                              </span>
                               {isP && <span className="text-base leading-none">🚸</span>}
+                              {checked && <span className="text-sm">✅</span>}
                             </div>
-                          </td>
-                          <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
-                            {eta <= 0 ? "maintenant" : `${eta} min`}
-                          </td>
-                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
-                            <span className="inline-flex items-center gap-1.5">
+                            <div className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", isLigne && "text-orange-500", isP && "text-yellow-500")}>
                               <RouteIcon icon={r.route_icon} />
-                              {routeLabel(r.route)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">{r.location || "—"}</td>
-                          <td className="px-3 py-2">{r.driver}</td>
-                          <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                          <td className="px-3 py-2">{r.qub}</td>
-                          <td className="px-3 py-2">
-                            <WeekdaysEditor
-                              departure={r}
-                              onSaved={(weekdays) =>
-                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
-                              }
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              <span>{routeLabel(r.route)}</span>
+                              <span className="text-muted-foreground font-normal">· {r.location || "—"}</span>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                              <span>{r.driver}</span>
+                              <span className="font-mono">{r.vehicle}</span>
+                              {r.qub && <span>QUB {r.qub}</span>}
+                            </div>
+                          </div>
+                          <WeekdaysEditor
+                            departure={r}
+                            onSaved={(weekdays) =>
+                              setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                            }
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-hidden rounded-md border bg-card">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Départ</th>
+                        <th className="px-3 py-2 text-left">Dans</th>
+                        <th className="px-3 py-2 text-left">Course</th>
+                        <th className="px-3 py-2 text-left">Lieu</th>
+                        <th className="px-3 py-2 text-left">Conducteur</th>
+                        <th className="px-3 py-2 text-left">Véhicule</th>
+                        <th className="px-3 py-2 text-left">QUB</th>
+                        <th className="px-3 py-2 text-left">Jours</th>
+                        <th className="px-3 py-2 text-center">Vérifié</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {upcoming.map((r) => {
+                        const eta = r.mins - now;
+                        const imminent = eta <= 10;
+                        const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                        const isP = /^p/i.test(r.route?.trim() ?? "");
+                        return (
+                          <tr
+                            key={r.id}
+                            className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
+                          >
+                            <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
+                              <div className="flex items-center gap-2">
+                                <span>{hm(r.start_time)}</span>
+                                {isP && <span className="text-base leading-none">🚸</span>}
+                              </div>
+                            </td>
+                            <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
+                              {eta <= 0 ? "maintenant" : `${eta} min`}
+                            </td>
+                            <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                              <span className="inline-flex items-center gap-1.5">
+                                <RouteIcon icon={r.route_icon} />
+                                {routeLabel(r.route)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">{r.location || "—"}</td>
+                            <td className="px-3 py-2">{r.driver}</td>
+                            <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                            <td className="px-3 py-2">{r.qub}</td>
+                            <td className="px-3 py-2">
+                              <WeekdaysEditor
+                                departure={r}
+                                onSaved={(weekdays) =>
+                                  setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                                }
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
+
           </>
         )}
         <span className="hidden">{tick}</span>
