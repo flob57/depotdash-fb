@@ -215,7 +215,11 @@ function DutiesView({ userId }: { userId: string }) {
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
-          <NotionSyncDialog dbId={dbId} setDbId={setDbId} onSync={handleSync} />
+          <NotionSyncDialog dbIds={dbIds} onSave={saveDbIds} onSync={handleSync} activeSlot={activeSlot} />
+          <SchoolHolidaysDialog holidays={holidays} onChange={refresh} />
+          <span className="text-xs text-muted-foreground">
+            Aujourd'hui : <strong>{SLOT_LABELS[activeSlot]}</strong>
+          </span>
           <AddDutyDialog userId={userId} onAdded={refresh} />
           <label className="ml-auto inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Checkbox checked={showAll} onCheckedChange={(v) => setShowAll(Boolean(v))} />
