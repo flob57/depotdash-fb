@@ -135,13 +135,18 @@ function DeparturesView() {
                 {upcoming.map((r) => {
                   const eta = r.mins - now;
                   const imminent = eta <= 10;
+                  const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                  const isP = /^p/i.test(r.route?.trim() ?? "");
                   return (
                     <tr
                       key={r.id}
                       className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
                     >
                       <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
-                        {hm(r.start_time)}
+                        <div className="flex items-center gap-2">
+                          <span>{hm(r.start_time)}</span>
+                          {isP && <School className="h-4 w-4 text-yellow-500" />}
+                        </div>
                       </td>
                       <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                         {eta <= 0 ? "maintenant" : `${eta} min`}
