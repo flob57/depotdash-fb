@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GtfsAlert {
   id: string;
@@ -23,7 +24,7 @@ const getText = (obj: { translation?: { language?: string; text?: string }[] } |
   return (t.find((x) => x.language === "fr") ?? t[0])?.text ?? "";
 };
 
-const FEED_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gtfsrt-proxy`;
+const DIRECT_URL = "https://notify.ratpdev.com/api/networks/RD%20QUIMPER/alerts/gtfsrt";
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export function useGtfsAlerts(): UseGtfsAlertsReturn {
