@@ -76,6 +76,54 @@ async function prefetchRelationTitles(ids: Iterable<string>, cache: Map<string, 
   await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
 }
 
+type TimetableStop = { stop: string; time: string };
+
+function richTextToString(rt: Array<{ plain_text?: string }> | undefined): string {
+  if (!rt || !Array.isArray(rt)) return "";
+  return rt.map((x) => x.plain_text ?? "").join("").trim();
+}
+
+async function fetchPageTimetable(pageId: string): Promise<TimetableStop[]> {
+  const children = (await notionFetch(`/blocks/${pageId}/children?page_size=100`)) as {
+    results: Array<{ id: string; type: string }>;
+  };
+  const table = children.results.find((b) => b.type === "table");
+  if (!table) return [];
+  const rows = (await notionFetch(`/blocks/${table.id}/children?page_size=100`)) as {
+    results: Array<{ type: string; table_row?: { cells: Array<Array<{ plain_text?: string }>> } }>;
+  };
+  const out: TimetableStop[] = [];
+  for (const r of rows.results) {
+    if (r.type !== "table_row" || !r.table_row) continue;
+    const cells = r.table_row.cells;
+    if (cells.length < 2) continue;
+    const stop = richTextToString(cells[0]);
+    const timeRaw = richTextToString(cells[1]);
+    const time = parseTime(timeRaw);
+    if (!stop || !time) continue;
+    out.push({ stop, time: time.slice(0, 5) });
+  }
+  return out;
+}
+
+async function prefetchTimetables(ids: Iterable<string>, cache: Map<string, TimetableStop[]>, concurrency = 6) {
+  const todo = Array.from(new Set([...ids])).filter((id) => !cache.has(id));
+  let i = 0;
+  async function worker() {
+    while (i < todo.length) {
+      const id = todo[i++];
+      try {
+        cache.set(id, await fetchPageTimetable(id));
+      } catch {
+        cache.set(id, []);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
+}
+
+
+
 
 function findProp(props: Record<string, AnyProp>, ...names: string[]): AnyProp | undefined {
   const keys = Object.keys(props);
