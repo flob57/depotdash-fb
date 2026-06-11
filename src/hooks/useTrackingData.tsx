@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Shift, Session } from "@/lib/stats";
 import type { FuelFillup } from "@/lib/fuel";
 import type { DeclaredHour } from "@/lib/declared";
+import type { SchoolHoliday } from "@/lib/school-context";
 
 export type PublicHoliday = {
   id: string;
