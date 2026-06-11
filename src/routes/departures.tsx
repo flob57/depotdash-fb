@@ -165,6 +165,7 @@ function DeparturesView() {
                   <th className="px-3 py-2 text-left">Véhicule</th>
                   <th className="px-3 py-2 text-left">QUB</th>
                   <th className="px-3 py-2 text-left">Jours</th>
+                  <th className="px-3 py-2 text-center">Vérifié</th>
                 </tr>
 
               </thead>
