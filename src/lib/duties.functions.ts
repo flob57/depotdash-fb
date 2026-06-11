@@ -123,6 +123,14 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     let skipped = 0;
     let idx = 0;
     const relCache = new Map<string, string>();
+
+    // Wipe existing departures for this user; we rebuild from Notion every sync.
+    await supabase.from("departures").delete().eq("user_id", userId);
+    const departuresRows: Array<{
+      user_id: string; notion_page_id: string; slot_index: number;
+      start_time: string; route: string; qub: string; driver: string; vehicle: string; weekdays: number[];
+    }> = [];
+
     for (const page of all) {
       const psRaw = plain(findProp(page.properties, "PS", "Prise de service", "Start"));
       const start = parseTime(psRaw);
