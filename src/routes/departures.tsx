@@ -41,6 +41,11 @@ function todayWeekday() {
   const d = new Date().getDay();
   return d === 0 ? 7 : d;
 }
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function nowMinutes() {
   const d = new Date();
   return d.getHours() * 60 + d.getMinutes();
