@@ -82,21 +82,31 @@ function DeparturesView() {
     return () => clearInterval(id);
   }, []);
 
+  const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
+  const today = todayKey();
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("departures")
-        .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
-        .order("start_time", { ascending: true });
+      const [{ data: depData }, { data: dutyData }] = await Promise.all([
+        supabase
+          .from("departures")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
+          .order("start_time", { ascending: true }),
+        supabase
+          .from("duties")
+          .select("notion_page_id,last_checked_date")
+          .eq("last_checked_date", today),
+      ]);
       if (!cancelled) {
-        setRows((data ?? []) as Departure[]);
-
+        setRows((depData ?? []) as Departure[]);
+        setCheckedPages(new Set((dutyData ?? []).map((d) => d.notion_page_id as string)));
         setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [today]);
+
 
   const wd = todayWeekday();
   const now = nowMinutes();
