@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
   component: Index,
   head: () => ({
     meta: [
-      { title: "Océlorn — Suivi d'activité" },
+      { title: "Océlorn — Tableau de bord" },
       { name: "description", content: "Suivi du temps de service, du temps de conduite et des kilomètres pour les conducteurs Océlorn." },
     ],
   }),
@@ -166,7 +166,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           <div className="flex items-center gap-3">
             <img src={logoOcelorn} alt="Lestonan" className="h-10 w-auto rounded-md bg-white p-1" />
             <div>
-              <h1 className="text-lg font-semibold leading-tight">Suivi d'activité</h1>
+              <h1 className="text-lg font-semibold leading-tight">Tableau de bord</h1>
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
