@@ -3,8 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Train } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChevronLeft, Pencil, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
@@ -13,6 +16,8 @@ export const Route = createFileRoute("/departures")({
 
 type Departure = {
   id: string;
+  notion_page_id: string | null;
+  slot_index: number;
   start_time: string;
   route: string;
   driver: string;
@@ -20,6 +25,17 @@ type Departure = {
   qub: string;
   weekdays: number[];
 };
+
+const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "L" },
+  { value: 2, label: "M" },
+  { value: 3, label: "M" },
+  { value: 4, label: "J" },
+  { value: 5, label: "V" },
+  { value: 6, label: "S" },
+  { value: 7, label: "D" },
+];
+
 
 function todayWeekday() {
   const d = new Date().getDay();
