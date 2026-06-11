@@ -13,7 +13,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays, Pencil } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
 import { pickSlot, SLOT_LABELS, type ServiceSlot, type SchoolHoliday } from "@/lib/school-context";
 
