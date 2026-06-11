@@ -274,6 +274,8 @@ function DeparturesView() {
 
       </header>
 
+      <AlertsBanner />
+
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <p className="text-xs text-muted-foreground">
           {showAll
