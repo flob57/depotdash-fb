@@ -119,6 +119,14 @@ function DeparturesView() {
   const wd = todayWeekday();
   const now = nowMinutes();
 
+  const running = useMemo(() => {
+    return rows
+      .filter((r) => r.weekdays.includes(wd) && r.arrival_time)
+      .map((r) => ({ ...r, mins: timeMinutes(r.start_time), aMins: timeMinutes(r.arrival_time as string) }))
+      .filter((r) => now >= r.mins && now <= r.aMins)
+      .sort((a, b) => a.mins - b.mins);
+  }, [rows, wd, now]);
+
   const upcoming = useMemo(() => {
     return rows
       .filter((r) => r.weekdays.includes(wd))
