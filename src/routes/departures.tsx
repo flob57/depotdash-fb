@@ -14,6 +14,8 @@ export const Route = createFileRoute("/departures")({
   head: () => ({ meta: [{ title: "Prochains départs — Lestonan" }] }),
 });
 
+type TimetableStop = { stop: string; time: string };
+
 type Departure = {
   id: string;
   notion_page_id: string | null;
@@ -26,6 +28,7 @@ type Departure = {
   location: string;
   arrival_time: string | null;
   weekdays: number[];
+  timetable: TimetableStop[] | null;
 };
 
 const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
