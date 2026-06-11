@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Train } from "lucide-react";
+import { ChevronLeft, Train, School } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/departures")({
@@ -135,18 +135,23 @@ function DeparturesView() {
                 {upcoming.map((r) => {
                   const eta = r.mins - now;
                   const imminent = eta <= 10;
+                  const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                  const isP = /^p/i.test(r.route?.trim() ?? "");
                   return (
                     <tr
                       key={r.id}
                       className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
                     >
                       <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
-                        {hm(r.start_time)}
+                        <div className="flex items-center gap-2">
+                          <span>{hm(r.start_time)}</span>
+                          {isP && <School className="h-4 w-4 text-yellow-500" />}
+                        </div>
                       </td>
                       <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                         {eta <= 0 ? "maintenant" : `${eta} min`}
                       </td>
-                      <td className="px-3 py-2">{r.route}</td>
+                      <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{r.route}</td>
                       <td className="px-3 py-2">{r.driver}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                       <td className="px-3 py-2">{r.qub}</td>
