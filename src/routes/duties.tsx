@@ -13,7 +13,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays, Pencil } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
 import { pickSlot, SLOT_LABELS, type ServiceSlot, type SchoolHoliday } from "@/lib/school-context";
 
@@ -262,13 +262,13 @@ function DutiesView({ userId }: { userId: string }) {
                           <span>{d.route}</span>
                           <span className="font-mono">{d.vehicle}</span>
                         </div>
-                        <div className="mt-2">
-                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
-                        </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="shrink-0 -mr-2" onClick={() => removeDuty(d.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex shrink-0 flex-col gap-1">
+                        <EditDutyDialog duty={d} onSaved={refresh} />
+                        <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -344,7 +344,7 @@ function DutiesView({ userId }: { userId: string }) {
                         <td className="px-2 py-2">{d.route}</td>
                         <td className="px-2 py-2 font-mono text-xs">{d.vehicle}</td>
                         <td className="px-2 py-2">
-                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
+                          <EditDutyDialog duty={d} onSaved={refresh} />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
@@ -637,6 +637,59 @@ function AddDutyDialog({ userId, onAdded }: { userId: string; onAdded: () => voi
         </div>
         <DialogFooter>
           <Button onClick={submit} disabled={busy}>{busy ? "Ajout…" : "Ajouter"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditDutyDialog({ duty, onSaved }: { duty: Duty; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState<number[]>(duty.weekdays);
+  const [busy, setBusy] = useState(false);
+
+  const toggle = (w: number) => {
+    setDays((prev) => {
+      const set = new Set(prev);
+      if (set.has(w)) set.delete(w); else set.add(w);
+      return Array.from(set).sort((a, b) => a - b);
+    });
+  };
+
+  const save = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("duties").update({ weekdays: days }).eq("id", duty.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Jours de fonctionnement mis à jour");
+      setOpen(false);
+      onSaved();
+    }
+  };
+
+  useEffect(() => { setDays(duty.weekdays); }, [duty.weekdays, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Modifier les jours</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            {hm(duty.start_time)} — QUB {duty.qub} — {duty.driver}
+          </div>
+          <WeekdayPicker value={days} onToggle={toggle} />
+        </div>
+        <DialogFooter>
+          <Button onClick={save} disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
