@@ -66,6 +66,77 @@ function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
 }
 
+function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
+  if (!timetable || timetable.length < 2) {
+    return (
+      <div className="px-4 py-3 text-[11px] text-muted-foreground">
+        Horaire détaillé indisponible.
+      </div>
+    );
+  }
+  const stops = timetable
+    .map((s) => ({ ...s, mins: timeMinutes(s.time) }))
+    .sort((a, b) => a.mins - b.mins);
+  const first = stops[0].mins;
+  const last = stops[stops.length - 1].mins;
+  let pct = 0;
+  if (now <= first) pct = 0;
+  else if (now >= last) pct = 100;
+  else {
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i].mins;
+      const b = stops[i + 1].mins;
+      if (now >= a && now <= b) {
+        const frac = b === a ? 0 : (now - a) / (b - a);
+        pct = ((i + frac) / (stops.length - 1)) * 100;
+        break;
+      }
+    }
+  }
+  const nextIdx = stops.findIndex((s) => s.mins > now);
+  return (
+    <div className="px-4 pt-4 pb-12">
+      <div className="relative mx-3 h-2 rounded-full bg-muted">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+        {stops.map((s, i) => {
+          const left = (i / (stops.length - 1)) * 100;
+          const passed = now >= s.mins;
+          const isNext = i === nextIdx;
+          return (
+            <div
+              key={i}
+              className="absolute top-1/2"
+              style={{ left: `${left}%`, transform: "translate(-50%, -50%)" }}
+            >
+              <div
+                className={cn(
+                  "h-3 w-3 rounded-full border-2 border-background",
+                  passed ? "bg-primary" : "bg-muted-foreground/40",
+                  isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
+                )}
+              />
+              <div className="absolute left-1/2 top-3 mt-1 -translate-x-1/2 text-center text-[10px] leading-tight text-muted-foreground">
+                <div className="font-mono tabular-nums">{s.time}</div>
+                <div className="max-w-[80px] truncate" title={s.stop}>{s.stop}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div
+          className="absolute -top-4 text-base"
+          style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+          aria-label="Position théorique"
+        >
+          🚌
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DeparturesPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
