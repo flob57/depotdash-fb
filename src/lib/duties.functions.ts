@@ -188,6 +188,20 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     }
 
     if (departuresRows.length > 0) {
+      // Apply persisted overrides so user-customized weekdays survive re-sync
+      const { data: overrides } = await supabase
+        .from("departure_overrides")
+        .select("notion_page_id,slot_index,weekdays")
+        .eq("user_id", userId);
+      const ovMap = new Map<string, number[]>();
+      for (const o of overrides ?? []) {
+        ovMap.set(`${o.notion_page_id}:${o.slot_index}`, o.weekdays as number[]);
+      }
+      for (const r of departuresRows) {
+        const key = `${r.notion_page_id}:${r.slot_index}`;
+        const ov = ovMap.get(key);
+        if (ov) r.weekdays = ov;
+      }
       // Insert in chunks of 500 to stay well under any payload limit
       for (let i = 0; i < departuresRows.length; i += 500) {
         const chunk = departuresRows.slice(i, i + 500);
@@ -195,6 +209,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         if (dErr) throw new Error(dErr.message);
       }
     }
+
 
     return { upserted, skipped, total: all.length, departures: departuresRows.length };
   });

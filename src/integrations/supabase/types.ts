@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      departure_overrides: {
+        Row: {
+          created_at: string
+          id: string
+          notion_page_id: string
+          slot_index: number
+          updated_at: string
+          user_id: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notion_page_id: string
+          slot_index: number
+          updated_at?: string
+          user_id: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notion_page_id?: string
+          slot_index?: number
+          updated_at?: string
+          user_id?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       departures: {
         Row: {
           created_at: string

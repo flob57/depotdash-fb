@@ -3,8 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Train } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChevronLeft, Pencil, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
@@ -13,6 +16,8 @@ export const Route = createFileRoute("/departures")({
 
 type Departure = {
   id: string;
+  notion_page_id: string | null;
+  slot_index: number;
   start_time: string;
   route: string;
   driver: string;
@@ -20,6 +25,17 @@ type Departure = {
   qub: string;
   weekdays: number[];
 };
+
+const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "L" },
+  { value: 2, label: "M" },
+  { value: 3, label: "M" },
+  { value: 4, label: "J" },
+  { value: 5, label: "V" },
+  { value: 6, label: "S" },
+  { value: 7, label: "D" },
+];
+
 
 function todayWeekday() {
   const d = new Date().getDay();
@@ -71,10 +87,11 @@ function DeparturesView() {
     (async () => {
       const { data } = await supabase
         .from("departures")
-        .select("id,start_time,route,driver,vehicle,qub,weekdays")
+        .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
         .order("start_time", { ascending: true });
       if (!cancelled) {
         setRows((data ?? []) as Departure[]);
+
         setLoading(false);
       }
     })();
@@ -132,7 +149,9 @@ function DeparturesView() {
                   <th className="px-3 py-2 text-left">Conducteur</th>
                   <th className="px-3 py-2 text-left">Véhicule</th>
                   <th className="px-3 py-2 text-left">QUB</th>
+                  <th className="px-3 py-2 text-left">Jours</th>
                 </tr>
+
               </thead>
               <tbody>
                 {upcoming.map((r) => {
@@ -158,9 +177,18 @@ function DeparturesView() {
                       <td className="px-3 py-2">{r.driver}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                       <td className="px-3 py-2">{r.qub}</td>
+                      <td className="px-3 py-2">
+                        <WeekdaysEditor
+                          departure={r}
+                          onSaved={(weekdays) =>
+                            setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                          }
+                        />
+                      </td>
                     </tr>
                   );
                 })}
+
               </tbody>
             </table>
           </div>
@@ -170,3 +198,101 @@ function DeparturesView() {
     </div>
   );
 }
+
+function WeekdaysEditor({
+  departure,
+  onSaved,
+}: {
+  departure: Departure;
+  onSaved: (weekdays: number[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<number[]>(departure.weekdays);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) setDraft(departure.weekdays);
+  }, [open, departure.weekdays]);
+
+  const summary = WEEKDAY_LABELS
+    .filter((d) => departure.weekdays.includes(d.value))
+    .map((d) => d.label)
+    .join("");
+
+  async function save() {
+    if (!departure.notion_page_id) {
+      toast.error("Impossible de sauvegarder (page Notion inconnue).");
+      return;
+    }
+    const weekdays = [...draft].sort((a, b) => a - b);
+    setSaving(true);
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) {
+      setSaving(false);
+      toast.error("Session expirée.");
+      return;
+    }
+    const { error: ovErr } = await supabase
+      .from("departure_overrides")
+      .upsert(
+        {
+          user_id: userId,
+          notion_page_id: departure.notion_page_id,
+          slot_index: departure.slot_index,
+          weekdays,
+        },
+        { onConflict: "user_id,notion_page_id,slot_index" },
+      );
+    if (ovErr) {
+      setSaving(false);
+      toast.error(ovErr.message);
+      return;
+    }
+    const { error: dErr } = await supabase
+      .from("departures")
+      .update({ weekdays })
+      .eq("id", departure.id);
+    setSaving(false);
+    if (dErr) {
+      toast.error(dErr.message);
+      return;
+    }
+    onSaved(weekdays);
+    setOpen(false);
+    toast.success("Jours mis à jour");
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 font-mono text-xs">
+          <span className="tabular-nums">{summary || "—"}</span>
+          <Pencil className="h-3 w-3 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto p-3">
+        <div className="mb-2 text-xs font-medium text-muted-foreground">Jours de circulation</div>
+        <ToggleGroup
+          type="multiple"
+          value={draft.map(String)}
+          onValueChange={(vals) => setDraft(vals.map(Number))}
+          className="justify-start"
+        >
+          {WEEKDAY_LABELS.map((d) => (
+            <ToggleGroupItem key={d.value} value={String(d.value)} className="h-8 w-8 text-xs">
+              {d.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button size="sm" onClick={save} disabled={saving}>
+            {saving ? "…" : "Enregistrer"}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
