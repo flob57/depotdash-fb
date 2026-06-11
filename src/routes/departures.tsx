@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Train } from "lucide-react";
+import { ChevronLeft, Train, School } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/departures")({
