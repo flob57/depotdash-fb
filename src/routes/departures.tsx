@@ -270,15 +270,22 @@ function DeparturesView() {
                         const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
                         const isP = /^p/i.test(r.route?.trim() ?? "");
                         return (
-                          <tr key={r.id} className="border-t bg-primary/5">
-                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
-                            <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
-                            <td className="px-3 py-2">{r.location || "—"}</td>
-                            <td className="px-3 py-2">{r.driver}</td>
-                            <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                            <td className="px-3 py-2">{r.qub}</td>
-                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
-                          </tr>
+                          <>
+                            <tr key={r.id} className="border-t bg-primary/5">
+                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                              <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                              <td className="px-3 py-2">{r.location || "—"}</td>
+                              <td className="px-3 py-2">{r.driver}</td>
+                              <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                              <td className="px-3 py-2">{r.qub}</td>
+                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
+                            </tr>
+                            <tr key={`${r.id}-tt`} className="bg-primary/5">
+                              <td colSpan={7} className="p-0">
+                                <RouteProgressBar timetable={r.timetable} now={now} />
+                              </td>
+                            </tr>
+                          </>
                         );
                       })}
                     </tbody>
