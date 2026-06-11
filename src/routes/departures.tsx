@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Train, School } from "lucide-react";
+import { ChevronLeft, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/departures")({
@@ -145,7 +145,7 @@ function DeparturesView() {
                       <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
                         <div className="flex items-center gap-2">
                           <span>{hm(r.start_time)}</span>
-                          {isP && <School className="h-4 w-4 text-yellow-500" />}
+                          {isP && <span className="text-base leading-none">🚸</span>}
                         </div>
                       </td>
                       <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
