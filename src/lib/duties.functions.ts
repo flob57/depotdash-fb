@@ -189,14 +189,16 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
       for (let n = 1; n <= 12; n++) {
         const rProp = findProp(page.properties, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`);
         const tProp = findProp(page.properties, `Time ${n}`, `Heure ${n}`, `Horaire ${n}`, `H${n}`);
+        const lProp = findProp(page.properties, `Lieu ${n}`, `Location ${n}`, `Lieu${n}`);
         if (!rProp && !tProp) continue;
         const tParsed = parseTime(plain(tProp));
         if (!tParsed) continue;
         const rText = (rProp ? plain(rProp) : "") || (rProp ? await relationTitles(rProp, relCache) : "");
         if (!rText) continue;
+        const location = (lProp ? plain(lProp) : "") || (lProp ? await relationTitles(lProp, relCache) : "");
         departuresRows.push({
           user_id: userId, notion_page_id: page.id, slot_index: n,
-          start_time: tParsed, route: rText, qub, driver, vehicle,
+          start_time: tParsed, route: rText, qub, driver, vehicle, location,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
         });
       }
