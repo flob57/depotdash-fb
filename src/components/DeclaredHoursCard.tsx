@@ -59,9 +59,9 @@ function rangeMinutes(start: string, end: string): { ok: boolean; minutes: numbe
   return { ok: true, minutes: b - a, empty: false };
 }
 
-export function DeclaredHoursCard({ userId, declared, onChanged }: Props) {
+export function DeclaredHoursCard({ userId, declared, schoolHolidays = [], onChanged }: Props) {
   const [date, setDate] = useState(dateKey(new Date()));
-  const initial = useMemo(() => defaultsForDate(parseISO(date)), [date]);
+  const initial = useMemo(() => defaultsForDate(parseISO(date), schoolHolidays), [date, schoolHolidays]);
   const [mStart, setMStart] = useState(initial.mStart);
   const [mEnd, setMEnd] = useState(initial.mEnd);
   const [eStart, setEStart] = useState(initial.eStart);
@@ -76,7 +76,7 @@ export function DeclaredHoursCard({ userId, declared, onChanged }: Props) {
   const onDateChange = (v: string) => {
     setDate(v);
     if (v) {
-      const d = defaultsForDate(parseISO(v));
+      const d = defaultsForDate(parseISO(v), schoolHolidays);
       setMStart(d.mStart); setMEnd(d.mEnd); setEStart(d.eStart); setEEnd(d.eEnd);
     }
   };
