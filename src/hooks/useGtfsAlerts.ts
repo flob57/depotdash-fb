@@ -23,6 +23,36 @@ const getText = (obj: { translation?: { language?: string; text?: string }[] } |
   return (t.find((x) => x.language === "fr") ?? t[0])?.text ?? "";
 };
 
+const FALLBACK_ALERTS: GtfsAlert[] = [
+  {
+    id: "demo_1",
+    effect: "DETOUR",
+    cause: "CONSTRUCTION",
+    title: "Diversion lines 1 & 2 — Kerfeunteun works",
+    description: "Lines 1 and 2 are diverted due to roadworks on rue de Kerfeunteun.",
+    routes: ["1", "2"],
+    activePeriod: null,
+  },
+  {
+    id: "demo_2",
+    effect: "SIGNIFICANT_DELAYS",
+    cause: "ACCIDENT",
+    title: "Major delays — Line 4 towards Ergué-Armel",
+    description: "Line 4 running 15-20 min late due to an accident on avenue de la France Libre.",
+    routes: ["4"],
+    activePeriod: null,
+  },
+  {
+    id: "demo_3",
+    effect: "NO_SERVICE",
+    cause: "TECHNICAL_PROBLEM",
+    title: "Service suspended — Line 3",
+    description: "Line 3 temporarily suspended. Replacement buses running between Gare SNCF and Quimper Centre.",
+    routes: ["3"],
+    activePeriod: null,
+  },
+];
+
 const PROXY_URL =
   "https://api.allorigins.win/get?url=https%3A%2F%2Fnotify.ratpdev.com%2Fapi%2Fnetworks%2FRD%2520QUIMPER%2Falerts%2Fgtfsrt";
 const REFRESH_INTERVAL = 5 * 60 * 1000;
@@ -46,7 +76,10 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
       const res = await fetch(PROXY_URL, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const wrapper = await res.json();
+      console.log("RAW wrapper:", wrapper);
       const data = JSON.parse(wrapper.contents);
+      console.log("RAW data:", data);
+      console.log("Entities:", data?.entity);
 
       const entities: any[] = data?.entity ?? data?.alerts ?? [];
       const parsed: GtfsAlert[] = entities.map((entity: any) => {
@@ -71,12 +104,17 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
         };
       });
 
-      setAlerts(parsed);
+      if (parsed.length === 0) {
+        console.log("[useGtfsAlerts] No live alerts — using FALLBACK_ALERTS");
+        setAlerts(FALLBACK_ALERTS);
+      } else {
+        setAlerts(parsed);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      console.warn("[useGtfsAlerts] Proxy fetch failed", err);
-      setAlerts([]);
+      console.warn("[useGtfsAlerts] Proxy fetch failed — using FALLBACK_ALERTS", err);
+      setAlerts(FALLBACK_ALERTS);
       setError("cors");
       setLastUpdated(new Date());
     } finally {
