@@ -95,7 +95,7 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
   }
   const nextIdx = stops.findIndex((s) => s.mins > now);
   return (
-    <div className="px-4 pt-4 pb-20">
+    <div className="px-4 pt-4 pb-28">
       <div className="relative mx-3 h-2 rounded-full bg-muted">
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
