@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ChevronLeft, Pencil, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AlertsBanner } from "@/components/AlertsBanner";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
@@ -272,6 +273,8 @@ function DeparturesView() {
         </div>
 
       </header>
+
+      <AlertsBanner />
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <p className="text-xs text-muted-foreground">
