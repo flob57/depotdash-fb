@@ -376,6 +376,7 @@ function AllRoutesTable({
                   <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
                     {routeLabel(r.route)}
                   </td>
+                  <td className="px-3 py-2">{r.location || "—"}</td>
                   <td className="px-3 py-2">{r.driver}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                   <td className="px-3 py-2">
