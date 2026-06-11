@@ -219,71 +219,65 @@ function DeparturesView() {
                 Aucun départ prévu dans l'heure qui vient.
               </div>
             ) : (
-        ) : upcoming.length === 0 ? (
-          <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
-            Aucun départ prévu dans l'heure qui vient.
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-md border bg-card">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Départ</th>
-                  <th className="px-3 py-2 text-left">Dans</th>
-                  <th className="px-3 py-2 text-left">Course</th>
-                  <th className="px-3 py-2 text-left">Lieu</th>
-                  <th className="px-3 py-2 text-left">Conducteur</th>
-                  <th className="px-3 py-2 text-left">Véhicule</th>
-                  <th className="px-3 py-2 text-left">QUB</th>
-                  <th className="px-3 py-2 text-left">Jours</th>
-                  <th className="px-3 py-2 text-center">Vérifié</th>
-                </tr>
-
-              </thead>
-              <tbody>
-                {upcoming.map((r) => {
-                  const eta = r.mins - now;
-                  const imminent = eta <= 10;
-                  const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
-                  const isP = /^p/i.test(r.route?.trim() ?? "");
-                  return (
-                    <tr
-                      key={r.id}
-                      className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
-                    >
-                      <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
-                        <div className="flex items-center gap-2">
-                          <span>{hm(r.start_time)}</span>
-                          {isP && <span className="text-base leading-none">🚸</span>}
-                        </div>
-                      </td>
-                      <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
-                        {eta <= 0 ? "maintenant" : `${eta} min`}
-                      </td>
-                      <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
-                      <td className="px-3 py-2">{r.location || "—"}</td>
-                      <td className="px-3 py-2">{r.driver}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                      <td className="px-3 py-2">{r.qub}</td>
-                      <td className="px-3 py-2">
-                        <WeekdaysEditor
-                          departure={r}
-                          onSaved={(weekdays) =>
-                            setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
-                      </td>
-
+              <div className="overflow-hidden rounded-md border bg-card">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Départ</th>
+                      <th className="px-3 py-2 text-left">Dans</th>
+                      <th className="px-3 py-2 text-left">Course</th>
+                      <th className="px-3 py-2 text-left">Lieu</th>
+                      <th className="px-3 py-2 text-left">Conducteur</th>
+                      <th className="px-3 py-2 text-left">Véhicule</th>
+                      <th className="px-3 py-2 text-left">QUB</th>
+                      <th className="px-3 py-2 text-left">Jours</th>
+                      <th className="px-3 py-2 text-center">Vérifié</th>
                     </tr>
-                  );
-                })}
-
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {upcoming.map((r) => {
+                      const eta = r.mins - now;
+                      const imminent = eta <= 10;
+                      const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                      const isP = /^p/i.test(r.route?.trim() ?? "");
+                      return (
+                        <tr
+                          key={r.id}
+                          className={cn("border-t", imminent && "bg-destructive/10 font-medium")}
+                        >
+                          <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
+                            <div className="flex items-center gap-2">
+                              <span>{hm(r.start_time)}</span>
+                              {isP && <span className="text-base leading-none">🚸</span>}
+                            </div>
+                          </td>
+                          <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
+                            {eta <= 0 ? "maintenant" : `${eta} min`}
+                          </td>
+                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                          <td className="px-3 py-2">{r.location || "—"}</td>
+                          <td className="px-3 py-2">{r.driver}</td>
+                          <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                          <td className="px-3 py-2">{r.qub}</td>
+                          <td className="px-3 py-2">
+                            <WeekdaysEditor
+                              departure={r}
+                              onSaved={(weekdays) =>
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                              }
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
         <span className="hidden">{tick}</span>
       </main>
