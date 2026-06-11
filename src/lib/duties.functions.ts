@@ -122,14 +122,18 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     let upserted = 0;
     let skipped = 0;
     let idx = 0;
+    const relCache = new Map<string, string>();
     for (const page of all) {
       const psRaw = plain(findProp(page.properties, "PS", "Prise de service", "Start"));
       const start = parseTime(psRaw);
       if (!start) { skipped++; continue; }
       const qub = plain(findProp(page.properties, "QUB", "Bus", "Vehicle ref"));
-      const driver = plain(findProp(page.properties, "Driver", "Conducteur", "Chauffeur"));
-      const route = plain(findProp(page.properties, "Route 1", "Route", "Service", "Ligne"));
-      const vehicle = plain(findProp(page.properties, "Vehicle", "Immatriculation", "Plaque"));
+      const driverProp = findProp(page.properties, "Driver", "Conducteur", "Chauffeur");
+      const driver = plain(driverProp) || await relationTitles(driverProp, relCache);
+      const routeProp = findProp(page.properties, "Route 1", "Course 1", "Route", "Service", "Ligne");
+      const route = plain(routeProp) || await relationTitles(routeProp, relCache);
+      const vehicleProp = findProp(page.properties, "Vehicle", "Véhicule", "Immatriculation", "Plaque");
+      const vehicle = plain(vehicleProp) || await relationTitles(vehicleProp, relCache);
       const weekdays = start.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5];
 
       const { error } = await supabase
