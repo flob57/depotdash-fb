@@ -1,0 +1,1 @@
+ALTER TABLE public.departures ADD COLUMN IF NOT EXISTS route_icon text;

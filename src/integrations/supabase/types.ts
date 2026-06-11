@@ -84,6 +84,7 @@ export type Database = {
           notion_page_id: string | null
           qub: string
           route: string
+          route_icon: string | null
           slot_index: number
           start_time: string
           timetable: Json | null
@@ -101,6 +102,7 @@ export type Database = {
           notion_page_id?: string | null
           qub?: string
           route?: string
+          route_icon?: string | null
           slot_index?: number
           start_time: string
           timetable?: Json | null
@@ -118,6 +120,7 @@ export type Database = {
           notion_page_id?: string | null
           qub?: string
           route?: string
+          route_icon?: string | null
           slot_index?: number
           start_time?: string
           timetable?: Json | null

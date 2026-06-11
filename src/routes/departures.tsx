@@ -29,6 +29,7 @@ type Departure = {
   arrival_time: string | null;
   weekdays: number[];
   timetable: TimetableStop[] | null;
+  route_icon: string | null;
 };
 
 const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
@@ -64,6 +65,14 @@ function hm(t: string) {
 }
 function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
+}
+
+function RouteIcon({ icon }: { icon: string | null }) {
+  if (!icon) return null;
+  if (/^https?:\/\//i.test(icon)) {
+    return <img src={icon} alt="" className="inline-block h-5 w-5 rounded-sm object-contain align-middle" />;
+  }
+  return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
 }
 
 function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
@@ -173,7 +182,7 @@ function DeparturesView() {
       const [{ data: depData }, { data: dutyData }] = await Promise.all([
         supabase
           .from("departures")
-          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays,timetable")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays,timetable,route_icon")
           .order("start_time", { ascending: true }),
         supabase
           .from("duties")
@@ -273,7 +282,12 @@ function DeparturesView() {
                           <Fragment key={r.id}>
                             <tr className="border-t bg-primary/5">
                               <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
-                              <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                              <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <RouteIcon icon={r.route_icon} />
+                                  {routeLabel(r.route)}
+                                </span>
+                              </td>
                               <td className="px-3 py-2">{r.location || "—"}</td>
                               <td className="px-3 py-2">{r.driver}</td>
                               <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
@@ -335,7 +349,12 @@ function DeparturesView() {
                           <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                             {eta <= 0 ? "maintenant" : `${eta} min`}
                           </td>
-                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                            <span className="inline-flex items-center gap-1.5">
+                              <RouteIcon icon={r.route_icon} />
+                              {routeLabel(r.route)}
+                            </span>
+                          </td>
                           <td className="px-3 py-2">{r.location || "—"}</td>
                           <td className="px-3 py-2">{r.driver}</td>
                           <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
@@ -508,7 +527,10 @@ function AllRoutesTable({
                 <tr key={r.id} className="border-t">
                   <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
                   <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
-                    {routeLabel(r.route)}
+                    <span className="inline-flex items-center gap-1.5">
+                      <RouteIcon icon={r.route_icon} />
+                      {routeLabel(r.route)}
+                    </span>
                   </td>
                   <td className="px-3 py-2">{r.location || "—"}</td>
                   <td className="px-3 py-2">{r.driver}</td>
