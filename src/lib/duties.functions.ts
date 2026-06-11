@@ -10,9 +10,18 @@ function plain(prop: AnyProp | undefined): string {
   const t = prop.type;
   const v = (prop as Record<string, unknown>)[t];
   if (v == null) return "";
+  if (t === "rollup") {
+    const r = v as { type: string; array?: AnyProp[]; number?: number; date?: { start?: string }; string?: string };
+    if (r.type === "array" && Array.isArray(r.array)) {
+      return r.array.map((x) => plain(x)).filter(Boolean).join(", ");
+    }
+    if (typeof r.number === "number") return String(r.number);
+    if (r.date?.start) return r.date.start;
+    if (typeof r.string === "string") return r.string;
+    return "";
+  }
   if (Array.isArray(v)) {
-    // rich_text / title arrays
-    return v.map((x: { plain_text?: string }) => x.plain_text ?? "").join("").trim();
+    return v.map((x: { plain_text?: string; name?: string }) => x.plain_text ?? x.name ?? "").join("").trim();
   }
   if (typeof v === "string") return v.trim();
   if (typeof v === "object") {
@@ -22,6 +31,36 @@ function plain(prop: AnyProp | undefined): string {
     if (typeof o.number === "number") return String(o.number);
   }
   return "";
+}
+
+async function relationTitles(prop: AnyProp | undefined, cache: Map<string, string>): Promise<string> {
+  if (!prop) return "";
+  let rels: { id: string }[] = [];
+  if (prop.type === "relation" && Array.isArray((prop as { relation?: { id: string }[] }).relation)) {
+    rels = (prop as { relation: { id: string }[] }).relation;
+  } else if (prop.type === "rollup") {
+    const arr = (prop as { rollup?: { array?: AnyProp[] } }).rollup?.array ?? [];
+    for (const it of arr) {
+      if (it.type === "relation" && Array.isArray((it as { relation?: { id: string }[] }).relation)) {
+        rels.push(...(it as { relation: { id: string }[] }).relation);
+      }
+    }
+  }
+  if (rels.length === 0) return "";
+  const out: string[] = [];
+  for (const r of rels) {
+    if (cache.has(r.id)) { out.push(cache.get(r.id)!); continue; }
+    try {
+      const page = (await notionFetch(`/pages/${r.id}`)) as { properties: Record<string, AnyProp> };
+      const titleKey = Object.keys(page.properties).find((k) => page.properties[k].type === "title");
+      const title = titleKey ? plain(page.properties[titleKey]) : "";
+      cache.set(r.id, title);
+      out.push(title);
+    } catch {
+      out.push("");
+    }
+  }
+  return out.filter(Boolean).join(", ");
 }
 
 function findProp(props: Record<string, AnyProp>, ...names: string[]): AnyProp | undefined {
