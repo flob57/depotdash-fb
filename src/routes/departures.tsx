@@ -251,24 +251,26 @@ function DeparturesView() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/"><ChevronLeft className="h-4 w-4" /> Retour</Link>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="px-2">
+              <Link to="/"><ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline ml-1">Retour</span></Link>
             </Button>
-            <h1 className="flex items-center gap-2 text-base font-semibold">
-              <Train className="h-4 w-4" /> Prochains départs
+            <h1 className="flex min-w-0 items-center gap-1.5 text-sm sm:text-base font-semibold truncate">
+              <Train className="h-4 w-4 shrink-0" />
+              <span className="truncate">Départs</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant={showAll ? "default" : "outline"} size="sm" onClick={() => setShowAll((s) => !s)}>
-              {showAll ? "Prochains départs" : "Tous les services"}
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant={showAll ? "default" : "outline"} size="sm" className="text-xs px-2 sm:text-sm sm:px-3" onClick={() => setShowAll((s) => !s)}>
+              {showAll ? "Prochains" : "Tous"}
             </Button>
-            <div className="font-mono text-sm tabular-nums text-muted-foreground">
+            <div className="font-mono text-xs sm:text-sm tabular-nums text-muted-foreground">
               {String(Math.floor(now / 60)).padStart(2, "0")}:{String(now % 60).padStart(2, "0")}
             </div>
           </div>
         </div>
+
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
