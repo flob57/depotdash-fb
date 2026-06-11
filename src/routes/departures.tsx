@@ -625,8 +625,9 @@ function AllRoutesTable({
         placeholder="Rechercher une course ou un conducteur…"
         className="w-full rounded-md border bg-background px-3 py-2 text-sm"
       />
-      <div className="overflow-hidden rounded-md border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-md border bg-card">
+        <table className="w-full min-w-[640px] text-sm">
+
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left">Départ</th>
