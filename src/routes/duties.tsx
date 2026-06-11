@@ -81,6 +81,7 @@ function DutiesView({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  const [sort, setSort] = useState<{ key: "ps" | "qub"; dir: "asc" | "desc" } | null>(null);
   const sync = useServerFn(syncDutiesFromNotion);
 
   useEffect(() => {
