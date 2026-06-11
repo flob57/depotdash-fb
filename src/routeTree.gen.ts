@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicGtfsAlertsRouteImport } from './routes/api/public/gtfs-alerts'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
 import { Route as ApiPublicRouteIconUserFileRouteImport } from './routes/api/public/route-icon/$user/$file'
 
@@ -36,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGtfsAlertsRoute = ApiPublicGtfsAlertsRouteImport.update({
+  id: '/api/public/gtfs-alerts',
+  path: '/api/public/gtfs-alerts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronNightlyExportRoute =
   ApiPublicCronNightlyExportRouteImport.update({
     id: '/api/public/cron/nightly-export',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
   fileRoutesByTo: FileRoutesByTo
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
   id:
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
   fileRoutesById: FileRoutesById
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
+  ApiPublicGtfsAlertsRoute: typeof ApiPublicGtfsAlertsRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
   ApiPublicRouteIconUserFileRoute: typeof ApiPublicRouteIconUserFileRoute
 }
@@ -140,6 +153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/gtfs-alerts': {
+      id: '/api/public/gtfs-alerts'
+      path: '/api/public/gtfs-alerts'
+      fullPath: '/api/public/gtfs-alerts'
+      preLoaderRoute: typeof ApiPublicGtfsAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/nightly-export': {
       id: '/api/public/cron/nightly-export'
       path: '/api/public/cron/nightly-export'
@@ -162,19 +182,10 @@ const rootRouteChildren: RootRouteChildren = {
   DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
+  ApiPublicGtfsAlertsRoute: ApiPublicGtfsAlertsRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
   ApiPublicRouteIconUserFileRoute: ApiPublicRouteIconUserFileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

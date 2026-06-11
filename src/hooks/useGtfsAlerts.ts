@@ -23,7 +23,7 @@ const getText = (obj: { translation?: { language?: string; text?: string }[] } |
   return (t.find((x) => x.language === "fr") ?? t[0])?.text ?? "";
 };
 
-const FEED_URL = "https://notify.ratpdev.com/api/networks/RD%20QUIMPER/alerts/gtfsrt";
+const FEED_URL = "/api/public/gtfs-alerts";
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export function useGtfsAlerts(): UseGtfsAlertsReturn {
