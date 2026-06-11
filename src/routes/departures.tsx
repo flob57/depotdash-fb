@@ -369,13 +369,17 @@ function DeparturesView() {
                           <th className="px-3 py-2 text-left">Conducteur</th>
                           <th className="px-3 py-2 text-left">Véhicule</th>
                           <th className="px-3 py-2 text-left">QUB</th>
+                          <th className="px-3 py-2 text-left">Prochain arrêt</th>
                           <th className="px-3 py-2 text-left">Arrivée</th>
+                          <th className="px-3 py-2 text-right">Tracé</th>
                         </tr>
                       </thead>
                       <tbody>
                         {running.map((r) => {
                           const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
                           const isP = /^p/i.test(r.route?.trim() ?? "");
+                          const expanded = expandedDiagrams.has(r.id);
+                          const next = nextStopOf(r.timetable, now);
                           return (
                             <Fragment key={r.id}>
                               <tr className="border-t bg-primary/5">
@@ -390,13 +394,36 @@ function DeparturesView() {
                                 <td className="px-3 py-2">{r.driver}</td>
                                 <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                                 <td className="px-3 py-2">{r.qub}</td>
+                                <td className="px-3 py-2 text-xs">
+                                  {next ? (
+                                    <span>
+                                      <span className="font-mono tabular-nums text-muted-foreground">{next.time}</span>{" "}
+                                      {next.stop}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
                                 <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
-                              </tr>
-                              <tr className="bg-primary/5">
-                                <td colSpan={7} className="p-0">
-                                  <RouteProgressBar timetable={r.timetable} now={now} />
+                                <td className="px-3 py-2 text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => toggleDiagram(r.id)}
+                                    aria-expanded={expanded}
+                                  >
+                                    {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                  </Button>
                                 </td>
                               </tr>
+                              {expanded && (
+                                <tr className="bg-primary/5">
+                                  <td colSpan={9} className="p-0">
+                                    <RouteProgressBar timetable={r.timetable} now={now} />
+                                  </td>
+                                </tr>
+                              )}
                             </Fragment>
                           );
                         })}
