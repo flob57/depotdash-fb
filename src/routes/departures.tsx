@@ -29,6 +29,7 @@ type Departure = {
   arrival_time: string | null;
   weekdays: number[];
   timetable: TimetableStop[] | null;
+  route_icon: string | null;
 };
 
 const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
