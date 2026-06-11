@@ -77,18 +77,37 @@ async function prefetchRelationTitles(ids: Iterable<string>, cache: Map<string, 
 }
 
 type TimetableStop = { stop: string; time: string };
+type RoutePageMeta = { timetable: TimetableStop[]; icon: string | null };
 
 function richTextToString(rt: Array<{ plain_text?: string }> | undefined): string {
   if (!rt || !Array.isArray(rt)) return "";
   return rt.map((x) => x.plain_text ?? "").join("").trim();
 }
 
-async function fetchPageTimetable(pageId: string): Promise<TimetableStop[]> {
-  const children = (await notionFetch(`/blocks/${pageId}/children?page_size=100`)) as {
-    results: Array<{ id: string; type: string }>;
-  };
+type NotionIcon =
+  | { type: "emoji"; emoji?: string }
+  | { type: "external"; external?: { url?: string } }
+  | { type: "file"; file?: { url?: string } }
+  | null;
+
+function iconToString(icon: NotionIcon): string | null {
+  if (!icon) return null;
+  if (icon.type === "emoji") return icon.emoji ?? null;
+  if (icon.type === "external") return icon.external?.url ?? null;
+  if (icon.type === "file") return icon.file?.url ?? null;
+  return null;
+}
+
+async function fetchRoutePageMeta(pageId: string): Promise<RoutePageMeta> {
+  const [page, children] = await Promise.all([
+    notionFetch(`/pages/${pageId}`) as Promise<{ icon: NotionIcon }>,
+    notionFetch(`/blocks/${pageId}/children?page_size=100`) as Promise<{
+      results: Array<{ id: string; type: string }>;
+    }>,
+  ]);
+  const icon = iconToString(page.icon ?? null);
   const table = children.results.find((b) => b.type === "table");
-  if (!table) return [];
+  if (!table) return { timetable: [], icon };
   const rows = (await notionFetch(`/blocks/${table.id}/children?page_size=100`)) as {
     results: Array<{ type: string; table_row?: { cells: Array<Array<{ plain_text?: string }>> } }>;
   };
@@ -103,24 +122,25 @@ async function fetchPageTimetable(pageId: string): Promise<TimetableStop[]> {
     if (!stop || !time) continue;
     out.push({ stop, time: time.slice(0, 5) });
   }
-  return out;
+  return { timetable: out, icon };
 }
 
-async function prefetchTimetables(ids: Iterable<string>, cache: Map<string, TimetableStop[]>, concurrency = 6) {
+async function prefetchRoutePageMeta(ids: Iterable<string>, cache: Map<string, RoutePageMeta>, concurrency = 6) {
   const todo = Array.from(new Set([...ids])).filter((id) => !cache.has(id));
   let i = 0;
   async function worker() {
     while (i < todo.length) {
       const id = todo[i++];
       try {
-        cache.set(id, await fetchPageTimetable(id));
+        cache.set(id, await fetchRoutePageMeta(id));
       } catch {
-        cache.set(id, []);
+        cache.set(id, { timetable: [], icon: null });
       }
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
 }
+
 
 
 
