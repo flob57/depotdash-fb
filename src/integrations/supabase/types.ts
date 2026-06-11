@@ -76,6 +76,7 @@ export type Database = {
       }
       departures: {
         Row: {
+          arrival_time: string | null
           created_at: string
           driver: string
           id: string
@@ -91,6 +92,7 @@ export type Database = {
           weekdays: number[]
         }
         Insert: {
+          arrival_time?: string | null
           created_at?: string
           driver?: string
           id?: string
@@ -106,6 +108,7 @@ export type Database = {
           weekdays?: number[]
         }
         Update: {
+          arrival_time?: string | null
           created_at?: string
           driver?: string
           id?: string
