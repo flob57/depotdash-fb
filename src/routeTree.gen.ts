@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DutiesRoute = DutiesRouteImport.update({
+  id: '/duties',
+  path: '/duties',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -32,30 +38,39 @@ const ApiPublicCronNightlyExportRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/api/public/cron/nightly-export'
+  fullPaths: '/' | '/duties' | '/login' | '/api/public/cron/nightly-export'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/api/public/cron/nightly-export'
-  id: '__root__' | '/' | '/login' | '/api/public/cron/nightly-export'
+  to: '/' | '/duties' | '/login' | '/api/public/cron/nightly-export'
+  id:
+    | '__root__'
+    | '/'
+    | '/duties'
+    | '/login'
+    | '/api/public/cron/nightly-export'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
 }
@@ -67,6 +82,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/duties': {
+      id: '/duties'
+      path: '/duties'
+      fullPath: '/duties'
+      preLoaderRoute: typeof DutiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -88,6 +110,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
 }

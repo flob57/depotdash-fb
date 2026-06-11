@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrackingData } from "@/hooks/useTrackingData";
@@ -22,7 +22,7 @@ import {
 import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
 import { computeLeaveBalance } from "@/lib/leave";
 import { sumDeclaredMs } from "@/lib/declared";
-import { Fuel, LogOut } from "lucide-react";
+import { Fuel, LogOut, ClipboardCheck } from "lucide-react";
 import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 import logoOcelorn from "@/assets/logo-lestonan.png";
 import { Toaster } from "@/components/ui/sonner";
@@ -169,9 +169,14 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-1.5 h-4 w-4" /> Sign out
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/duties"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Prises de service</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-1.5 h-4 w-4" /> Sign out
+            </Button>
+          </div>
         </div>
       </header>
 

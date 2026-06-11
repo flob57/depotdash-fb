@@ -91,6 +91,54 @@ export type Database = {
           },
         ]
       }
+      duties: {
+        Row: {
+          created_at: string
+          driver: string
+          id: string
+          last_checked_date: string | null
+          notion_page_id: string | null
+          qub: string
+          route: string
+          sort_order: number
+          start_time: string
+          updated_at: string
+          user_id: string
+          vehicle: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          driver?: string
+          id?: string
+          last_checked_date?: string | null
+          notion_page_id?: string | null
+          qub?: string
+          route?: string
+          sort_order?: number
+          start_time: string
+          updated_at?: string
+          user_id: string
+          vehicle?: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          driver?: string
+          id?: string
+          last_checked_date?: string | null
+          notion_page_id?: string | null
+          qub?: string
+          route?: string
+          sort_order?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          vehicle?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       fuel_fillups: {
         Row: {
           bus_reference: string
@@ -249,6 +297,7 @@ export type Database = {
           daily_totals_db_id: string | null
           distance_summary_db_id: string | null
           fuel_fillups_db_id: string | null
+          services_db_id: string | null
           sessions_db_id: string | null
           shifts_db_id: string | null
           timezone: string
@@ -260,6 +309,7 @@ export type Database = {
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          services_db_id?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string
@@ -271,6 +321,7 @@ export type Database = {
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          services_db_id?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string
