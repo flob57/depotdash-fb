@@ -118,9 +118,9 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
                   isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
                 )}
               />
-              <div className="absolute left-1/2 top-3 mt-1 -translate-x-1/2 text-center text-[10px] leading-tight text-muted-foreground">
+              <div className="absolute left-1/2 top-4 text-[10px] leading-tight text-muted-foreground whitespace-nowrap" style={{ transform: "translateX(-50%) rotate(-45deg)", transformOrigin: "top center" }}>
                 <div className="font-mono tabular-nums">{s.time}</div>
-                <div className="max-w-[80px] truncate" title={s.stop}>{s.stop}</div>
+                <div>{s.stop}</div>
               </div>
             </div>
           );
