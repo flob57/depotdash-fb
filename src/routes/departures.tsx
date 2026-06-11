@@ -186,9 +186,6 @@ function DeparturesView() {
                           {isP && <span className="text-base leading-none">🚸</span>}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-center">
-                        {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
-                      </td>
                       <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                         {eta <= 0 ? "maintenant" : `${eta} min`}
                       </td>
@@ -204,6 +201,10 @@ function DeparturesView() {
                           }
                         />
                       </td>
+                      <td className="px-3 py-2 text-center">
+                        {r.notion_page_id && checkedPages.has(r.notion_page_id) ? "✅" : ""}
+                      </td>
+
                     </tr>
                   );
                 })}
