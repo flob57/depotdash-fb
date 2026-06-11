@@ -149,7 +149,9 @@ function DeparturesView() {
                   <th className="px-3 py-2 text-left">Conducteur</th>
                   <th className="px-3 py-2 text-left">Véhicule</th>
                   <th className="px-3 py-2 text-left">QUB</th>
+                  <th className="px-3 py-2 text-left">Jours</th>
                 </tr>
+
               </thead>
               <tbody>
                 {upcoming.map((r) => {
