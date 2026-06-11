@@ -70,7 +70,19 @@ export function AlertsBanner() {
     );
   }
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <div
+        className={cn(
+          "border-b bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground",
+          "transition-all duration-300 ease-out",
+          mounted ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+        )}
+      >
+        No active alerts
+      </div>
+    );
+  }
 
   return (
     <div
