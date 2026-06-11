@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ChevronLeft, Pencil, Train } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp, Pencil, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertsBanner } from "@/components/AlertsBanner";
