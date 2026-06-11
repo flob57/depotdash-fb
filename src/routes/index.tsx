@@ -162,27 +162,28 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
     <div className="min-h-screen bg-background">
       <Toaster />
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <img src={logoOcelorn} alt="Lestonan" className="h-10 w-auto rounded-md bg-white p-1" />
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">Tableau de bord</h1>
-              <p className="text-xs text-muted-foreground">{email}</p>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-4 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <img src={logoOcelorn} alt="Lestonan" className="h-9 w-auto shrink-0 rounded-md bg-white p-1 sm:h-10" />
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-semibold leading-tight sm:text-lg">Tableau de bord</h1>
+              <p className="truncate text-[11px] text-muted-foreground sm:text-xs">{email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/departures"><Train className="mr-1.5 h-4 w-4" /> Prochains départs</Link>
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Prochains départs">
+              <Link to="/departures"><Train className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Prochains départs</span></Link>
             </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/duties"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Prises de service</Link>
+            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Prises de service">
+              <Link to="/duties"><ClipboardCheck className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Prises de service</span></Link>
             </Button>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="mr-1.5 h-4 w-4" /> Sign out
+            <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={signOut} title="Sign out">
+              <LogOut className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </div>
       </header>
+
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
         <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
