@@ -169,9 +169,14 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
               <p className="text-xs text-muted-foreground">{email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-1.5 h-4 w-4" /> Sign out
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/duties"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Prises de service</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-1.5 h-4 w-4" /> Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
