@@ -174,7 +174,7 @@ function DeparturesView() {
       const [{ data: depData }, { data: dutyData }] = await Promise.all([
         supabase
           .from("departures")
-          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays,timetable")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays,timetable,route_icon")
           .order("start_time", { ascending: true }),
         supabase
           .from("duties")
