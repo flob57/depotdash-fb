@@ -88,6 +88,7 @@ function DeparturesView() {
   }, []);
 
   const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
   const today = todayKey();
 
   useEffect(() => {
@@ -136,19 +137,28 @@ function DeparturesView() {
               <Train className="h-4 w-4" /> Prochains départs
             </h1>
           </div>
-          <div className="font-mono text-sm tabular-nums text-muted-foreground">
-            {String(Math.floor(now / 60)).padStart(2, "0")}:{String(now % 60).padStart(2, "0")}
+          <div className="flex items-center gap-3">
+            <Button variant={showAll ? "default" : "outline"} size="sm" onClick={() => setShowAll((s) => !s)}>
+              {showAll ? "Prochains départs" : "Tous les services"}
+            </Button>
+            <div className="font-mono text-sm tabular-nums text-muted-foreground">
+              {String(Math.floor(now / 60)).padStart(2, "0")}:{String(now % 60).padStart(2, "0")}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <p className="text-xs text-muted-foreground">
-          Départs prévus dans les 60 prochaines minutes. Mise à jour automatique.
+          {showAll
+            ? "Tous les services. Modifiez les jours de circulation puis enregistrez."
+            : "Départs prévus dans les 60 prochaines minutes. Mise à jour automatique."}
         </p>
 
         {loading ? (
           <div className="text-sm text-muted-foreground">Chargement…</div>
+        ) : showAll ? (
+          <AllRoutesTable rows={rows} setRows={setRows} />
         ) : upcoming.length === 0 ? (
           <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
             Aucun départ prévu dans l'heure qui vient.
@@ -315,4 +325,78 @@ function WeekdaysEditor({
     </Popover>
   );
 }
+
+function AllRoutesTable({
+  rows,
+  setRows,
+}: {
+  rows: Departure[];
+  setRows: React.Dispatch<React.SetStateAction<Departure[]>>;
+}) {
+  const [query, setQuery] = useState("");
+  const sorted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows
+      .filter((r) => !q || r.route.toLowerCase().includes(q) || r.driver?.toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => a.route.localeCompare(b.route) || a.start_time.localeCompare(b.start_time));
+  }, [rows, query]);
+
+  return (
+    <div className="space-y-3">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Rechercher une course ou un conducteur…"
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+      />
+      <div className="overflow-hidden rounded-md border bg-card">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left">Départ</th>
+              <th className="px-3 py-2 text-left">Course</th>
+              <th className="px-3 py-2 text-left">Conducteur</th>
+              <th className="px-3 py-2 text-left">Véhicule</th>
+              <th className="px-3 py-2 text-left">Jours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => {
+              const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+              const isP = /^p/i.test(r.route?.trim() ?? "");
+              return (
+                <tr key={r.id} className="border-t">
+                  <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                  <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                    {routeLabel(r.route)}
+                  </td>
+                  <td className="px-3 py-2">{r.driver}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                  <td className="px-3 py-2">
+                    <WeekdaysEditor
+                      departure={r}
+                      onSaved={(weekdays) =>
+                        setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                  Aucun service.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 
