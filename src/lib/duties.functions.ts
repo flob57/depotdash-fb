@@ -213,6 +213,8 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     const departuresRows: Array<{
       user_id: string; notion_page_id: string; slot_index: number;
       start_time: string; route: string; qub: string; driver: string; vehicle: string; location: string; arrival_time: string | null; weekdays: number[];
+      timetable: TimetableStop[] | null;
+      _routePageId?: string;
     }> = [];
 
     let idx = 0;
@@ -247,13 +249,27 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         if (!rText) continue;
         const location = (lProp ? plain(lProp) : "") || (lProp ? await relationTitles(lProp, relCache) : "");
         const arrival_time = aProp ? parseTime(plain(aProp)) : null;
+        const routeRelId = extractRelationIds(rProp)[0];
         departuresRows.push({
           user_id: userId, notion_page_id: page.id, slot_index: n,
           start_time: tParsed, route: rText, qub, driver, vehicle, location, arrival_time,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
+          timetable: null,
+          _routePageId: routeRelId,
         });
       }
     }
+
+    // Fetch timetables (table block inside each linked Horaire QUB page) in parallel.
+    const ttCache = new Map<string, TimetableStop[]>();
+    const ttIds = new Set<string>();
+    for (const r of departuresRows) if (r._routePageId) ttIds.add(r._routePageId);
+    await prefetchTimetables(ttIds, ttCache);
+    for (const r of departuresRows) {
+      if (r._routePageId) r.timetable = ttCache.get(r._routePageId) ?? null;
+      delete r._routePageId;
+    }
+
 
     // Bulk upsert duties in chunks
     for (let i = 0; i < dutiesRows.length; i += 500) {
