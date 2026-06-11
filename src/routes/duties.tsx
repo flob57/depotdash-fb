@@ -262,9 +262,6 @@ function DutiesView({ userId }: { userId: string }) {
                           <span>{d.route}</span>
                           <span className="font-mono">{d.vehicle}</span>
                         </div>
-                        <div className="mt-2">
-                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
-                        </div>
                       </div>
                       <Button variant="ghost" size="icon" className="shrink-0 -mr-2" onClick={() => removeDuty(d.id)}>
                         <Trash2 className="h-4 w-4" />
