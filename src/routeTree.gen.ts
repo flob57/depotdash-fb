@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
+import { Route as DeparturesRouteImport } from './routes/departures'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
 
@@ -22,6 +23,11 @@ const LoginRoute = LoginRouteImport.update({
 const DutiesRoute = DutiesRouteImport.update({
   id: '/duties',
   path: '/duties',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeparturesRoute = DeparturesRouteImport.update({
+  id: '/departures',
+  path: '/departures',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -38,12 +44,14 @@ const ApiPublicCronNightlyExportRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
@@ -51,18 +59,30 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/duties' | '/login' | '/api/public/cron/nightly-export'
+  fullPaths:
+    | '/'
+    | '/departures'
+    | '/duties'
+    | '/login'
+    | '/api/public/cron/nightly-export'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/duties' | '/login' | '/api/public/cron/nightly-export'
+  to:
+    | '/'
+    | '/departures'
+    | '/duties'
+    | '/login'
+    | '/api/public/cron/nightly-export'
   id:
     | '__root__'
     | '/'
+    | '/departures'
     | '/duties'
     | '/login'
     | '/api/public/cron/nightly-export'
@@ -70,6 +90,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
@@ -91,6 +112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DutiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/departures': {
+      id: '/departures'
+      path: '/departures'
+      fullPath: '/departures'
+      preLoaderRoute: typeof DeparturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -110,6 +138,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
@@ -117,13 +146,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

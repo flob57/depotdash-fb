@@ -22,7 +22,7 @@ import {
 import { overallConsumption, computeVehicleConsumption } from "@/lib/fuel";
 import { computeLeaveBalance } from "@/lib/leave";
 import { sumDeclaredMs } from "@/lib/declared";
-import { Fuel, LogOut, ClipboardCheck } from "lucide-react";
+import { Fuel, LogOut, ClipboardCheck, Train } from "lucide-react";
 import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 import logoOcelorn from "@/assets/logo-lestonan.png";
 import { Toaster } from "@/components/ui/sonner";
@@ -170,6 +170,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/departures"><Train className="mr-1.5 h-4 w-4" /> Prochains départs</Link>
+            </Button>
             <Button asChild variant="ghost" size="sm">
               <Link to="/duties"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Prises de service</Link>
             </Button>

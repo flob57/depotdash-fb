@@ -44,6 +44,51 @@ export type Database = {
         }
         Relationships: []
       }
+      departures: {
+        Row: {
+          created_at: string
+          driver: string
+          id: string
+          notion_page_id: string | null
+          qub: string
+          route: string
+          slot_index: number
+          start_time: string
+          updated_at: string
+          user_id: string
+          vehicle: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          driver?: string
+          id?: string
+          notion_page_id?: string | null
+          qub?: string
+          route?: string
+          slot_index?: number
+          start_time: string
+          updated_at?: string
+          user_id: string
+          vehicle?: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          driver?: string
+          id?: string
+          notion_page_id?: string | null
+          qub?: string
+          route?: string
+          slot_index?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          vehicle?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       driving_sessions: {
         Row: {
           bus_reference: string | null
