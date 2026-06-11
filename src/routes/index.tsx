@@ -171,6 +171,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           </div>
           <div className="flex items-center gap-1">
             <Button asChild variant="ghost" size="sm">
+              <Link to="/departures"><Train className="mr-1.5 h-4 w-4" /> Prochains départs</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
               <Link to="/duties"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Prises de service</Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={signOut}>
