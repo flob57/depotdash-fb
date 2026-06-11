@@ -36,6 +36,9 @@ function timeMinutes(t: string) {
 function hm(t: string) {
   return t.slice(0, 5);
 }
+function routeLabel(route: string) {
+  return route.split(".")[0] ?? route;
+}
 
 function DeparturesPage() {
   const { user, loading } = useAuth();
@@ -151,7 +154,7 @@ function DeparturesView() {
                       <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                         {eta <= 0 ? "maintenant" : `${eta} min`}
                       </td>
-                      <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{r.route}</td>
+                      <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
                       <td className="px-3 py-2">{r.driver}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                       <td className="px-3 py-2">{r.qub}</td>
