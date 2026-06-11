@@ -211,6 +211,14 @@ function DeparturesView() {
 
   const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
+  const [expandedDiagrams, setExpandedDiagrams] = useState<Set<string>>(new Set());
+  const toggleDiagram = (id: string) =>
+    setExpandedDiagrams((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const today = todayKey();
 
   useEffect(() => {
