@@ -58,7 +58,7 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, fillups, holidays, declared, balanceSettings, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, holidays, declared, balanceSettings, schoolHolidays, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
