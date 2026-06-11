@@ -88,6 +88,7 @@ function DeparturesView() {
   }, []);
 
   const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
   const today = todayKey();
 
   useEffect(() => {
