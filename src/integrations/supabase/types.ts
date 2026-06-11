@@ -79,6 +79,7 @@ export type Database = {
           created_at: string
           driver: string
           id: string
+          location: string
           notion_page_id: string | null
           qub: string
           route: string
@@ -93,6 +94,7 @@ export type Database = {
           created_at?: string
           driver?: string
           id?: string
+          location?: string
           notion_page_id?: string | null
           qub?: string
           route?: string
@@ -107,6 +109,7 @@ export type Database = {
           created_at?: string
           driver?: string
           id?: string
+          location?: string
           notion_page_id?: string | null
           qub?: string
           route?: string
