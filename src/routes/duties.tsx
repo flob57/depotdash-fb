@@ -642,3 +642,56 @@ function AddDutyDialog({ userId, onAdded }: { userId: string; onAdded: () => voi
     </Dialog>
   );
 }
+
+function EditDutyDialog({ duty, onSaved }: { duty: Duty; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState<number[]>(duty.weekdays);
+  const [busy, setBusy] = useState(false);
+
+  const toggle = (w: number) => {
+    setDays((prev) => {
+      const set = new Set(prev);
+      if (set.has(w)) set.delete(w); else set.add(w);
+      return Array.from(set).sort((a, b) => a - b);
+    });
+  };
+
+  const save = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("duties").update({ weekdays: days }).eq("id", duty.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Jours de fonctionnement mis à jour");
+      setOpen(false);
+      onSaved();
+    }
+  };
+
+  useEffect(() => { setDays(duty.weekdays); }, [duty.weekdays, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Modifier les jours</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            {hm(duty.start_time)} — QUB {duty.qub} — {duty.driver}
+          </div>
+          <WeekdayPicker value={days} onToggle={toggle} />
+        </div>
+        <DialogFooter>
+          <Button onClick={save} disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
