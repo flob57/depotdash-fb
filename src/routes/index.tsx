@@ -185,12 +185,12 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
+
         <OvertimeBanner overtimeMinutes={overtimeMinutes} leave={leaveBalance} />
         <div className="flex justify-end">
           <StartingBalancesDialog userId={userId} current={balanceSettings} onSaved={refresh} />
         </div>
-
-        <FuelBanner fillups={fillups} />
 
         <ActionPanel
           userId={userId}
@@ -199,7 +199,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           onChange={refresh}
         />
 
-        <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
+        <FuelBanner fillups={fillups} />
 
         <DeclaredHoursCard userId={userId} declared={declared} schoolHolidays={schoolHolidays} onChanged={refresh} />
 
@@ -223,11 +223,11 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           )}
         </section>
 
-        <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
-        <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <PublicHolidaysCard userId={userId} holidays={holidays} onChanged={refresh} />
         <FuelFillupsCard fillups={fillups} onChanged={refresh} />
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
+        <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
+        <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <KmSummaryTable sessions={sessions} />
 
         <p className="text-center text-xs text-muted-foreground">
