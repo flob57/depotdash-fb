@@ -36,6 +36,9 @@ function timeMinutes(t: string) {
 function hm(t: string) {
   return t.slice(0, 5);
 }
+function routeLabel(route: string) {
+  return route.split(".")[0] ?? route;
+}
 
 function DeparturesPage() {
   const { user, loading } = useAuth();
