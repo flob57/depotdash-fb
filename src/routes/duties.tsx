@@ -13,8 +13,9 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
+import { pickSlot, SLOT_LABELS, type ServiceSlot, type SchoolHoliday } from "@/lib/school-context";
 
 export const Route = createFileRoute("/duties")({
   component: DutiesPage,
@@ -77,7 +78,8 @@ function DutiesPage() {
 
 function DutiesView({ userId }: { userId: string }) {
   const [duties, setDuties] = useState<Duty[]>([]);
-  const [dbId, setDbId] = useState<string>("");
+  const [dbIds, setDbIds] = useState<Record<ServiceSlot, string>>({ weekday: "", wed: "", sat_hol: "" });
+  const [holidays, setHolidays] = useState<SchoolHoliday[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -91,12 +93,22 @@ function DutiesView({ userId }: { userId: string }) {
 
   const refresh = async () => {
     setLoading(true);
-    const [{ data: ds }, { data: settings }] = await Promise.all([
+    const [{ data: ds }, { data: settings }, { data: hols }] = await Promise.all([
       supabase.from("duties").select("*").order("start_time", { ascending: true }),
-      supabase.from("user_notion_settings").select("services_db_id").eq("user_id", userId).maybeSingle(),
+      supabase
+        .from("user_notion_settings")
+        .select("services_db_id, services_db_id_wed, services_db_id_sat_hol")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase.from("school_holidays").select("*").order("start_date", { ascending: true }),
     ]);
     setDuties((ds ?? []) as Duty[]);
-    setDbId((settings?.services_db_id as string) ?? "");
+    setDbIds({
+      weekday: (settings?.services_db_id as string) ?? "",
+      wed: (settings?.services_db_id_wed as string) ?? "",
+      sat_hol: (settings?.services_db_id_sat_hol as string) ?? "",
+    });
+    setHolidays((hols ?? []) as SchoolHoliday[]);
     setLoading(false);
   };
 
@@ -105,6 +117,7 @@ function DutiesView({ userId }: { userId: string }) {
   const wd = todayWeekday();
   const today = todayKey();
   const now = nowMinutes();
+  const activeSlot = useMemo(() => pickSlot(new Date(), holidays), [holidays, tick]);
 
   const visible = useMemo(() => {
     const arr = showAll ? duties : duties.filter((d) => d.weekdays.includes(wd));
@@ -150,11 +163,33 @@ function DutiesView({ userId }: { userId: string }) {
     else refresh();
   };
 
+  const saveDbIds = async (next: Record<ServiceSlot, string>) => {
+    const { error } = await supabase
+      .from("user_notion_settings")
+      .upsert(
+        {
+          user_id: userId,
+          services_db_id: next.weekday || null,
+          services_db_id_wed: next.wed || null,
+          services_db_id_sat_hol: next.sat_hol || null,
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) { toast.error(error.message); return false; }
+    setDbIds(next);
+    return true;
+  };
+
   const handleSync = async () => {
-    if (!dbId) { toast.error("Renseignez d'abord l'ID de la base Notion."); return; }
+    const slot = pickSlot(new Date(), holidays);
+    const targetDb = dbIds[slot];
+    if (!targetDb) {
+      toast.error(`Aucune base Notion configurée pour aujourd'hui (${SLOT_LABELS[slot]}).`);
+      return;
+    }
     try {
-      const res = await sync({ data: { databaseId: dbId } });
-      toast.success(`${res.upserted} prises synchronisées${res.skipped ? ` (${res.skipped} ignorées)` : ""}.`);
+      const res = await sync({ data: { databaseId: targetDb } });
+      toast.success(`${res.upserted} prises synchronisées depuis « ${SLOT_LABELS[slot]} »${res.skipped ? ` (${res.skipped} ignorées)` : ""}.`);
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de la synchronisation");
