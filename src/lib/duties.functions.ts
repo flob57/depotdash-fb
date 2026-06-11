@@ -76,6 +76,54 @@ async function prefetchRelationTitles(ids: Iterable<string>, cache: Map<string, 
   await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
 }
 
+type TimetableStop = { stop: string; time: string };
+
+function richTextToString(rt: Array<{ plain_text?: string }> | undefined): string {
+  if (!rt || !Array.isArray(rt)) return "";
+  return rt.map((x) => x.plain_text ?? "").join("").trim();
+}
+
+async function fetchPageTimetable(pageId: string): Promise<TimetableStop[]> {
+  const children = (await notionFetch(`/blocks/${pageId}/children?page_size=100`)) as {
+    results: Array<{ id: string; type: string }>;
+  };
+  const table = children.results.find((b) => b.type === "table");
+  if (!table) return [];
+  const rows = (await notionFetch(`/blocks/${table.id}/children?page_size=100`)) as {
+    results: Array<{ type: string; table_row?: { cells: Array<Array<{ plain_text?: string }>> } }>;
+  };
+  const out: TimetableStop[] = [];
+  for (const r of rows.results) {
+    if (r.type !== "table_row" || !r.table_row) continue;
+    const cells = r.table_row.cells;
+    if (cells.length < 2) continue;
+    const stop = richTextToString(cells[0]);
+    const timeRaw = richTextToString(cells[1]);
+    const time = parseTime(timeRaw);
+    if (!stop || !time) continue;
+    out.push({ stop, time: time.slice(0, 5) });
+  }
+  return out;
+}
+
+async function prefetchTimetables(ids: Iterable<string>, cache: Map<string, TimetableStop[]>, concurrency = 6) {
+  const todo = Array.from(new Set([...ids])).filter((id) => !cache.has(id));
+  let i = 0;
+  async function worker() {
+    while (i < todo.length) {
+      const id = todo[i++];
+      try {
+        cache.set(id, await fetchPageTimetable(id));
+      } catch {
+        cache.set(id, []);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
+}
+
+
+
 
 function findProp(props: Record<string, AnyProp>, ...names: string[]): AnyProp | undefined {
   const keys = Object.keys(props);
@@ -165,6 +213,8 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     const departuresRows: Array<{
       user_id: string; notion_page_id: string; slot_index: number;
       start_time: string; route: string; qub: string; driver: string; vehicle: string; location: string; arrival_time: string | null; weekdays: number[];
+      timetable: TimetableStop[] | null;
+      _routePageId?: string;
     }> = [];
 
     let idx = 0;
@@ -199,13 +249,27 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         if (!rText) continue;
         const location = (lProp ? plain(lProp) : "") || (lProp ? await relationTitles(lProp, relCache) : "");
         const arrival_time = aProp ? parseTime(plain(aProp)) : null;
+        const routeRelId = extractRelationIds(rProp)[0];
         departuresRows.push({
           user_id: userId, notion_page_id: page.id, slot_index: n,
           start_time: tParsed, route: rText, qub, driver, vehicle, location, arrival_time,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
+          timetable: null,
+          _routePageId: routeRelId,
         });
       }
     }
+
+    // Fetch timetables (table block inside each linked Horaire QUB page) in parallel.
+    const ttCache = new Map<string, TimetableStop[]>();
+    const ttIds = new Set<string>();
+    for (const r of departuresRows) if (r._routePageId) ttIds.add(r._routePageId);
+    await prefetchTimetables(ttIds, ttCache);
+    for (const r of departuresRows) {
+      if (r._routePageId) r.timetable = ttCache.get(r._routePageId) ?? null;
+      delete r._routePageId;
+    }
+
 
     // Bulk upsert duties in chunks
     for (let i = 0; i < dutiesRows.length; i += 500) {
@@ -230,7 +294,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         if (ov) r.weekdays = ov;
       }
       for (let i = 0; i < departuresRows.length; i += 500) {
-        const chunk = departuresRows.slice(i, i + 500);
+        const chunk = departuresRows.slice(i, i + 500).map(({ _routePageId, ...rest }) => rest);
         const { error: dErr } = await supabase.from("departures").insert(chunk);
         if (dErr) throw new Error(dErr.message);
       }

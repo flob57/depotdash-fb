@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ export const Route = createFileRoute("/departures")({
   head: () => ({ meta: [{ title: "Prochains départs — Lestonan" }] }),
 });
 
+type TimetableStop = { stop: string; time: string };
+
 type Departure = {
   id: string;
   notion_page_id: string | null;
@@ -26,6 +28,7 @@ type Departure = {
   location: string;
   arrival_time: string | null;
   weekdays: number[];
+  timetable: TimetableStop[] | null;
 };
 
 const WEEKDAY_LABELS: Array<{ value: number; label: string }> = [
@@ -61,6 +64,77 @@ function hm(t: string) {
 }
 function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
+}
+
+function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
+  if (!timetable || timetable.length < 2) {
+    return (
+      <div className="px-4 py-3 text-[11px] text-muted-foreground">
+        Horaire détaillé indisponible.
+      </div>
+    );
+  }
+  const stops = timetable
+    .map((s) => ({ ...s, mins: timeMinutes(s.time) }))
+    .sort((a, b) => a.mins - b.mins);
+  const first = stops[0].mins;
+  const last = stops[stops.length - 1].mins;
+  let pct = 0;
+  if (now <= first) pct = 0;
+  else if (now >= last) pct = 100;
+  else {
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i].mins;
+      const b = stops[i + 1].mins;
+      if (now >= a && now <= b) {
+        const frac = b === a ? 0 : (now - a) / (b - a);
+        pct = ((i + frac) / (stops.length - 1)) * 100;
+        break;
+      }
+    }
+  }
+  const nextIdx = stops.findIndex((s) => s.mins > now);
+  return (
+    <div className="px-4 pt-4 pb-12">
+      <div className="relative mx-3 h-2 rounded-full bg-muted">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
+          style={{ width: `${pct}%` }}
+        />
+        {stops.map((s, i) => {
+          const left = (i / (stops.length - 1)) * 100;
+          const passed = now >= s.mins;
+          const isNext = i === nextIdx;
+          return (
+            <div
+              key={i}
+              className="absolute top-1/2"
+              style={{ left: `${left}%`, transform: "translate(-50%, -50%)" }}
+            >
+              <div
+                className={cn(
+                  "h-3 w-3 rounded-full border-2 border-background",
+                  passed ? "bg-primary" : "bg-muted-foreground/40",
+                  isNext && "ring-2 ring-primary ring-offset-1 ring-offset-background",
+                )}
+              />
+              <div className="absolute left-1/2 top-3 mt-1 -translate-x-1/2 text-center text-[10px] leading-tight text-muted-foreground">
+                <div className="font-mono tabular-nums">{s.time}</div>
+                <div className="max-w-[80px] truncate" title={s.stop}>{s.stop}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div
+          className="absolute -top-4 text-base"
+          style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
+          aria-label="Position théorique"
+        >
+          🚌
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DeparturesPage() {
@@ -99,7 +173,7 @@ function DeparturesView() {
       const [{ data: depData }, { data: dutyData }] = await Promise.all([
         supabase
           .from("departures")
-          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays")
+          .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,location,arrival_time,weekdays,timetable")
           .order("start_time", { ascending: true }),
         supabase
           .from("duties")
@@ -196,15 +270,22 @@ function DeparturesView() {
                         const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
                         const isP = /^p/i.test(r.route?.trim() ?? "");
                         return (
-                          <tr key={r.id} className="border-t bg-primary/5">
-                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
-                            <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
-                            <td className="px-3 py-2">{r.location || "—"}</td>
-                            <td className="px-3 py-2">{r.driver}</td>
-                            <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
-                            <td className="px-3 py-2">{r.qub}</td>
-                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
-                          </tr>
+                          <Fragment key={r.id}>
+                            <tr className="border-t bg-primary/5">
+                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                              <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                              <td className="px-3 py-2">{r.location || "—"}</td>
+                              <td className="px-3 py-2">{r.driver}</td>
+                              <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                              <td className="px-3 py-2">{r.qub}</td>
+                              <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
+                            </tr>
+                            <tr className="bg-primary/5">
+                              <td colSpan={7} className="p-0">
+                                <RouteProgressBar timetable={r.timetable} now={now} />
+                              </td>
+                            </tr>
+                          </Fragment>
                         );
                       })}
                     </tbody>
