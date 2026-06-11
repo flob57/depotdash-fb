@@ -35,33 +35,47 @@ function plain(prop: AnyProp | undefined): string {
 
 async function relationTitles(prop: AnyProp | undefined, cache: Map<string, string>): Promise<string> {
   if (!prop) return "";
-  let rels: { id: string }[] = [];
+  const rels = extractRelationIds(prop);
+  if (rels.length === 0) return "";
+  const out: string[] = [];
+  for (const id of rels) out.push(cache.get(id) ?? "");
+  return out.filter(Boolean).join(", ");
+}
+
+function extractRelationIds(prop: AnyProp | undefined): string[] {
+  if (!prop) return [];
+  const ids: string[] = [];
   if (prop.type === "relation" && Array.isArray((prop as unknown as { relation?: { id: string }[] }).relation)) {
-    rels = (prop as unknown as { relation: { id: string }[] }).relation;
+    for (const r of (prop as unknown as { relation: { id: string }[] }).relation) ids.push(r.id);
   } else if (prop.type === "rollup") {
     const arr = (prop as unknown as { rollup?: { array?: AnyProp[] } }).rollup?.array ?? [];
     for (const it of arr) {
       if (it.type === "relation" && Array.isArray((it as unknown as { relation?: { id: string }[] }).relation)) {
-        rels.push(...(it as unknown as { relation: { id: string }[] }).relation);
+        for (const r of (it as unknown as { relation: { id: string }[] }).relation) ids.push(r.id);
       }
     }
   }
-  if (rels.length === 0) return "";
-  const out: string[] = [];
-  for (const r of rels) {
-    if (cache.has(r.id)) { out.push(cache.get(r.id)!); continue; }
-    try {
-      const page = (await notionFetch(`/pages/${r.id}`)) as { properties: Record<string, AnyProp> };
-      const titleKey = Object.keys(page.properties).find((k) => page.properties[k].type === "title");
-      const title = titleKey ? plain(page.properties[titleKey]) : "";
-      cache.set(r.id, title);
-      out.push(title);
-    } catch {
-      out.push("");
+  return ids;
+}
+
+async function prefetchRelationTitles(ids: Iterable<string>, cache: Map<string, string>, concurrency = 8) {
+  const todo = Array.from(new Set([...ids])).filter((id) => !cache.has(id));
+  let i = 0;
+  async function worker() {
+    while (i < todo.length) {
+      const id = todo[i++];
+      try {
+        const page = (await notionFetch(`/pages/${id}`)) as { properties: Record<string, AnyProp> };
+        const titleKey = Object.keys(page.properties).find((k) => page.properties[k].type === "title");
+        cache.set(id, titleKey ? plain(page.properties[titleKey]) : "");
+      } catch {
+        cache.set(id, "");
+      }
     }
   }
-  return out.filter(Boolean).join(", ");
+  await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
 }
+
 
 function findProp(props: Record<string, AnyProp>, ...names: string[]): AnyProp | undefined {
   const keys = Object.keys(props);
