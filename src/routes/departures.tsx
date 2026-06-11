@@ -360,6 +360,7 @@ function AllRoutesTable({
             <tr>
               <th className="px-3 py-2 text-left">Départ</th>
               <th className="px-3 py-2 text-left">Course</th>
+              <th className="px-3 py-2 text-left">Lieu</th>
               <th className="px-3 py-2 text-left">Conducteur</th>
               <th className="px-3 py-2 text-left">Véhicule</th>
               <th className="px-3 py-2 text-left">Jours</th>
