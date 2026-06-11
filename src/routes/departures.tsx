@@ -169,6 +169,56 @@ function DeparturesView() {
           <div className="text-sm text-muted-foreground">Chargement…</div>
         ) : showAll ? (
           <AllRoutesTable rows={rows} setRows={setRows} />
+        ) : (
+          <>
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold">En circulation</h2>
+              {running.length === 0 ? (
+                <div className="rounded-md border bg-card p-6 text-center text-xs text-muted-foreground">
+                  Aucune course en circulation.
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-md border bg-card">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Départ</th>
+                        <th className="px-3 py-2 text-left">Course</th>
+                        <th className="px-3 py-2 text-left">Lieu</th>
+                        <th className="px-3 py-2 text-left">Conducteur</th>
+                        <th className="px-3 py-2 text-left">Véhicule</th>
+                        <th className="px-3 py-2 text-left">QUB</th>
+                        <th className="px-3 py-2 text-left">Arrivée</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {running.map((r) => {
+                        const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
+                        const isP = /^p/i.test(r.route?.trim() ?? "");
+                        return (
+                          <tr key={r.id} className="border-t bg-primary/5">
+                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.start_time)}</td>
+                            <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                            <td className="px-3 py-2">{r.location || "—"}</td>
+                            <td className="px-3 py-2">{r.driver}</td>
+                            <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
+                            <td className="px-3 py-2">{r.qub}</td>
+                            <td className="px-3 py-2 font-mono tabular-nums">{hm(r.arrival_time as string)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <h2 className="text-sm font-semibold pt-2">Prochains départs</h2>
+            {upcoming.length === 0 ? (
+              <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
+                Aucun départ prévu dans l'heure qui vient.
+              </div>
+            ) : (
         ) : upcoming.length === 0 ? (
           <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
             Aucun départ prévu dans l'heure qui vient.
