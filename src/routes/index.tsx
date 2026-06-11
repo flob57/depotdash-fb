@@ -13,6 +13,7 @@ import { KmSummaryTable } from "@/components/KmSummaryTable";
 import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
 import { FuelFillupsCard } from "@/components/FuelFillupsCard";
 import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
+import { HomeNotionControls } from "@/components/HomeNotionControls";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
 import {
@@ -57,7 +58,7 @@ function Index() {
 }
 
 function Dashboard({ userId, email }: { userId: string; email: string }) {
-  const { shifts, sessions, fillups, holidays, declared, balanceSettings, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
+  const { shifts, sessions, fillups, holidays, declared, balanceSettings, schoolHolidays, activeShift, activeSession, loading, refresh } = useTrackingData(userId);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -198,7 +199,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           onChange={refresh}
         />
 
-        <DeclaredHoursCard userId={userId} declared={declared} onChanged={refresh} />
+        <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
+
+        <DeclaredHoursCard userId={userId} declared={declared} schoolHolidays={schoolHolidays} onChanged={refresh} />
 
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
