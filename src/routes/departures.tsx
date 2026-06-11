@@ -68,6 +68,12 @@ function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
 }
 
+function nextStopOf(timetable: TimetableStop[] | null, now: number): TimetableStop | null {
+  if (!timetable || timetable.length === 0) return null;
+  const stops = [...timetable].sort((a, b) => timeMinutes(a.time) - timeMinutes(b.time));
+  return stops.find((s) => timeMinutes(s.time) > now) ?? null;
+}
+
 function RouteIcon({ icon }: { icon: string | null }) {
   if (!icon) return null;
   if (/^https?:\/\//i.test(icon)) {
