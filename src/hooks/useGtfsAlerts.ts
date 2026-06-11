@@ -76,10 +76,7 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
       const res = await fetch(PROXY_URL, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const wrapper = await res.json();
-      console.log("RAW wrapper:", wrapper);
       const data = JSON.parse(wrapper.contents);
-      console.log("RAW data:", data);
-      console.log("Entities:", data?.entity);
 
       const entities: any[] = data?.entity ?? data?.alerts ?? [];
       const parsed: GtfsAlert[] = entities.map((entity: any) => {
@@ -104,12 +101,7 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
         };
       });
 
-      if (parsed.length === 0) {
-        console.log("[useGtfsAlerts] No live alerts — using FALLBACK_ALERTS");
-        setAlerts(FALLBACK_ALERTS);
-      } else {
-        setAlerts(parsed);
-      }
+      setAlerts(parsed);
       setLastUpdated(new Date());
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
