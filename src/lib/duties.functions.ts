@@ -36,13 +36,13 @@ function plain(prop: AnyProp | undefined): string {
 async function relationTitles(prop: AnyProp | undefined, cache: Map<string, string>): Promise<string> {
   if (!prop) return "";
   let rels: { id: string }[] = [];
-  if (prop.type === "relation" && Array.isArray((prop as { relation?: { id: string }[] }).relation)) {
-    rels = (prop as { relation: { id: string }[] }).relation;
+  if (prop.type === "relation" && Array.isArray((prop as unknown as { relation?: { id: string }[] }).relation)) {
+    rels = (prop as unknown as { relation: { id: string }[] }).relation;
   } else if (prop.type === "rollup") {
-    const arr = (prop as { rollup?: { array?: AnyProp[] } }).rollup?.array ?? [];
+    const arr = (prop as unknown as { rollup?: { array?: AnyProp[] } }).rollup?.array ?? [];
     for (const it of arr) {
-      if (it.type === "relation" && Array.isArray((it as { relation?: { id: string }[] }).relation)) {
-        rels.push(...(it as { relation: { id: string }[] }).relation);
+      if (it.type === "relation" && Array.isArray((it as unknown as { relation?: { id: string }[] }).relation)) {
+        rels.push(...(it as unknown as { relation: { id: string }[] }).relation);
       }
     }
   }
