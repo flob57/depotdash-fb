@@ -137,19 +137,28 @@ function DeparturesView() {
               <Train className="h-4 w-4" /> Prochains départs
             </h1>
           </div>
-          <div className="font-mono text-sm tabular-nums text-muted-foreground">
-            {String(Math.floor(now / 60)).padStart(2, "0")}:{String(now % 60).padStart(2, "0")}
+          <div className="flex items-center gap-3">
+            <Button variant={showAll ? "default" : "outline"} size="sm" onClick={() => setShowAll((s) => !s)}>
+              {showAll ? "Prochains départs" : "Tous les services"}
+            </Button>
+            <div className="font-mono text-sm tabular-nums text-muted-foreground">
+              {String(Math.floor(now / 60)).padStart(2, "0")}:{String(now % 60).padStart(2, "0")}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <p className="text-xs text-muted-foreground">
-          Départs prévus dans les 60 prochaines minutes. Mise à jour automatique.
+          {showAll
+            ? "Tous les services. Modifiez les jours de circulation puis enregistrez."
+            : "Départs prévus dans les 60 prochaines minutes. Mise à jour automatique."}
         </p>
 
         {loading ? (
           <div className="text-sm text-muted-foreground">Chargement…</div>
+        ) : showAll ? (
+          <AllRoutesTable rows={rows} setRows={setRows} />
         ) : upcoming.length === 0 ? (
           <div className="rounded-md border bg-card p-10 text-center text-sm text-muted-foreground">
             Aucun départ prévu dans l'heure qui vient.
