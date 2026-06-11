@@ -316,6 +316,8 @@ function DeparturesView() {
                     {running.map((r) => {
                       const isLigne = /^ligne/i.test(r.route?.trim() ?? "");
                       const isP = /^p/i.test(r.route?.trim() ?? "");
+                      const expanded = expandedDiagrams.has(r.id);
+                      const next = nextStopOf(r.timetable, now);
                       return (
                         <div key={r.id} className="rounded-md border bg-primary/5 overflow-hidden">
                           <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -329,13 +331,27 @@ function DeparturesView() {
                               {hm(r.start_time)} → {hm(r.arrival_time as string)}
                             </div>
                           </div>
-                          <div className="px-3 pb-2 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                          <div className="px-3 pb-2 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5">
                             <span>{r.driver}</span>
                             <span className="font-mono">{r.vehicle}</span>
                             {r.qub && <span>QUB {r.qub}</span>}
+                            {next && (
+                              <span className="text-foreground">
+                                → <span className="font-mono tabular-nums">{next.time}</span> {next.stop}
+                              </span>
+                            )}
                           </div>
                           <div className="border-t border-border/50">
-                            <RouteProgressBar timetable={r.timetable} now={now} />
+                            <button
+                              type="button"
+                              onClick={() => toggleDiagram(r.id)}
+                              className="flex w-full items-center justify-center gap-1 py-1.5 text-[11px] text-muted-foreground hover:bg-primary/10 cursor-pointer"
+                              aria-expanded={expanded}
+                            >
+                              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              {expanded ? "Masquer le tracé" : "Afficher le tracé"}
+                            </button>
+                            {expanded && <RouteProgressBar timetable={r.timetable} now={now} />}
                           </div>
                         </div>
                       );
