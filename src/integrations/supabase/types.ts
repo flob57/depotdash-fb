@@ -306,6 +306,36 @@ export type Database = {
         }
         Relationships: []
       }
+      school_holidays: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          label: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          label: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          label?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shifts: {
         Row: {
           created_at: string
@@ -373,6 +403,8 @@ export type Database = {
           distance_summary_db_id: string | null
           fuel_fillups_db_id: string | null
           services_db_id: string | null
+          services_db_id_sat_hol: string | null
+          services_db_id_wed: string | null
           sessions_db_id: string | null
           shifts_db_id: string | null
           timezone: string
@@ -385,6 +417,8 @@ export type Database = {
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
           services_db_id?: string | null
+          services_db_id_sat_hol?: string | null
+          services_db_id_wed?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string
@@ -397,6 +431,8 @@ export type Database = {
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
           services_db_id?: string | null
+          services_db_id_sat_hol?: string | null
+          services_db_id_wed?: string | null
           sessions_db_id?: string | null
           shifts_db_id?: string | null
           timezone?: string

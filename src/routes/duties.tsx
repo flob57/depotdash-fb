@@ -13,8 +13,9 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown, CalendarDays } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
+import { pickSlot, SLOT_LABELS, type ServiceSlot, type SchoolHoliday } from "@/lib/school-context";
 
 export const Route = createFileRoute("/duties")({
   component: DutiesPage,
@@ -77,7 +78,8 @@ function DutiesPage() {
 
 function DutiesView({ userId }: { userId: string }) {
   const [duties, setDuties] = useState<Duty[]>([]);
-  const [dbId, setDbId] = useState<string>("");
+  const [dbIds, setDbIds] = useState<Record<ServiceSlot, string>>({ weekday: "", wed: "", sat_hol: "" });
+  const [holidays, setHolidays] = useState<SchoolHoliday[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -91,12 +93,22 @@ function DutiesView({ userId }: { userId: string }) {
 
   const refresh = async () => {
     setLoading(true);
-    const [{ data: ds }, { data: settings }] = await Promise.all([
+    const [{ data: ds }, { data: settings }, { data: hols }] = await Promise.all([
       supabase.from("duties").select("*").order("start_time", { ascending: true }),
-      supabase.from("user_notion_settings").select("services_db_id").eq("user_id", userId).maybeSingle(),
+      supabase
+        .from("user_notion_settings")
+        .select("services_db_id, services_db_id_wed, services_db_id_sat_hol")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase.from("school_holidays").select("*").order("start_date", { ascending: true }),
     ]);
     setDuties((ds ?? []) as Duty[]);
-    setDbId((settings?.services_db_id as string) ?? "");
+    setDbIds({
+      weekday: (settings?.services_db_id as string) ?? "",
+      wed: (settings?.services_db_id_wed as string) ?? "",
+      sat_hol: (settings?.services_db_id_sat_hol as string) ?? "",
+    });
+    setHolidays((hols ?? []) as SchoolHoliday[]);
     setLoading(false);
   };
 
@@ -105,6 +117,7 @@ function DutiesView({ userId }: { userId: string }) {
   const wd = todayWeekday();
   const today = todayKey();
   const now = nowMinutes();
+  const activeSlot = useMemo(() => pickSlot(new Date(), holidays), [holidays, tick]);
 
   const visible = useMemo(() => {
     const arr = showAll ? duties : duties.filter((d) => d.weekdays.includes(wd));
@@ -150,11 +163,33 @@ function DutiesView({ userId }: { userId: string }) {
     else refresh();
   };
 
+  const saveDbIds = async (next: Record<ServiceSlot, string>) => {
+    const { error } = await supabase
+      .from("user_notion_settings")
+      .upsert(
+        {
+          user_id: userId,
+          services_db_id: next.weekday || null,
+          services_db_id_wed: next.wed || null,
+          services_db_id_sat_hol: next.sat_hol || null,
+        },
+        { onConflict: "user_id" },
+      );
+    if (error) { toast.error(error.message); return false; }
+    setDbIds(next);
+    return true;
+  };
+
   const handleSync = async () => {
-    if (!dbId) { toast.error("Renseignez d'abord l'ID de la base Notion."); return; }
+    const slot = pickSlot(new Date(), holidays);
+    const targetDb = dbIds[slot];
+    if (!targetDb) {
+      toast.error(`Aucune base Notion configurée pour aujourd'hui (${SLOT_LABELS[slot]}).`);
+      return;
+    }
     try {
-      const res = await sync({ data: { databaseId: dbId } });
-      toast.success(`${res.upserted} prises synchronisées${res.skipped ? ` (${res.skipped} ignorées)` : ""}.`);
+      const res = await sync({ data: { databaseId: targetDb } });
+      toast.success(`${res.upserted} prises synchronisées depuis « ${SLOT_LABELS[slot]} »${res.skipped ? ` (${res.skipped} ignorées)` : ""}.`);
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de la synchronisation");
@@ -180,7 +215,11 @@ function DutiesView({ userId }: { userId: string }) {
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
-          <NotionSyncDialog dbId={dbId} setDbId={setDbId} onSync={handleSync} />
+          <NotionSyncDialog dbIds={dbIds} onSave={saveDbIds} onSync={handleSync} activeSlot={activeSlot} />
+          <SchoolHolidaysDialog holidays={holidays} onChange={refresh} />
+          <span className="text-xs text-muted-foreground">
+            Aujourd'hui : <strong>{SLOT_LABELS[activeSlot]}</strong>
+          </span>
           <AddDutyDialog userId={userId} onAdded={refresh} />
           <label className="ml-auto inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Checkbox checked={showAll} onCheckedChange={(v) => setShowAll(Boolean(v))} />
@@ -312,20 +351,54 @@ function WeekdayPicker({ value, onToggle }: { value: number[]; onToggle: (w: num
 }
 
 function NotionSyncDialog({
-  dbId, setDbId, onSync,
-}: { dbId: string; setDbId: (v: string) => void; onSync: () => Promise<void> }) {
+  dbIds, onSave, onSync, activeSlot,
+}: {
+  dbIds: Record<ServiceSlot, string>;
+  onSave: (next: Record<ServiceSlot, string>) => Promise<boolean>;
+  onSync: () => Promise<void>;
+  activeSlot: ServiceSlot;
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [local, setLocal] = useState(dbId);
-  useEffect(() => setLocal(dbId), [dbId]);
+  const [local, setLocal] = useState(dbIds);
+  useEffect(() => setLocal(dbIds), [dbIds]);
 
   const run = async () => {
     setBusy(true);
-    setDbId(local);
-    await onSync();
+    const ok = await onSave(local);
+    if (ok) await onSync();
     setBusy(false);
     setOpen(false);
   };
+
+  const saveOnly = async () => {
+    setBusy(true);
+    const ok = await onSave(local);
+    setBusy(false);
+    if (ok) {
+      toast.success("Bases Notion enregistrées.");
+      setOpen(false);
+    }
+  };
+
+  const field = (slot: ServiceSlot, label: string, hint?: string) => (
+    <div className="space-y-1">
+      <Label className="flex items-center gap-2">
+        {label}
+        {activeSlot === slot && (
+          <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            ACTIVE AUJOURD'HUI
+          </span>
+        )}
+      </Label>
+      <Input
+        value={local[slot]}
+        onChange={(e) => setLocal({ ...local, [slot]: e.target.value })}
+        placeholder="https://notion.so/…"
+      />
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -334,22 +407,129 @@ function NotionSyncDialog({
           <RefreshCw className="mr-1.5 h-4 w-4" /> Synchroniser depuis Notion
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importer depuis Notion</DialogTitle>
+          <DialogTitle>Bases Notion par jour</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label>ID ou URL de la base "Services Lestonan période scolaire"</Label>
-          <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="https://notion.so/…" />
+        <div className="space-y-4">
+          {field("weekday", "Services Lestonan période scolaire", "Utilisée le lundi, mardi, jeudi et vendredi en période scolaire.")}
+          {field("wed", "Services Mer PS", "Utilisée le mercredi en période scolaire.")}
+          {field("sat_hol", "Services Sam + PV", "Utilisée le samedi en période scolaire et du lundi au samedi pendant les vacances.")}
           <p className="text-xs text-muted-foreground">
-            Colonnes attendues : PS, QUB, Driver, Route 1, Vehicle. La base doit être partagée avec l'intégration Notion.
+            Colonnes attendues : PS, QUB, Driver, Route 1, Vehicle. Chaque base doit être partagée avec l'intégration Notion.
+            La synchronisation remplace les prises actuelles par celles de la base active aujourd'hui.
           </p>
         </div>
-        <DialogFooter>
-          <Button onClick={run} disabled={busy || !local}>
-            {busy ? "Synchronisation…" : "Lancer la synchronisation"}
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button variant="ghost" onClick={saveOnly} disabled={busy}>Enregistrer seulement</Button>
+          <Button onClick={run} disabled={busy}>
+            {busy ? "Synchronisation…" : `Synchroniser (${SLOT_LABELS[activeSlot]})`}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SchoolHolidaysDialog({ holidays, onChange }: { holidays: SchoolHoliday[]; onChange: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const add = async () => {
+    if (!label.trim() || !start || !end) {
+      toast.error("Renseignez le libellé et les deux dates.");
+      return;
+    }
+    if (end < start) {
+      toast.error("La date de fin doit être après la date de début.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("school_holidays").insert({
+      label: label.trim(),
+      start_date: start,
+      end_date: end,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      setLabel(""); setStart(""); setEnd("");
+      onChange();
+      toast.success("Période ajoutée");
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Supprimer cette période ?")) return;
+    const { error } = await supabase.from("school_holidays").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else onChange();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          <CalendarDays className="mr-1.5 h-4 w-4" /> Vacances scolaires
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Calendrier des vacances scolaires (partagé)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            <div className="sm:col-span-2 space-y-1">
+              <Label>Libellé</Label>
+              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Vacances de Noël" />
+            </div>
+            <div className="space-y-1">
+              <Label>Début</Label>
+              <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Fin</Label>
+              <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+            </div>
+          </div>
+          <Button size="sm" onClick={add} disabled={busy}>
+            <Plus className="mr-1.5 h-4 w-4" /> Ajouter une période
+          </Button>
+
+          <div className="rounded-md border">
+            {holidays.length === 0 ? (
+              <p className="px-3 py-4 text-center text-sm text-muted-foreground">Aucune période enregistrée.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-2 py-2 text-left">Libellé</th>
+                    <th className="px-2 py-2 text-left">Du</th>
+                    <th className="px-2 py-2 text-left">Au</th>
+                    <th className="w-10 px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holidays.map((h) => (
+                    <tr key={h.id} className="border-t">
+                      <td className="px-2 py-2">{h.label}</td>
+                      <td className="px-2 py-2 font-mono text-xs">{h.start_date}</td>
+                      <td className="px-2 py-2 font-mono text-xs">{h.end_date}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button variant="ghost" size="icon" onClick={() => remove(h.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

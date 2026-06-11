@@ -100,10 +100,8 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { id: dbId } = await resolveDatabase(data.databaseId);
 
-    // save db id
-    await supabase
-      .from("user_notion_settings")
-      .upsert({ user_id: userId, services_db_id: dbId }, { onConflict: "user_id" });
+    // Wipe existing duties for this user before re-importing from (possibly different) source DB
+    await supabase.from("duties").delete().eq("user_id", userId);
 
     type Page = { id: string; properties: Record<string, AnyProp> };
     const all: Page[] = [];
