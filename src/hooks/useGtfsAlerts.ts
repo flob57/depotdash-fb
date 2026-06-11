@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GtfsAlert {
   id: string;
@@ -23,7 +24,7 @@ const getText = (obj: { translation?: { language?: string; text?: string }[] } |
   return (t.find((x) => x.language === "fr") ?? t[0])?.text ?? "";
 };
 
-const FEED_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gtfsrt-proxy`;
+const DIRECT_URL = "https://notify.ratpdev.com/api/networks/RD%20QUIMPER/alerts/gtfsrt";
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export function useGtfsAlerts(): UseGtfsAlertsReturn {
@@ -43,17 +44,46 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
     setLoading(true);
     setError(null);
 
+    let data: any = null;
+    let succeededVia: "edge-function" | "direct" | null = null;
+    let edgeErr: unknown = null;
+    let directErr: unknown = null;
+
+    // 1) Try Supabase Edge Function
     try {
-      const response = await fetch(FEED_URL, {
-        signal: controller.signal,
-      });
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("gtfsrt-proxy");
+      if (fnError) throw fnError;
+      data = fnData;
+      succeededVia = "edge-function";
+    } catch (err) {
+      edgeErr = err;
+    }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+    // 2) Fall back to direct fetch
+    if (!data) {
+      try {
+        const response = await fetch(DIRECT_URL, { signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        data = await response.json();
+        succeededVia = "direct";
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        directErr = err;
       }
+    }
 
-      const data = await response.json();
+    if (!data) {
+      console.warn("[useGtfsAlerts] Both edge function and direct fetch failed", { edgeErr, directErr });
+      setAlerts([]);
+      setError("cors");
+      setLastUpdated(new Date());
+      setLoading(false);
+      return;
+    }
 
+    console.log(`[useGtfsAlerts] Fetched alerts via: ${succeededVia}`);
+
+    try {
       const parsed: GtfsAlert[] = (data?.alerts ?? []).map((alert: any) => {
         const routes: string[] = (alert?.informedEntities ?? [])
           .map((e: any) => e?.route?.routeId)
