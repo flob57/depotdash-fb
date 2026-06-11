@@ -349,7 +349,12 @@ function DeparturesView() {
                           <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
                             {eta <= 0 ? "maintenant" : `${eta} min`}
                           </td>
-                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>{routeLabel(r.route)}</td>
+                          <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
+                            <span className="inline-flex items-center gap-1.5">
+                              <RouteIcon icon={r.route_icon} />
+                              {routeLabel(r.route)}
+                            </span>
+                          </td>
                           <td className="px-3 py-2">{r.location || "—"}</td>
                           <td className="px-3 py-2">{r.driver}</td>
                           <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
