@@ -14,6 +14,7 @@ import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
+import { Route as ApiPublicRouteIconUserFileRouteImport } from './routes/api/public/route-icon/$user/$file'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -41,6 +42,12 @@ const ApiPublicCronNightlyExportRoute =
     path: '/api/public/cron/nightly-export',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRouteIconUserFileRoute =
+  ApiPublicRouteIconUserFileRouteImport.update({
+    id: '/api/public/route-icon/$user/$file',
+    path: '/api/public/route-icon/$user/$file',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -48,6 +55,7 @@ export interface FileRoutesByFullPath {
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
+  '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -55,6 +63,7 @@ export interface FileRoutesByTo {
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
+  '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -63,6 +72,7 @@ export interface FileRoutesById {
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
+  '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -72,6 +82,7 @@ export interface FileRouteTypes {
     | '/duties'
     | '/login'
     | '/api/public/cron/nightly-export'
+    | '/api/public/route-icon/$user/$file'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -79,6 +90,7 @@ export interface FileRouteTypes {
     | '/duties'
     | '/login'
     | '/api/public/cron/nightly-export'
+    | '/api/public/route-icon/$user/$file'
   id:
     | '__root__'
     | '/'
@@ -86,6 +98,7 @@ export interface FileRouteTypes {
     | '/duties'
     | '/login'
     | '/api/public/cron/nightly-export'
+    | '/api/public/route-icon/$user/$file'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +107,7 @@ export interface RootRouteChildren {
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
+  ApiPublicRouteIconUserFileRoute: typeof ApiPublicRouteIconUserFileRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -133,6 +147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronNightlyExportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/route-icon/$user/$file': {
+      id: '/api/public/route-icon/$user/$file'
+      path: '/api/public/route-icon/$user/$file'
+      fullPath: '/api/public/route-icon/$user/$file'
+      preLoaderRoute: typeof ApiPublicRouteIconUserFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -142,7 +163,18 @@ const rootRouteChildren: RootRouteChildren = {
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
+  ApiPublicRouteIconUserFileRoute: ApiPublicRouteIconUserFileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
