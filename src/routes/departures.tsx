@@ -87,10 +87,11 @@ function DeparturesView() {
     (async () => {
       const { data } = await supabase
         .from("departures")
-        .select("id,start_time,route,driver,vehicle,qub,weekdays")
+        .select("id,notion_page_id,slot_index,start_time,route,driver,vehicle,qub,weekdays")
         .order("start_time", { ascending: true });
       if (!cancelled) {
         setRows((data ?? []) as Departure[]);
+
         setLoading(false);
       }
     })();
