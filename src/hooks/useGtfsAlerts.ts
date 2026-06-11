@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface GtfsAlert {
   id: string;
@@ -24,8 +23,9 @@ const getText = (obj: { translation?: { language?: string; text?: string }[] } |
   return (t.find((x) => x.language === "fr") ?? t[0])?.text ?? "";
 };
 
-const DIRECT_URL = "https://notify.ratpdev.com/api/networks/RD%20QUIMPER/alerts/gtfsrt";
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const PROXY_URL =
+  "https://api.allorigins.win/get?url=https%3A%2F%2Fnotify.ratpdev.com%2Fapi%2Fnetworks%2FRD%2520QUIMPER%2Falerts%2Fgtfsrt";
+const REFRESH_INTERVAL = 5 * 60 * 1000;
 
 export function useGtfsAlerts(): UseGtfsAlertsReturn {
   const [alerts, setAlerts] = useState<GtfsAlert[]>([]);
@@ -35,72 +35,38 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
   const controllerRef = useRef<AbortController | null>(null);
 
   const fetchAlerts = useCallback(async () => {
-    if (controllerRef.current) {
-      controllerRef.current.abort();
-    }
+    controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
 
     setLoading(true);
     setError(null);
 
-    let data: any = null;
-    let succeededVia: "edge-function" | "direct" | null = null;
-    let edgeErr: unknown = null;
-    let directErr: unknown = null;
-
-    // 1) Try Supabase Edge Function
     try {
-      const { data: fnData, error: fnError } = await supabase.functions.invoke("gtfsrt-proxy");
-      if (fnError) throw fnError;
-      data = fnData;
-      succeededVia = "edge-function";
-    } catch (err) {
-      edgeErr = err;
-    }
+      const res = await fetch(PROXY_URL, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const wrapper = await res.json();
+      const data = JSON.parse(wrapper.contents);
 
-    // 2) Fall back to direct fetch
-    if (!data) {
-      try {
-        const response = await fetch(DIRECT_URL, { signal: controller.signal });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        data = await response.json();
-        succeededVia = "direct";
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-        directErr = err;
-      }
-    }
-
-    if (!data) {
-      console.warn("[useGtfsAlerts] Both edge function and direct fetch failed", { edgeErr, directErr });
-      setAlerts([]);
-      setError("cors");
-      setLastUpdated(new Date());
-      setLoading(false);
-      return;
-    }
-
-    console.log(`[useGtfsAlerts] Fetched alerts via: ${succeededVia}`);
-
-    try {
-      const parsed: GtfsAlert[] = (data?.alerts ?? []).map((alert: any) => {
-        const routes: string[] = (alert?.informedEntities ?? [])
-          .map((e: any) => e?.route?.routeId)
+      const entities: any[] = data?.entity ?? data?.alerts ?? [];
+      const parsed: GtfsAlert[] = entities.map((entity: any) => {
+        const alert = entity?.alert ?? entity;
+        const informed = alert?.informedEntity ?? alert?.informedEntities ?? [];
+        const routes: string[] = informed
+          .map((e: any) => e?.routeId ?? e?.route?.routeId ?? e?.route_id)
           .filter((id: string | undefined) => !!id);
+        const periods = alert?.activePeriod ?? alert?.activePeriods ?? [];
+        const period = periods[0];
 
         return {
-          id: alert?.id ?? "",
+          id: entity?.id ?? alert?.id ?? "",
           effect: alert?.effect ?? "",
           cause: alert?.cause ?? "",
-          title: getText(alert?.headerText),
-          description: getText(alert?.descriptionText),
+          title: getText(alert?.headerText ?? alert?.header_text),
+          description: getText(alert?.descriptionText ?? alert?.description_text),
           routes,
-          activePeriod: (alert?.activePeriods?.[0] as { start: number | null; end: number | null } | undefined)
-            ? {
-                start: alert.activePeriods[0].start ?? null,
-                end: alert.activePeriods[0].end ?? null,
-              }
+          activePeriod: period
+            ? { start: period.start ?? null, end: period.end ?? null }
             : null,
         };
       });
@@ -109,8 +75,7 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
       setLastUpdated(new Date());
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-
-      // Treat any fetch failure as a CORS error for this feed
+      console.warn("[useGtfsAlerts] Proxy fetch failed", err);
       setAlerts([]);
       setError("cors");
       setLastUpdated(new Date());
@@ -125,11 +90,7 @@ export function useGtfsAlerts(): UseGtfsAlertsReturn {
 
   useEffect(() => {
     fetchAlerts();
-
-    const interval = setInterval(() => {
-      fetchAlerts();
-    }, REFRESH_INTERVAL);
-
+    const interval = setInterval(fetchAlerts, REFRESH_INTERVAL);
     return () => {
       clearInterval(interval);
       controllerRef.current?.abort();
