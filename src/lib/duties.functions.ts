@@ -151,6 +151,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
       ];
       for (let n = 1; n <= 12; n++) {
         candidates.push(findProp(props, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`));
+        candidates.push(findProp(props, `Lieu ${n}`, `Location ${n}`, `Lieu${n}`));
       }
       for (const c of candidates) for (const id of extractRelationIds(c)) allRelIds.add(id);
     }
