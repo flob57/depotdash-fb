@@ -234,6 +234,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
       user_id: string; notion_page_id: string; slot_index: number;
       start_time: string; route: string; qub: string; driver: string; vehicle: string; location: string; arrival_time: string | null; weekdays: number[];
       timetable: TimetableStop[] | null;
+      route_icon: string | null;
       _routePageId?: string;
     }> = [];
 
