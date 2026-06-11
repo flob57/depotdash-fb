@@ -23,6 +23,7 @@ type Departure = {
   driver: string;
   vehicle: string;
   qub: string;
+  location: string;
   weekdays: number[];
 };
 
