@@ -1,1 +1,4 @@
 project_id = "dlbemmtdcagzfnlaixcn"
+
+[functions.gtfsrt-proxy]
+verify_jwt = false
