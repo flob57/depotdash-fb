@@ -163,7 +163,7 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     }> = [];
     const departuresRows: Array<{
       user_id: string; notion_page_id: string; slot_index: number;
-      start_time: string; route: string; qub: string; driver: string; vehicle: string; weekdays: number[];
+      start_time: string; route: string; qub: string; driver: string; vehicle: string; location: string; weekdays: number[];
     }> = [];
 
     let idx = 0;
