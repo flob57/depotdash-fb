@@ -133,74 +133,85 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
 
     let upserted = 0;
     let skipped = 0;
-    let idx = 0;
     const relCache = new Map<string, string>();
 
     // Wipe existing departures for this user; we rebuild from Notion every sync.
     await supabase.from("departures").delete().eq("user_id", userId);
+
+    // Pre-scan all pages to collect every relation id referenced, then resolve
+    // them in parallel batches. Serial /pages/{id} fetches per page were
+    // causing upstream timeouts on larger databases.
+    const allRelIds = new Set<string>();
+    for (const page of all) {
+      const props = page.properties;
+      const candidates: (AnyProp | undefined)[] = [
+        findProp(props, "Driver", "Conducteur", "Chauffeur"),
+        findProp(props, "Route 1", "Course 1", "Route", "Service", "Ligne"),
+        findProp(props, "Vehicle", "Véhicule", "Immatriculation", "Plaque"),
+      ];
+      for (let n = 1; n <= 12; n++) {
+        candidates.push(findProp(props, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`));
+      }
+      for (const c of candidates) for (const id of extractRelationIds(c)) allRelIds.add(id);
+    }
+    await prefetchRelationTitles(allRelIds, relCache);
+
+    const dutiesRows: Array<{
+      user_id: string; notion_page_id: string; start_time: string;
+      qub: string; driver: string; route: string; vehicle: string;
+      weekdays: number[]; sort_order: number;
+    }> = [];
     const departuresRows: Array<{
       user_id: string; notion_page_id: string; slot_index: number;
       start_time: string; route: string; qub: string; driver: string; vehicle: string; weekdays: number[];
     }> = [];
 
+    let idx = 0;
     for (const page of all) {
       const psRaw = plain(findProp(page.properties, "PS", "Prise de service", "Start"));
       const start = parseTime(psRaw);
       if (!start) { skipped++; continue; }
       const qub = plain(findProp(page.properties, "QUB", "Bus", "Vehicle ref"));
       const driverProp = findProp(page.properties, "Driver", "Conducteur", "Chauffeur");
-      const driver = plain(driverProp) || await relationTitles(driverProp, relCache);
+      const driver = plain(driverProp) || (await relationTitles(driverProp, relCache));
       const routeProp = findProp(page.properties, "Route 1", "Course 1", "Route", "Service", "Ligne");
-      const route = plain(routeProp) || await relationTitles(routeProp, relCache);
+      const route = plain(routeProp) || (await relationTitles(routeProp, relCache));
       const vehicleProp = findProp(page.properties, "Vehicle", "Véhicule", "Immatriculation", "Plaque");
-      const vehicle = plain(vehicleProp) || await relationTitles(vehicleProp, relCache);
+      const vehicle = plain(vehicleProp) || (await relationTitles(vehicleProp, relCache));
       const weekdays = start.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5];
 
-      const { error } = await supabase
-        .from("duties")
-        .upsert(
-          {
-            user_id: userId,
-            notion_page_id: page.id,
-            start_time: start,
-            qub,
-            driver,
-            route,
-            vehicle,
-            weekdays,
-            sort_order: idx++,
-          },
-          { onConflict: "user_id,notion_page_id" },
-        );
-      if (error) throw new Error(error.message);
+      dutiesRows.push({
+        user_id: userId, notion_page_id: page.id, start_time: start,
+        qub, driver, route, vehicle, weekdays, sort_order: idx++,
+      });
       upserted++;
 
-      // Unpivot Route N / Time N pairs into individual departures
       for (let n = 1; n <= 12; n++) {
         const rProp = findProp(page.properties, `Route ${n}`, `Course ${n}`, `Service ${n}`, `Ligne ${n}`);
         const tProp = findProp(page.properties, `Time ${n}`, `Heure ${n}`, `Horaire ${n}`, `H${n}`);
         if (!rProp && !tProp) continue;
-        const rawT = plain(tProp);
-        const tParsed = parseTime(rawT);
+        const tParsed = parseTime(plain(tProp));
         if (!tParsed) continue;
         const rText = (rProp ? plain(rProp) : "") || (rProp ? await relationTitles(rProp, relCache) : "");
         if (!rText) continue;
         departuresRows.push({
-          user_id: userId,
-          notion_page_id: page.id,
-          slot_index: n,
-          start_time: tParsed,
-          route: rText,
-          qub,
-          driver,
-          vehicle,
+          user_id: userId, notion_page_id: page.id, slot_index: n,
+          start_time: tParsed, route: rText, qub, driver, vehicle,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
         });
       }
     }
 
+    // Bulk upsert duties in chunks
+    for (let i = 0; i < dutiesRows.length; i += 500) {
+      const chunk = dutiesRows.slice(i, i + 500);
+      const { error } = await supabase
+        .from("duties")
+        .upsert(chunk, { onConflict: "user_id,notion_page_id" });
+      if (error) throw new Error(error.message);
+    }
+
     if (departuresRows.length > 0) {
-      // Apply persisted overrides so user-customized weekdays survive re-sync
       const { data: overrides } = await supabase
         .from("departure_overrides")
         .select("notion_page_id,slot_index,weekdays")
@@ -210,17 +221,16 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
         ovMap.set(`${o.notion_page_id}:${o.slot_index}`, o.weekdays as number[]);
       }
       for (const r of departuresRows) {
-        const key = `${r.notion_page_id}:${r.slot_index}`;
-        const ov = ovMap.get(key);
+        const ov = ovMap.get(`${r.notion_page_id}:${r.slot_index}`);
         if (ov) r.weekdays = ov;
       }
-      // Insert in chunks of 500 to stay well under any payload limit
       for (let i = 0; i < departuresRows.length; i += 500) {
         const chunk = departuresRows.slice(i, i + 500);
         const { error: dErr } = await supabase.from("departures").insert(chunk);
         if (dErr) throw new Error(dErr.message);
       }
     }
+
 
 
     return { upserted, skipped, total: all.length, departures: departuresRows.length };
