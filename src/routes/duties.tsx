@@ -108,8 +108,18 @@ function DutiesView({ userId }: { userId: string }) {
 
   const visible = useMemo(() => {
     const arr = showAll ? duties : duties.filter((d) => d.weekdays.includes(wd));
-    return [...arr].sort((a, b) => a.start_time.localeCompare(b.start_time));
-  }, [duties, wd, showAll]);
+    const sorted = [...arr].sort((a, b) => {
+      if (!sort) return a.start_time.localeCompare(b.start_time);
+      let cmp = 0;
+      if (sort.key === "ps") {
+        cmp = a.start_time.localeCompare(b.start_time);
+      } else if (sort.key === "qub") {
+        cmp = a.qub.localeCompare(b.qub);
+      }
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [duties, wd, showAll, sort]);
 
   const checkedCount = visible.filter((d) => d.last_checked_date === today).length;
 
