@@ -13,7 +13,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
 
 export const Route = createFileRoute("/duties")({
