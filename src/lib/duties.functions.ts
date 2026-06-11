@@ -292,11 +292,57 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
     const metaIds = new Set<string>();
     for (const r of departuresRows) if (r._routePageId) metaIds.add(r._routePageId);
     await prefetchRoutePageMeta(metaIds, metaCache);
+
+    // For Notion-hosted file icons, download once per route page and persist
+    // to the private route-icons bucket. Store a stable proxy URL so the icon
+    // does not break when Notion's signed S3 URL expires (~1h).
+    const iconUrlByPage = new Map<string, string | null>();
+    const fileIconEntries: Array<{ pageId: string; url: string }> = [];
+    for (const [pageId, meta] of metaCache) {
+      if (!meta.icon) { iconUrlByPage.set(pageId, null); continue; }
+      if (meta.icon.kind === "emoji") iconUrlByPage.set(pageId, meta.icon.value);
+      else if (meta.icon.kind === "external") iconUrlByPage.set(pageId, meta.icon.url);
+      else fileIconEntries.push({ pageId, url: meta.icon.url });
+    }
+    if (fileIconEntries.length > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      let j = 0;
+      async function uploadWorker() {
+        while (j < fileIconEntries.length) {
+          const { pageId, url } = fileIconEntries[j++];
+          try {
+            const resp = await fetch(url);
+            if (!resp.ok) { iconUrlByPage.set(pageId, null); continue; }
+            const ct = resp.headers.get("content-type") ?? "image/png";
+            const extFromCt =
+              ct.includes("png") ? "png" :
+              ct.includes("jpeg") ? "jpg" :
+              ct.includes("gif") ? "gif" :
+              ct.includes("webp") ? "webp" :
+              ct.includes("svg") ? "svg" : "png";
+            const pathInUrl = (() => { try { return new URL(url).pathname; } catch { return ""; } })();
+            const extFromUrl = pathInUrl.split(".").pop()?.toLowerCase() ?? "";
+            const ext = /^(png|jpg|jpeg|gif|webp|svg)$/.test(extFromUrl) ? (extFromUrl === "jpeg" ? "jpg" : extFromUrl) : extFromCt;
+            const fileName = `${pageId.replace(/-/g, "")}.${ext}`;
+            const bytes = new Uint8Array(await resp.arrayBuffer());
+            const { error: upErr } = await supabaseAdmin.storage
+              .from("route-icons")
+              .upload(`${userId}/${fileName}`, bytes, { contentType: ct, upsert: true });
+            if (upErr) { iconUrlByPage.set(pageId, null); continue; }
+            iconUrlByPage.set(pageId, `/api/public/route-icon/${userId}/${fileName}`);
+          } catch {
+            iconUrlByPage.set(pageId, null);
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(4, fileIconEntries.length) }, uploadWorker));
+    }
+
     for (const r of departuresRows) {
       if (r._routePageId) {
         const m = metaCache.get(r._routePageId);
         r.timetable = m?.timetable ?? null;
-        r.route_icon = m?.icon ?? null;
+        r.route_icon = iconUrlByPage.get(r._routePageId) ?? null;
       }
       delete r._routePageId;
     }
