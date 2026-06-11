@@ -177,9 +177,18 @@ function DeparturesView() {
                       <td className="px-3 py-2">{r.driver}</td>
                       <td className="px-3 py-2 font-mono text-xs">{r.vehicle}</td>
                       <td className="px-3 py-2">{r.qub}</td>
+                      <td className="px-3 py-2">
+                        <WeekdaysEditor
+                          departure={r}
+                          onSaved={(weekdays) =>
+                            setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, weekdays } : x)))
+                          }
+                        />
+                      </td>
                     </tr>
                   );
                 })}
+
               </tbody>
             </table>
           </div>
