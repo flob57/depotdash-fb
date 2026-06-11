@@ -13,7 +13,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Trash2, RefreshCw, Plus, ChevronLeft } from "lucide-react";
+import { Trash2, RefreshCw, Plus, ChevronLeft, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { syncDutiesFromNotion } from "@/lib/duties.functions";
 
 export const Route = createFileRoute("/duties")({
@@ -81,6 +81,7 @@ function DutiesView({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  const [sort, setSort] = useState<{ key: "ps" | "qub"; dir: "asc" | "desc" } | null>(null);
   const sync = useServerFn(syncDutiesFromNotion);
 
   useEffect(() => {
@@ -107,8 +108,18 @@ function DutiesView({ userId }: { userId: string }) {
 
   const visible = useMemo(() => {
     const arr = showAll ? duties : duties.filter((d) => d.weekdays.includes(wd));
-    return [...arr].sort((a, b) => a.start_time.localeCompare(b.start_time));
-  }, [duties, wd, showAll]);
+    const sorted = [...arr].sort((a, b) => {
+      if (!sort) return a.start_time.localeCompare(b.start_time);
+      let cmp = 0;
+      if (sort.key === "ps") {
+        cmp = a.start_time.localeCompare(b.start_time);
+      } else if (sort.key === "qub") {
+        cmp = a.qub.localeCompare(b.qub);
+      }
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [duties, wd, showAll, sort]);
 
   const checkedCount = visible.filter((d) => d.last_checked_date === today).length;
 
@@ -189,8 +200,40 @@ function DutiesView({ userId }: { userId: string }) {
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="w-12 px-2 py-2 text-center">OK</th>
-                  <th className="px-2 py-2 text-left">PS</th>
-                  <th className="px-2 py-2 text-left">QUB</th>
+                  <th
+                    className="cursor-pointer px-2 py-2 text-left select-none"
+                    onClick={() =>
+                      setSort((s) =>
+                        s?.key === "ps" ? { key: "ps", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "ps", dir: "asc" }
+                      )
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      PS
+                      {sort?.key === "ps" ? (
+                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </span>
+                  </th>
+                  <th
+                    className="cursor-pointer px-2 py-2 text-left select-none"
+                    onClick={() =>
+                      setSort((s) =>
+                        s?.key === "qub" ? { key: "qub", dir: s.dir === "asc" ? "desc" : "asc" } : { key: "qub", dir: "asc" }
+                      )
+                    }
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      QUB
+                      {sort?.key === "qub" ? (
+                        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      )}
+                    </span>
+                  </th>
                   <th className="px-2 py-2 text-left">Conducteur</th>
                   <th className="px-2 py-2 text-left">Service</th>
                   <th className="px-2 py-2 text-left">Véhicule</th>
