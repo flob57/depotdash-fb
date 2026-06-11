@@ -344,7 +344,7 @@ function DutiesView({ userId }: { userId: string }) {
                         <td className="px-2 py-2">{d.route}</td>
                         <td className="px-2 py-2 font-mono text-xs">{d.vehicle}</td>
                         <td className="px-2 py-2">
-                          <WeekdayPicker value={d.weekdays} onToggle={(w) => toggleWeekday(d, w)} />
+                          <EditDutyDialog duty={d} onSaved={refresh} />
                         </td>
                         <td className="px-2 py-2 text-right">
                           <Button variant="ghost" size="icon" onClick={() => removeDuty(d.id)}>
