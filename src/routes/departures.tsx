@@ -67,6 +67,14 @@ function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
 }
 
+function RouteIcon({ icon }: { icon: string | null }) {
+  if (!icon) return null;
+  if (/^https?:\/\//i.test(icon)) {
+    return <img src={icon} alt="" className="inline-block h-5 w-5 rounded-sm object-contain align-middle" />;
+  }
+  return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
+}
+
 function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
   if (!timetable || timetable.length < 2) {
     return (
