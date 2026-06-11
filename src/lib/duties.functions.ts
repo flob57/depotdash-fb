@@ -276,18 +276,23 @@ export const syncDutiesFromNotion = createServerFn({ method: "POST" })
           start_time: tParsed, route: rText, qub, driver, vehicle, location, arrival_time,
           weekdays: tParsed.startsWith("06:15") ? [1] : [1, 2, 3, 4, 5],
           timetable: null,
+          route_icon: null,
           _routePageId: routeRelId,
         });
       }
     }
 
-    // Fetch timetables (table block inside each linked Horaire QUB page) in parallel.
-    const ttCache = new Map<string, TimetableStop[]>();
-    const ttIds = new Set<string>();
-    for (const r of departuresRows) if (r._routePageId) ttIds.add(r._routePageId);
-    await prefetchTimetables(ttIds, ttCache);
+    // Fetch timetable + page icon for each linked Horaire QUB page in parallel.
+    const metaCache = new Map<string, RoutePageMeta>();
+    const metaIds = new Set<string>();
+    for (const r of departuresRows) if (r._routePageId) metaIds.add(r._routePageId);
+    await prefetchRoutePageMeta(metaIds, metaCache);
     for (const r of departuresRows) {
-      if (r._routePageId) r.timetable = ttCache.get(r._routePageId) ?? null;
+      if (r._routePageId) {
+        const m = metaCache.get(r._routePageId);
+        r.timetable = m?.timetable ?? null;
+        r.route_icon = m?.icon ?? null;
+      }
       delete r._routePageId;
     }
 
