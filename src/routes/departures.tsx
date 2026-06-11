@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ChevronLeft, Pencil, Train } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AlertsBanner } from "@/components/AlertsBanner";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
