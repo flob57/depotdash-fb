@@ -77,7 +77,11 @@ async function prefetchRelationTitles(ids: Iterable<string>, cache: Map<string, 
 }
 
 type TimetableStop = { stop: string; time: string };
-type RoutePageMeta = { timetable: TimetableStop[]; icon: string | null };
+type IconValue =
+  | { kind: "emoji"; value: string }
+  | { kind: "external"; url: string }
+  | { kind: "file"; url: string };
+type RoutePageMeta = { timetable: TimetableStop[]; icon: IconValue | null };
 
 function richTextToString(rt: Array<{ plain_text?: string }> | undefined): string {
   if (!rt || !Array.isArray(rt)) return "";
@@ -90,11 +94,11 @@ type NotionIcon =
   | { type: "file"; file?: { url?: string } }
   | null;
 
-function iconToString(icon: NotionIcon): string | null {
+function iconToValue(icon: NotionIcon): IconValue | null {
   if (!icon) return null;
-  if (icon.type === "emoji") return icon.emoji ?? null;
-  if (icon.type === "external") return icon.external?.url ?? null;
-  if (icon.type === "file") return icon.file?.url ?? null;
+  if (icon.type === "emoji" && icon.emoji) return { kind: "emoji", value: icon.emoji };
+  if (icon.type === "external" && icon.external?.url) return { kind: "external", url: icon.external.url };
+  if (icon.type === "file" && icon.file?.url) return { kind: "file", url: icon.file.url };
   return null;
 }
 
@@ -105,7 +109,7 @@ async function fetchRoutePageMeta(pageId: string): Promise<RoutePageMeta> {
       results: Array<{ id: string; type: string }>;
     }>,
   ]);
-  const icon = iconToString(page.icon ?? null);
+  const icon = iconToValue(page.icon ?? null);
   const table = children.results.find((b) => b.type === "table");
   if (!table) return { timetable: [], icon };
   const rows = (await notionFetch(`/blocks/${table.id}/children?page_size=100`)) as {
@@ -124,6 +128,7 @@ async function fetchRoutePageMeta(pageId: string): Promise<RoutePageMeta> {
   }
   return { timetable: out, icon };
 }
+
 
 async function prefetchRoutePageMeta(ids: Iterable<string>, cache: Map<string, RoutePageMeta>, concurrency = 6) {
   const todo = Array.from(new Set([...ids])).filter((id) => !cache.has(id));
