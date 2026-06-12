@@ -1,0 +1,1 @@
+ALTER TABLE public.user_notion_settings ADD COLUMN IF NOT EXISTS correspondences_page_id text;
