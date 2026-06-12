@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
+import { Route as CorrespondancesRouteImport } from './routes/correspondances'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicGtfsAlertsRouteImport } from './routes/api/public/gtfs-alerts'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
@@ -30,6 +31,11 @@ const DutiesRoute = DutiesRouteImport.update({
 const DeparturesRoute = DeparturesRouteImport.update({
   id: '/departures',
   path: '/departures',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorrespondancesRoute = CorrespondancesRouteImport.update({
+  id: '/correspondances',
+  path: '/correspondances',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -57,6 +63,7 @@ const ApiPublicRouteIconUserFileRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/correspondances': typeof CorrespondancesRoute
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/correspondances': typeof CorrespondancesRoute
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
@@ -76,6 +84,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/correspondances': typeof CorrespondancesRoute
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/correspondances'
     | '/departures'
     | '/duties'
     | '/login'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/correspondances'
     | '/departures'
     | '/duties'
     | '/login'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/correspondances'
     | '/departures'
     | '/duties'
     | '/login'
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CorrespondancesRoute: typeof CorrespondancesRoute
   DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
@@ -144,6 +157,13 @@ declare module '@tanstack/react-router' {
       path: '/departures'
       fullPath: '/departures'
       preLoaderRoute: typeof DeparturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/correspondances': {
+      id: '/correspondances'
+      path: '/correspondances'
+      fullPath: '/correspondances'
+      preLoaderRoute: typeof CorrespondancesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -179,6 +199,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CorrespondancesRoute: CorrespondancesRoute,
   DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
@@ -189,3 +210,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
