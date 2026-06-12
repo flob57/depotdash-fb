@@ -174,9 +174,13 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
             <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Prochains départs">
               <Link to="/departures"><Train className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Prochains départs</span></Link>
             </Button>
+            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Correspondances">
+              <Link to="/correspondances"><ArrowLeftRight className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Correspondances</span></Link>
+            </Button>
             <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Prises de service">
               <Link to="/duties"><ClipboardCheck className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Prises de service</span></Link>
             </Button>
+
             <Button variant="ghost" size="sm" className="px-2 sm:px-3" onClick={signOut} title="Sign out">
               <LogOut className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Sign out</span>
             </Button>
