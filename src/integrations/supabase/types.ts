@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      correspondence_settings: {
+        Row: {
+          created_at: string
+          database_id: string
+          id: string
+          updated_at: string
+          user_id: string
+          weekdays: number[]
+        }
+        Insert: {
+          created_at?: string
+          database_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          weekdays?: number[]
+        }
+        Update: {
+          created_at?: string
+          database_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          weekdays?: number[]
+        }
+        Relationships: []
+      }
       declared_hours: {
         Row: {
           created_at: string

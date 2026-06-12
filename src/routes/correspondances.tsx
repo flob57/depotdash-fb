@@ -6,12 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { ChevronLeft, RefreshCw, Settings2 } from "lucide-react";
+import { ChevronLeft, RefreshCw, Settings2, CalendarDays } from "lucide-react";
 import { getCorrespondences, type Interchange } from "@/lib/correspondences.functions";
 
 export const Route = createFileRoute("/correspondances")({
@@ -44,6 +48,20 @@ function todayWeekday() {
   const d = new Date().getDay();
   return d === 0 ? 7 : d;
 }
+// Parse an hour mentioned in the interchange name, e.g. "Landrevarzec 13h",
+// "Tourbie 8h27", "Stang 17h05". Returns minutes since midnight or null.
+function parseNameHour(name: string): number | null {
+  const m = name.match(/(\d{1,2})\s*[hH:.]\s*(\d{0,2})/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const mm = m[2] ? Number(m[2]) : 0;
+  if (!Number.isFinite(h) || h > 23 || mm > 59) return null;
+  return h * 60 + mm;
+}
+
+const WEEKDAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+const WEEKDAY_LONG = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
 function Page() {
   const { user, loading } = useAuth();
@@ -65,6 +83,7 @@ function View({ userId }: { userId: string }) {
   const [interchanges, setInterchanges] = useState<Interchange[]>([]);
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [pageId, setPageId] = useState<string>("");
+  const [weekdaysByDb, setWeekdaysByDb] = useState<Map<string, number[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tick, setTick] = useState(0);
@@ -76,7 +95,7 @@ function View({ userId }: { userId: string }) {
   }, []);
 
   const loadData = async (refreshNotion = false) => {
-    const [{ data: settings }, { data: dps }] = await Promise.all([
+    const [{ data: settings }, { data: dps }, { data: csettings }] = await Promise.all([
       supabase
         .from("user_notion_settings")
         .select("correspondences_page_id")
@@ -85,8 +104,17 @@ function View({ userId }: { userId: string }) {
       supabase
         .from("departures")
         .select("route,start_time,arrival_time,driver,vehicle,qub,location,weekdays,timetable"),
+      supabase
+        .from("correspondence_settings")
+        .select("database_id,weekdays")
+        .eq("user_id", userId),
     ]);
     setDepartures((dps ?? []) as Departure[]);
+    const m = new Map<string, number[]>();
+    for (const row of (csettings ?? []) as { database_id: string; weekdays: number[] }[]) {
+      m.set(row.database_id, row.weekdays ?? DEFAULT_WEEKDAYS);
+    }
+    setWeekdaysByDb(m);
     const pid = (settings?.correspondences_page_id as string | null) ?? "";
     setPageId(pid);
     if (pid && (refreshNotion || interchanges.length === 0)) {
@@ -104,6 +132,21 @@ function View({ userId }: { userId: string }) {
   };
 
   useEffect(() => { loadData(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [userId]);
+
+  const saveInterchangeWeekdays = async (databaseId: string, weekdays: number[]) => {
+    const next = new Map(weekdaysByDb);
+    next.set(databaseId, weekdays);
+    setWeekdaysByDb(next);
+    const { error } = await supabase
+      .from("correspondence_settings")
+      .upsert(
+        { user_id: userId, database_id: databaseId, weekdays },
+        { onConflict: "user_id,database_id" },
+      );
+    if (error) toast.error(error.message);
+  };
+
+
 
   const wd = todayWeekday();
   const now = nowMinutes();
@@ -158,6 +201,24 @@ function View({ userId }: { userId: string }) {
     return true;
   };
 
+  // Sort by hour parsed from the name (earliest first), filter by today's weekday.
+  const visibleInterchanges = useMemo(() => {
+    const withMeta = interchanges.map((ic) => {
+      const wds = weekdaysByDb.get(ic.database_id) ?? DEFAULT_WEEKDAYS;
+      return { ic, sortKey: parseNameHour(ic.name), active: wds.includes(wd) };
+    });
+    return withMeta
+      .filter((x) => x.active)
+      .sort((a, b) => {
+        const ka = a.sortKey ?? Number.POSITIVE_INFINITY;
+        const kb = b.sortKey ?? Number.POSITIVE_INFINITY;
+        if (ka !== kb) return ka - kb;
+        return a.ic.name.localeCompare(b.ic.name);
+      })
+      .map((x) => x.ic);
+  }, [interchanges, weekdaysByDb, wd]);
+
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
@@ -190,12 +251,22 @@ function View({ userId }: { userId: string }) {
           <div className="rounded-md border bg-card p-6 text-center text-sm text-muted-foreground">
             Aucun lieu d'interchange trouvé dans la page Notion.
           </div>
+        ) : visibleInterchanges.length === 0 ? (
+          <div className="rounded-md border bg-card p-6 text-center text-sm text-muted-foreground">
+            Aucune correspondance active aujourd'hui.
+          </div>
         ) : (
-          interchanges.map((ic) => (
+          visibleInterchanges.map((ic) => (
             <section key={ic.database_id} className="rounded-md border bg-card">
-              <header className="border-b px-3 py-2 sm:px-4">
-                <h2 className="font-semibold">{ic.name}</h2>
-                <p className="text-xs text-muted-foreground">{ic.rows.length} ligne{ic.rows.length > 1 ? "s" : ""}</p>
+              <header className="flex items-start justify-between gap-2 border-b px-3 py-2 sm:px-4">
+                <div className="min-w-0">
+                  <h2 className="font-semibold truncate">{ic.name}</h2>
+                  <p className="text-xs text-muted-foreground">{ic.rows.length} ligne{ic.rows.length > 1 ? "s" : ""}</p>
+                </div>
+                <WeekdayPicker
+                  value={weekdaysByDb.get(ic.database_id) ?? DEFAULT_WEEKDAYS}
+                  onChange={(wds) => saveInterchangeWeekdays(ic.database_id, wds)}
+                />
               </header>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -248,6 +319,52 @@ function View({ userId }: { userId: string }) {
         <span className="hidden">{tick}</span>
       </main>
     </div>
+  );
+}
+
+function WeekdayPicker({
+  value,
+  onChange,
+}: {
+  value: number[];
+  onChange: (next: number[]) => void;
+}) {
+  const set = new Set(value);
+  const toggle = (d: number) => {
+    const next = new Set(set);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    onChange(Array.from(next).sort((a, b) => a - b));
+  };
+  const label =
+    set.size === 7
+      ? "Tous les jours"
+      : set.size === 0
+        ? "Aucun jour"
+        : Array.from(set).sort((a, b) => a - b).map((d) => WEEKDAY_LABELS[d - 1]).join(" ");
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="shrink-0 gap-1">
+          <CalendarDays className="h-3.5 w-3.5" />
+          <span className="text-xs">{label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-3">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Jours actifs</p>
+          {WEEKDAY_LONG.map((name, i) => {
+            const d = i + 1;
+            const id = `wd-${d}`;
+            return (
+              <label key={d} htmlFor={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox id={id} checked={set.has(d)} onCheckedChange={() => toggle(d)} />
+                <span>{name}</span>
+              </label>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
