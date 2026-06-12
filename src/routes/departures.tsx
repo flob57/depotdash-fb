@@ -521,7 +521,7 @@ function DeparturesView() {
                             <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
                               <div className="flex items-center gap-2">
                                 <span>{hm(r.start_time)}</span>
-                                {isP && <span className="text-base leading-none">🚸</span>}
+                                {r.route_icon ? <RouteIcon icon={r.route_icon} /> : isP && <span className="text-base leading-none">🚸</span>}
                               </div>
                             </td>
                             <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
