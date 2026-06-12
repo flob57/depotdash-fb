@@ -469,7 +469,6 @@ function DeparturesView() {
                               {checked && <span className="text-sm">✅</span>}
                             </div>
                             <div className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", isLigne && "text-orange-500", isP && "text-yellow-500")}>
-                              <RouteIcon icon={r.route_icon} />
                               <span>{routeLabel(r.route)}</span>
                               <span className="text-muted-foreground font-normal">· {r.location || "—"}</span>
                             </div>
@@ -529,7 +528,6 @@ function DeparturesView() {
                             </td>
                             <td className={cn("px-3 py-2", isLigne && "text-orange-500 font-medium", isP && "text-yellow-500 font-medium")}>
                               <span className="inline-flex items-center gap-1.5">
-                                <RouteIcon icon={r.route_icon} />
                                 {routeLabel(r.route)}
                               </span>
                             </td>
