@@ -6,12 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { ChevronLeft, RefreshCw, Settings2 } from "lucide-react";
+import { ChevronLeft, RefreshCw, Settings2, CalendarDays } from "lucide-react";
 import { getCorrespondences, type Interchange } from "@/lib/correspondences.functions";
 
 export const Route = createFileRoute("/correspondances")({
