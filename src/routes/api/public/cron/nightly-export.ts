@@ -116,21 +116,15 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Require a shared secret so only the scheduler can trigger exports.
-        const expected = process.env.CRON_SECRET;
-        if (!expected) {
-          return new Response(JSON.stringify({ error: "CRON_SECRET not configured" }), {
-            status: 503,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-        const url = new URL(request.url);
-        const provided =
-          request.headers.get("x-cron-secret") ?? url.searchParams.get("secret") ?? "";
-        // Constant-time comparison
+        // Authenticate the scheduler using the project's anon/publishable key
+        // sent in the standard `apikey` header (pg_cron + pg_net pattern).
+        const expected =
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
+        const provided = request.headers.get("apikey") ?? "";
         const a = Buffer.from(provided);
         const b = Buffer.from(expected);
         const ok =
+          expected.length > 0 &&
           a.length === b.length &&
           (await import("crypto")).timingSafeEqual(a, b);
         if (!ok) {
@@ -139,6 +133,7 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             headers: { "Content-Type": "application/json" },
           });
         }
+        const url = new URL(request.url);
         const force = url.searchParams.get("force") === "1";
         const { data, error } = await supabaseAdmin
           .from("user_notion_settings")
