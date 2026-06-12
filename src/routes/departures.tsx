@@ -76,7 +76,7 @@ function nextStopOf(timetable: TimetableStop[] | null, now: number): TimetableSt
 
 function RouteIcon({ icon }: { icon: string | null }) {
   if (!icon) return null;
-  if (/^https?:\/\//i.test(icon)) {
+  if (/^(https?:\/\/|\/)/i.test(icon)) {
     return <img src={icon} alt="" className="inline-block h-5 w-5 rounded-sm object-contain align-middle" />;
   }
   return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
