@@ -63,7 +63,6 @@ function Page() {
 
 function View({ userId }: { userId: string }) {
   const [interchanges, setInterchanges] = useState<Interchange[]>([]);
-  const [duties, setDuties] = useState<Duty[]>([]);
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [pageId, setPageId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -77,18 +76,16 @@ function View({ userId }: { userId: string }) {
   }, []);
 
   const loadData = async (refreshNotion = false) => {
-    const [{ data: settings }, { data: ds }, { data: dps }] = await Promise.all([
+    const [{ data: settings }, { data: dps }] = await Promise.all([
       supabase
         .from("user_notion_settings")
         .select("correspondences_page_id")
         .eq("user_id", userId)
         .maybeSingle(),
-      supabase.from("duties").select("start_time,qub,driver,route,vehicle,weekdays"),
       supabase
         .from("departures")
-        .select("route,start_time,arrival_time,location,weekdays,timetable"),
+        .select("route,start_time,arrival_time,driver,vehicle,qub,location,weekdays,timetable"),
     ]);
-    setDuties((ds ?? []) as Duty[]);
     setDepartures((dps ?? []) as Departure[]);
     const pid = (settings?.correspondences_page_id as string | null) ?? "";
     setPageId(pid);
@@ -111,14 +108,25 @@ function View({ userId }: { userId: string }) {
   const wd = todayWeekday();
   const now = nowMinutes();
 
-  const dutyByCourse = useMemo(() => {
-    const m = new Map<string, Duty>();
-    for (const d of duties) {
-      if (!d.weekdays.includes(wd)) continue;
-      if (d.route) m.set(d.route, d);
+  // Lookup driver/vehicle/QUB per course from departures (richer than duties,
+  // which only stores the first course of each driver).
+  const infoByCourse = useMemo(() => {
+    const m = new Map<string, { driver: string; vehicle: string; qub: string }>();
+    for (const dep of departures) {
+      if (!dep.weekdays.includes(wd)) continue;
+      if (!dep.route) continue;
+      const prev = m.get(dep.route);
+      const candidate = {
+        driver: dep.driver ?? "",
+        vehicle: dep.vehicle ?? "",
+        qub: dep.qub ?? "",
+      };
+      // Prefer the row that actually has driver/vehicle info filled in.
+      if (!prev || (!prev.driver && candidate.driver)) m.set(dep.route, candidate);
     }
     return m;
-  }, [duties, wd]);
+  }, [departures, wd]);
+
 
   const positionByCourse = useMemo(() => {
     const m = new Map<string, { current: string | null; next: string | null }>();
