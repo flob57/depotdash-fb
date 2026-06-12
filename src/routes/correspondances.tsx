@@ -201,6 +201,24 @@ function View({ userId }: { userId: string }) {
     return true;
   };
 
+  // Sort by hour parsed from the name (earliest first), filter by today's weekday.
+  const visibleInterchanges = useMemo(() => {
+    const withMeta = interchanges.map((ic) => {
+      const wds = weekdaysByDb.get(ic.database_id) ?? DEFAULT_WEEKDAYS;
+      return { ic, sortKey: parseNameHour(ic.name), active: wds.includes(wd) };
+    });
+    return withMeta
+      .filter((x) => x.active)
+      .sort((a, b) => {
+        const ka = a.sortKey ?? Number.POSITIVE_INFINITY;
+        const kb = b.sortKey ?? Number.POSITIVE_INFINITY;
+        if (ka !== kb) return ka - kb;
+        return a.ic.name.localeCompare(b.ic.name);
+      })
+      .map((x) => x.ic);
+  }, [interchanges, weekdaysByDb, wd]);
+
+
   return (
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
