@@ -19,23 +19,18 @@ export const Route = createFileRoute("/correspondances")({
   head: () => ({ meta: [{ title: "Correspondances — Lestonan" }] }),
 });
 
-type Duty = {
-  start_time: string;
-  qub: string;
-  driver: string;
-  route: string;
-  vehicle: string;
-  weekdays: number[];
-};
-
 type Departure = {
   route: string;
   start_time: string;
   arrival_time: string | null;
+  driver: string | null;
+  vehicle: string | null;
+  qub: string | null;
   location: string;
   weekdays: number[];
   timetable: { stop: string; time: string }[] | null;
 };
+
 
 function nowMinutes() {
   const d = new Date();
