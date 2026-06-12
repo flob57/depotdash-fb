@@ -205,18 +205,22 @@ function View({ userId }: { userId: string }) {
   const visibleInterchanges = useMemo(() => {
     const withMeta = interchanges.map((ic) => {
       const wds = weekdaysByDb.get(ic.database_id) ?? DEFAULT_WEEKDAYS;
-      return { ic, sortKey: parseNameHour(ic.name), active: wds.includes(wd) };
+      const sortKey = parseNameHour(ic.name);
+      const isFuture = sortKey !== null && sortKey >= now;
+      return { ic, sortKey, isFuture, active: wds.includes(wd) };
     });
     return withMeta
       .filter((x) => x.active)
       .sort((a, b) => {
+        // Future first, then past
+        if (a.isFuture !== b.isFuture) return a.isFuture ? -1 : 1;
         const ka = a.sortKey ?? Number.POSITIVE_INFINITY;
         const kb = b.sortKey ?? Number.POSITIVE_INFINITY;
         if (ka !== kb) return ka - kb;
         return a.ic.name.localeCompare(b.ic.name);
       })
       .map((x) => x.ic);
-  }, [interchanges, weekdaysByDb, wd]);
+  }, [interchanges, weekdaysByDb, wd, now]);
 
 
   return (
