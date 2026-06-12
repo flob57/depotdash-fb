@@ -59,6 +59,42 @@ function hm(t: string) {
   return t.slice(0, 5);
 }
 
+function Countdown({ startTime, checked }: { startTime: string; checked: boolean }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (checked) return null;
+  const now = new Date();
+  const [h, m, s] = startTime.split(":").map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, s || 0, 0);
+  const diffMs = target.getTime() - now.getTime();
+  const sign = diffMs < 0 ? "-" : "";
+  const total = Math.floor(Math.abs(diffMs) / 1000);
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+  const label = hh > 0
+    ? `${sign}${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+    : `${sign}${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  const late = diffMs < 0;
+  const soon = diffMs >= 0 && diffMs < 10 * 60 * 1000;
+  return (
+    <span
+      className={cn(
+        "font-mono text-xs tabular-nums",
+        late ? "text-destructive font-semibold" : soon ? "text-amber-600 font-semibold" : "text-muted-foreground",
+      )}
+      title={late ? "En retard" : "Temps restant"}
+    >
+      {label}
+    </span>
+  );
+}
+
+
 function DutiesPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
