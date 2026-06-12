@@ -381,7 +381,13 @@ function DutiesView({ userId }: { userId: string }) {
                         <td className="px-2 py-2 text-center">
                           <Checkbox checked={checked} onCheckedChange={() => toggleCheck(d)} />
                         </td>
-                        <td className="px-2 py-2 font-mono font-semibold">{hm(d.start_time)}</td>
+                        <td className="px-2 py-2 font-mono font-semibold whitespace-nowrap">
+                          <div className="flex items-baseline gap-2">
+                            <span>{hm(d.start_time)}</span>
+                            {d.weekdays.includes(wd) && <Countdown startTime={d.start_time} checked={checked} />}
+                          </div>
+                        </td>
+
                         <td className="px-2 py-2">{d.qub}</td>
                         <td className="px-2 py-2">{d.driver}</td>
                         <td className="px-2 py-2">{d.route}</td>
