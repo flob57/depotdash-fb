@@ -410,6 +410,7 @@ export type Database = {
       }
       user_notion_settings: {
         Row: {
+          correspondences_page_id: string | null
           created_at: string
           daily_totals_db_id: string | null
           distance_summary_db_id: string | null
@@ -424,6 +425,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          correspondences_page_id?: string | null
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
@@ -438,6 +440,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          correspondences_page_id?: string | null
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null

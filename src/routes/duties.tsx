@@ -59,6 +59,42 @@ function hm(t: string) {
   return t.slice(0, 5);
 }
 
+function Countdown({ startTime, checked }: { startTime: string; checked: boolean }) {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => force((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (checked) return null;
+  const now = new Date();
+  const [h, m, s] = startTime.split(":").map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, s || 0, 0);
+  const diffMs = target.getTime() - now.getTime();
+  const sign = diffMs < 0 ? "-" : "";
+  const total = Math.floor(Math.abs(diffMs) / 1000);
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = total % 60;
+  const label = hh > 0
+    ? `${sign}${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+    : `${sign}${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  const late = diffMs < 0;
+  const soon = diffMs >= 0 && diffMs < 10 * 60 * 1000;
+  return (
+    <span
+      className={cn(
+        "font-mono text-xs tabular-nums",
+        late ? "text-destructive font-semibold" : soon ? "text-amber-600 font-semibold" : "text-muted-foreground",
+      )}
+      title={late ? "En retard" : "Temps restant"}
+    >
+      {label}
+    </span>
+  );
+}
+
+
 function DutiesPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -87,9 +123,10 @@ function DutiesView({ userId }: { userId: string }) {
   const sync = useServerFn(syncDutiesFromNotion);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
 
   const refresh = async () => {
     setLoading(true);
@@ -207,11 +244,15 @@ function DutiesView({ userId }: { userId: string }) {
             </Button>
             <h1 className="truncate text-sm sm:text-base font-semibold">Prises de service</h1>
           </div>
-          <div className="shrink-0 text-xs text-muted-foreground">
-            {checkedCount}/{visible.length}
+          <div className="shrink-0 flex items-baseline gap-1">
+            <span className="font-mono text-2xl font-bold tabular-nums leading-none">{checkedCount}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-mono text-lg tabular-nums text-muted-foreground leading-none">{visible.length}</span>
+            <span className="ml-1 hidden sm:inline text-[10px] uppercase tracking-wide text-muted-foreground">vérifiées</span>
           </div>
         </div>
       </header>
+
 
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
@@ -255,7 +296,9 @@ function DutiesView({ userId }: { userId: string }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline gap-2">
                           <span className="font-mono text-lg font-semibold tabular-nums">{hm(d.start_time)}</span>
+                          {d.weekdays.includes(wd) && <Countdown startTime={d.start_time} checked={checked} />}
                           <span className="text-xs text-muted-foreground">QUB {d.qub}</span>
+
                         </div>
                         <div className="mt-0.5 text-sm font-medium truncate">{d.driver}</div>
                         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
@@ -338,7 +381,13 @@ function DutiesView({ userId }: { userId: string }) {
                         <td className="px-2 py-2 text-center">
                           <Checkbox checked={checked} onCheckedChange={() => toggleCheck(d)} />
                         </td>
-                        <td className="px-2 py-2 font-mono font-semibold">{hm(d.start_time)}</td>
+                        <td className="px-2 py-2 font-mono font-semibold whitespace-nowrap">
+                          <div className="flex items-baseline gap-2">
+                            <span>{hm(d.start_time)}</span>
+                            {d.weekdays.includes(wd) && <Countdown startTime={d.start_time} checked={checked} />}
+                          </div>
+                        </td>
+
                         <td className="px-2 py-2">{d.qub}</td>
                         <td className="px-2 py-2">{d.driver}</td>
                         <td className="px-2 py-2">{d.route}</td>
