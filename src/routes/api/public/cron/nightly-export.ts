@@ -116,7 +116,29 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Require a shared secret so only the scheduler can trigger exports.
+        const expected = process.env.CRON_SECRET;
+        if (!expected) {
+          return new Response(JSON.stringify({ error: "CRON_SECRET not configured" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
         const url = new URL(request.url);
+        const provided =
+          request.headers.get("x-cron-secret") ?? url.searchParams.get("secret") ?? "";
+        // Constant-time comparison
+        const a = Buffer.from(provided);
+        const b = Buffer.from(expected);
+        const ok =
+          a.length === b.length &&
+          (await import("crypto")).timingSafeEqual(a, b);
+        if (!ok) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
         const force = url.searchParams.get("force") === "1";
         const { data, error } = await supabaseAdmin
           .from("user_notion_settings")
@@ -124,7 +146,7 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             "user_id, shifts_db_id, sessions_db_id, daily_totals_db_id, distance_summary_db_id, fuel_fillups_db_id, timezone",
           );
         if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
+          return new Response(JSON.stringify({ error: "Internal error" }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
           });
