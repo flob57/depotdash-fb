@@ -251,12 +251,22 @@ function View({ userId }: { userId: string }) {
           <div className="rounded-md border bg-card p-6 text-center text-sm text-muted-foreground">
             Aucun lieu d'interchange trouvé dans la page Notion.
           </div>
+        ) : visibleInterchanges.length === 0 ? (
+          <div className="rounded-md border bg-card p-6 text-center text-sm text-muted-foreground">
+            Aucune correspondance active aujourd'hui.
+          </div>
         ) : (
-          interchanges.map((ic) => (
+          visibleInterchanges.map((ic) => (
             <section key={ic.database_id} className="rounded-md border bg-card">
-              <header className="border-b px-3 py-2 sm:px-4">
-                <h2 className="font-semibold">{ic.name}</h2>
-                <p className="text-xs text-muted-foreground">{ic.rows.length} ligne{ic.rows.length > 1 ? "s" : ""}</p>
+              <header className="flex items-start justify-between gap-2 border-b px-3 py-2 sm:px-4">
+                <div className="min-w-0">
+                  <h2 className="font-semibold truncate">{ic.name}</h2>
+                  <p className="text-xs text-muted-foreground">{ic.rows.length} ligne{ic.rows.length > 1 ? "s" : ""}</p>
+                </div>
+                <WeekdayPicker
+                  value={weekdaysByDb.get(ic.database_id) ?? DEFAULT_WEEKDAYS}
+                  onChange={(wds) => saveInterchangeWeekdays(ic.database_id, wds)}
+                />
               </header>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
