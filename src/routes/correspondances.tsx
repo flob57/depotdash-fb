@@ -322,6 +322,52 @@ function View({ userId }: { userId: string }) {
   );
 }
 
+function WeekdayPicker({
+  value,
+  onChange,
+}: {
+  value: number[];
+  onChange: (next: number[]) => void;
+}) {
+  const set = new Set(value);
+  const toggle = (d: number) => {
+    const next = new Set(set);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    onChange(Array.from(next).sort((a, b) => a - b));
+  };
+  const label =
+    set.size === 7
+      ? "Tous les jours"
+      : set.size === 0
+        ? "Aucun jour"
+        : Array.from(set).sort((a, b) => a - b).map((d) => WEEKDAY_LABELS[d - 1]).join(" ");
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="shrink-0 gap-1">
+          <CalendarDays className="h-3.5 w-3.5" />
+          <span className="text-xs">{label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-3">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Jours actifs</p>
+          {WEEKDAY_LONG.map((name, i) => {
+            const d = i + 1;
+            const id = `wd-${d}`;
+            return (
+              <label key={d} htmlFor={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox id={id} checked={set.has(d)} onCheckedChange={() => toggle(d)} />
+                <span>{name}</span>
+              </label>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function SettingsDialog({
   initial, onSave,
 }: { initial: string; onSave: (v: string) => Promise<boolean> }) {
