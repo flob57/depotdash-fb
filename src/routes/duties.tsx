@@ -208,11 +208,15 @@ function DutiesView({ userId }: { userId: string }) {
             </Button>
             <h1 className="truncate text-sm sm:text-base font-semibold">Prises de service</h1>
           </div>
-          <div className="shrink-0 text-xs text-muted-foreground">
-            {checkedCount}/{visible.length}
+          <div className="shrink-0 flex items-baseline gap-1">
+            <span className="font-mono text-2xl font-bold tabular-nums leading-none">{checkedCount}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-mono text-lg tabular-nums text-muted-foreground leading-none">{visible.length}</span>
+            <span className="ml-1 hidden sm:inline text-[10px] uppercase tracking-wide text-muted-foreground">vérifiées</span>
           </div>
         </div>
       </header>
+
 
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-4">
