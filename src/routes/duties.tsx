@@ -296,7 +296,9 @@ function DutiesView({ userId }: { userId: string }) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline gap-2">
                           <span className="font-mono text-lg font-semibold tabular-nums">{hm(d.start_time)}</span>
+                          {d.weekdays.includes(wd) && <Countdown startTime={d.start_time} checked={checked} />}
                           <span className="text-xs text-muted-foreground">QUB {d.qub}</span>
+
                         </div>
                         <div className="mt-0.5 text-sm font-medium truncate">{d.driver}</div>
                         <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
