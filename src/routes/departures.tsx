@@ -465,7 +465,7 @@ function DeparturesView() {
                               <span className={cn("font-mono text-xs tabular-nums", imminent ? "text-destructive font-semibold" : "text-muted-foreground")}>
                                 {eta <= 0 ? "maintenant" : `dans ${eta} min`}
                               </span>
-                              {isP && <span className="text-base leading-none">🚸</span>}
+                              {r.route_icon ? <RouteIcon icon={r.route_icon} /> : isP && <span className="text-base leading-none">🚸</span>}
                               {checked && <span className="text-sm">✅</span>}
                             </div>
                             <div className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", isLigne && "text-orange-500", isP && "text-yellow-500")}>
@@ -521,7 +521,7 @@ function DeparturesView() {
                             <td className="px-3 py-2 font-mono text-base font-semibold tabular-nums">
                               <div className="flex items-center gap-2">
                                 <span>{hm(r.start_time)}</span>
-                                {isP && <span className="text-base leading-none">🚸</span>}
+                                {r.route_icon ? <RouteIcon icon={r.route_icon} /> : isP && <span className="text-base leading-none">🚸</span>}
                               </div>
                             </td>
                             <td className={cn("px-3 py-2 font-mono tabular-nums", imminent && "text-destructive")}>
