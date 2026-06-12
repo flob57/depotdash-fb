@@ -19,23 +19,18 @@ export const Route = createFileRoute("/correspondances")({
   head: () => ({ meta: [{ title: "Correspondances — Lestonan" }] }),
 });
 
-type Duty = {
-  start_time: string;
-  qub: string;
-  driver: string;
-  route: string;
-  vehicle: string;
-  weekdays: number[];
-};
-
 type Departure = {
   route: string;
   start_time: string;
   arrival_time: string | null;
+  driver: string | null;
+  vehicle: string | null;
+  qub: string | null;
   location: string;
   weekdays: number[];
   timetable: { stop: string; time: string }[] | null;
 };
+
 
 function nowMinutes() {
   const d = new Date();
@@ -68,7 +63,6 @@ function Page() {
 
 function View({ userId }: { userId: string }) {
   const [interchanges, setInterchanges] = useState<Interchange[]>([]);
-  const [duties, setDuties] = useState<Duty[]>([]);
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [pageId, setPageId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -82,18 +76,16 @@ function View({ userId }: { userId: string }) {
   }, []);
 
   const loadData = async (refreshNotion = false) => {
-    const [{ data: settings }, { data: ds }, { data: dps }] = await Promise.all([
+    const [{ data: settings }, { data: dps }] = await Promise.all([
       supabase
         .from("user_notion_settings")
         .select("correspondences_page_id")
         .eq("user_id", userId)
         .maybeSingle(),
-      supabase.from("duties").select("start_time,qub,driver,route,vehicle,weekdays"),
       supabase
         .from("departures")
-        .select("route,start_time,arrival_time,location,weekdays,timetable"),
+        .select("route,start_time,arrival_time,driver,vehicle,qub,location,weekdays,timetable"),
     ]);
-    setDuties((ds ?? []) as Duty[]);
     setDepartures((dps ?? []) as Departure[]);
     const pid = (settings?.correspondences_page_id as string | null) ?? "";
     setPageId(pid);
@@ -116,14 +108,25 @@ function View({ userId }: { userId: string }) {
   const wd = todayWeekday();
   const now = nowMinutes();
 
-  const dutyByCourse = useMemo(() => {
-    const m = new Map<string, Duty>();
-    for (const d of duties) {
-      if (!d.weekdays.includes(wd)) continue;
-      if (d.route) m.set(d.route, d);
+  // Lookup driver/vehicle/QUB per course from departures (richer than duties,
+  // which only stores the first course of each driver).
+  const infoByCourse = useMemo(() => {
+    const m = new Map<string, { driver: string; vehicle: string; qub: string }>();
+    for (const dep of departures) {
+      if (!dep.weekdays.includes(wd)) continue;
+      if (!dep.route) continue;
+      const prev = m.get(dep.route);
+      const candidate = {
+        driver: dep.driver ?? "",
+        vehicle: dep.vehicle ?? "",
+        qub: dep.qub ?? "",
+      };
+      // Prefer the row that actually has driver/vehicle info filled in.
+      if (!prev || (!prev.driver && candidate.driver)) m.set(dep.route, candidate);
     }
     return m;
-  }, [duties, wd]);
+  }, [departures, wd]);
+
 
   const positionByCourse = useMemo(() => {
     const m = new Map<string, { current: string | null; next: string | null }>();
@@ -209,7 +212,7 @@ function View({ userId }: { userId: string }) {
                   </thead>
                   <tbody>
                     {ic.rows.map((r, i) => {
-                      const duty = r.course ? dutyByCourse.get(r.course) : undefined;
+                      const info = r.course ? infoByCourse.get(r.course) : undefined;
                       const pos = r.course ? positionByCourse.get(r.course) : undefined;
                       return (
                         <tr key={`${r.course}-${i}`} className="border-t">
@@ -219,9 +222,10 @@ function View({ userId }: { userId: string }) {
                             {r.depart_time ?? "—"}
                             {r.arrival_time && <span className="text-muted-foreground"> → {r.arrival_time}</span>}
                           </td>
-                          <td className="px-2 py-2">{duty?.driver ?? <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-2 py-2 font-mono text-xs">{duty?.vehicle ?? <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-2 py-2">{duty?.qub ?? <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2">{info?.driver || <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2 font-mono text-xs">{info?.vehicle || <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2">{info?.qub || <span className="text-muted-foreground">—</span>}</td>
+
                           <td className="px-2 py-2 text-xs">
                             {pos ? (
                               <span>
