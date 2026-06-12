@@ -465,7 +465,7 @@ function DeparturesView() {
                               <span className={cn("font-mono text-xs tabular-nums", imminent ? "text-destructive font-semibold" : "text-muted-foreground")}>
                                 {eta <= 0 ? "maintenant" : `dans ${eta} min`}
                               </span>
-                              {isP && <span className="text-base leading-none">🚸</span>}
+                              {r.route_icon ? <RouteIcon icon={r.route_icon} /> : isP && <span className="text-base leading-none">🚸</span>}
                               {checked && <span className="text-sm">✅</span>}
                             </div>
                             <div className={cn("mt-1 flex items-center gap-1.5 text-sm font-medium", isLigne && "text-orange-500", isP && "text-yellow-500")}>
