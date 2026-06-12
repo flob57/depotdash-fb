@@ -83,6 +83,7 @@ function View({ userId }: { userId: string }) {
   const [interchanges, setInterchanges] = useState<Interchange[]>([]);
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [pageId, setPageId] = useState<string>("");
+  const [weekdaysByDb, setWeekdaysByDb] = useState<Map<string, number[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tick, setTick] = useState(0);
@@ -94,7 +95,7 @@ function View({ userId }: { userId: string }) {
   }, []);
 
   const loadData = async (refreshNotion = false) => {
-    const [{ data: settings }, { data: dps }] = await Promise.all([
+    const [{ data: settings }, { data: dps }, { data: csettings }] = await Promise.all([
       supabase
         .from("user_notion_settings")
         .select("correspondences_page_id")
@@ -103,8 +104,17 @@ function View({ userId }: { userId: string }) {
       supabase
         .from("departures")
         .select("route,start_time,arrival_time,driver,vehicle,qub,location,weekdays,timetable"),
+      supabase
+        .from("correspondence_settings")
+        .select("database_id,weekdays")
+        .eq("user_id", userId),
     ]);
     setDepartures((dps ?? []) as Departure[]);
+    const m = new Map<string, number[]>();
+    for (const row of (csettings ?? []) as { database_id: string; weekdays: number[] }[]) {
+      m.set(row.database_id, row.weekdays ?? DEFAULT_WEEKDAYS);
+    }
+    setWeekdaysByDb(m);
     const pid = (settings?.correspondences_page_id as string | null) ?? "";
     setPageId(pid);
     if (pid && (refreshNotion || interchanges.length === 0)) {
@@ -122,6 +132,21 @@ function View({ userId }: { userId: string }) {
   };
 
   useEffect(() => { loadData(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [userId]);
+
+  const saveInterchangeWeekdays = async (databaseId: string, weekdays: number[]) => {
+    const next = new Map(weekdaysByDb);
+    next.set(databaseId, weekdays);
+    setWeekdaysByDb(next);
+    const { error } = await supabase
+      .from("correspondence_settings")
+      .upsert(
+        { user_id: userId, database_id: databaseId, weekdays },
+        { onConflict: "user_id,database_id" },
+      );
+    if (error) toast.error(error.message);
+  };
+
+
 
   const wd = todayWeekday();
   const now = nowMinutes();
