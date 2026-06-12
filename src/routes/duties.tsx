@@ -87,9 +87,10 @@ function DutiesView({ userId }: { userId: string }) {
   const sync = useServerFn(syncDutiesFromNotion);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
 
   const refresh = async () => {
     setLoading(true);
