@@ -212,7 +212,7 @@ function View({ userId }: { userId: string }) {
                   </thead>
                   <tbody>
                     {ic.rows.map((r, i) => {
-                      const duty = r.course ? dutyByCourse.get(r.course) : undefined;
+                      const info = r.course ? infoByCourse.get(r.course) : undefined;
                       const pos = r.course ? positionByCourse.get(r.course) : undefined;
                       return (
                         <tr key={`${r.course}-${i}`} className="border-t">
@@ -222,9 +222,10 @@ function View({ userId }: { userId: string }) {
                             {r.depart_time ?? "—"}
                             {r.arrival_time && <span className="text-muted-foreground"> → {r.arrival_time}</span>}
                           </td>
-                          <td className="px-2 py-2">{duty?.driver ?? <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-2 py-2 font-mono text-xs">{duty?.vehicle ?? <span className="text-muted-foreground">—</span>}</td>
-                          <td className="px-2 py-2">{duty?.qub ?? <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2">{info?.driver || <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2 font-mono text-xs">{info?.vehicle || <span className="text-muted-foreground">—</span>}</td>
+                          <td className="px-2 py-2">{info?.qub || <span className="text-muted-foreground">—</span>}</td>
+
                           <td className="px-2 py-2 text-xs">
                             {pos ? (
                               <span>
