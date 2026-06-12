@@ -48,6 +48,20 @@ function todayWeekday() {
   const d = new Date().getDay();
   return d === 0 ? 7 : d;
 }
+// Parse an hour mentioned in the interchange name, e.g. "Landrevarzec 13h",
+// "Tourbie 8h27", "Stang 17h05". Returns minutes since midnight or null.
+function parseNameHour(name: string): number | null {
+  const m = name.match(/(\d{1,2})\s*[hH:.]\s*(\d{0,2})/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const mm = m[2] ? Number(m[2]) : 0;
+  if (!Number.isFinite(h) || h > 23 || mm > 59) return null;
+  return h * 60 + mm;
+}
+
+const WEEKDAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+const WEEKDAY_LONG = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
 function Page() {
   const { user, loading } = useAuth();
