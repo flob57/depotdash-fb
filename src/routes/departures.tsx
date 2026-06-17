@@ -249,8 +249,22 @@ function DeparturesView() {
 
   const running = useMemo(() => {
     return rows
-      .filter((r) => r.weekdays.includes(wd) && r.arrival_time)
-      .map((r) => ({ ...r, mins: timeMinutes(r.start_time), aMins: timeMinutes(r.arrival_time as string) }))
+      .filter((r) => r.weekdays.includes(wd))
+      .map((r) => {
+        const mins = timeMinutes(r.start_time);
+        let aMins: number;
+        if (r.arrival_time) {
+          aMins = timeMinutes(r.arrival_time);
+        } else if (r.timetable && r.timetable.length > 0) {
+          aMins = Math.max(
+            ...r.timetable.map((s) => timeMinutes(s.time)),
+            mins,
+          );
+        } else {
+          aMins = mins + 60;
+        }
+        return { ...r, mins, aMins };
+      })
       .filter((r) => now >= r.mins && now <= r.aMins)
       .sort((a, b) => a.mins - b.mins);
   }, [rows, wd, now]);
