@@ -61,8 +61,8 @@ function timeMinutes(t: string) {
   const [h, m] = t.split(":");
   return Number(h) * 60 + Number(m);
 }
-function hm(t: string) {
-  return t.slice(0, 5);
+function hm(t: string | null | undefined) {
+  return t ? t.slice(0, 5) : "—";
 }
 function routeLabel(route: string) {
   return route.split(".")[0] ?? route;
