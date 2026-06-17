@@ -9,6 +9,7 @@ import { ChevronDown, ChevronLeft, ChevronUp, Pencil, Train } from "lucide-react
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import busIcon from "@/assets/bus-icon.png.asset.json";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
@@ -143,13 +144,12 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
               </div>
             );
           })}
-          <div
-            className="absolute -top-4 text-base"
+          <img
+            src={busIcon.url}
+            alt="Bus"
+            className="absolute -top-5 w-6 h-6"
             style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
-            aria-label="Position théorique"
-          >
-            🚌
-          </div>
+          />
         </div>
       </div>
 
@@ -169,8 +169,8 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
                   )}
                 />
                 <div className="flex items-baseline justify-between gap-2 text-xs">
-                  <span className={cn("truncate", passed && !isNext && "text-muted-foreground line-through")}>
-                    {isNext && "🚌 "}{s.stop}
+                  <span className={cn("flex items-center gap-1 truncate", passed && !isNext && "text-muted-foreground line-through")}>
+                    {isNext && <img src={busIcon.url} alt="Bus" className="inline w-4 h-4" />}{s.stop}
                   </span>
                   <span className="font-mono tabular-nums text-muted-foreground shrink-0">{s.time}</span>
                 </div>
