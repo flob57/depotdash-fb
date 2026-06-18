@@ -402,10 +402,26 @@ export async function pushPassageToNotion(params: {
 
 // Create the "Mes horaires réel" DB inside a given parent page.
 export async function createActualTimesDatabase(parentPageId: string): Promise<string> {
+  // Accept either a raw UUID or a Notion page URL — extract & dash the ID.
+  const raw = parentPageId.trim();
+  let idSource = raw;
+  try {
+    idSource = new URL(raw).pathname;
+  } catch {
+    /* plain id */
+  }
+  const cleaned = idSource.replace(/-/g, "");
+  const matches = cleaned.match(/[0-9a-f]{32}/gi);
+  if (!matches || matches.length === 0) {
+    throw new Error("Invalid Notion parent page ID/URL — could not find a 32-char ID.");
+  }
+  const c = matches[matches.length - 1].toLowerCase();
+  const pageId = `${c.slice(0, 8)}-${c.slice(8, 12)}-${c.slice(12, 16)}-${c.slice(16, 20)}-${c.slice(20)}`;
+
   const created = (await notionFetch(`/databases`, {
     method: "POST",
     body: JSON.stringify({
-      parent: { type: "page_id", page_id: parentPageId },
+      parent: { type: "page_id", page_id: pageId },
       title: [{ type: "text", text: { content: "Mes horaires réel" } }],
       properties: {
         Nom: { title: {} },
