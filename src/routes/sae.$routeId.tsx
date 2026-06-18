@@ -342,23 +342,15 @@ function DeviationCounter({ seconds }: { seconds: number }) {
     : `+${minutes}`;
 
   return (
-    <div className="mt-4 flex flex-col items-center gap-1">
-      <div
-        className="relative flex h-16 w-16 items-center justify-center rounded-full animate-pulse"
-        style={{
-          background: bgColor,
-          boxShadow: `0 0 0 2.5px ${ringColor}`,
-        }}
-      >
-        <span
-          className="font-mono text-xl font-bold"
-          style={{ color: textColor }}
-        >
-          {display}
-        </span>
-      </div>
+    <div className="mt-3 flex items-center gap-2">
       <span
-        className="text-[10px] font-semibold uppercase tracking-wide"
+        className="rounded-md px-2.5 py-1 font-mono text-lg font-bold"
+        style={{ background: bgColor, color: textColor }}
+      >
+        {display}
+      </span>
+      <span
+        className="text-xs font-semibold uppercase tracking-wide"
         style={{ color: textColor }}
       >
         {label}
