@@ -7,8 +7,11 @@ import {
   fetchRouteDetails,
   pushPassageToNotion,
   createActualTimesDatabase,
+  parisWeekday,
+  parisHm,
   type SaeRoute,
 } from "@/lib/sae.server";
+
 
 function todayIso(): string {
   const d = new Date();
