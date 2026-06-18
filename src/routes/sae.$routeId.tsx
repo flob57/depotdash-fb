@@ -152,15 +152,26 @@ function RoutePage() {
             <img src={busIcon.url} alt="" className="h-7 w-7" />
             <div className="min-w-0">
               <h1 className="truncate font-mono text-lg font-semibold">{details.lineName}</h1>
-              {details.serviceName && (
-                <p className="truncate text-[11px] text-muted-foreground">{details.serviceName}</p>
-              )}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                {details.serviceName && <span className="truncate">{details.serviceName}</span>}
+                {details.codeGirouette && (
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground">
+                    Girouette: {details.codeGirouette}
+                  </span>
+                )}
+                {details.vehicleService && (
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary">
+                    Service: {details.vehicleService}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
             <Users className="h-4 w-4" />
             {paxOnBoard}
           </div>
+
         </div>
       </header>
 
