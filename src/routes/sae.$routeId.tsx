@@ -310,3 +310,53 @@ function PaxCounter({
     </div>
   );
 }
+
+function DeviationCounter({ minutes }: { minutes: number }) {
+  const { ringColor, bgColor, textColor, label } =
+    minutes < 0
+      ? {
+          ringColor: "oklch(0.6 0.22 25)",
+          bgColor: "oklch(0.6 0.22 25 / 8%)",
+          textColor: "oklch(0.55 0.2 25)",
+          label: "en avance",
+        }
+      : minutes <= 5
+      ? {
+          ringColor: "oklch(0.72 0.18 140)",
+          bgColor: "oklch(0.72 0.18 140 / 8%)",
+          textColor: "oklch(0.55 0.16 140)",
+          label: "à l'heure",
+        }
+      : {
+          ringColor: "oklch(0.78 0.16 80)",
+          bgColor: "oklch(0.78 0.16 80 / 8%)",
+          textColor: "oklch(0.65 0.14 80)",
+          label: "en retard",
+        };
+
+  return (
+    <div className="mt-4 flex flex-col items-center gap-1">
+      <div
+        className="relative flex h-24 w-24 items-center justify-center rounded-full"
+        style={{
+          background: bgColor,
+          boxShadow: `0 0 0 4px ${ringColor}`,
+          animation: "deviation-ring-pulse 2s ease-in-out infinite",
+        }}
+      >
+        <span
+          className="font-mono text-3xl font-bold"
+          style={{ color: textColor }}
+        >
+          {minutes > 0 ? `+${minutes}` : minutes}
+        </span>
+        <span
+          className="absolute -bottom-5 text-[10px] font-semibold uppercase tracking-wide"
+          style={{ color: textColor }}
+        >
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
