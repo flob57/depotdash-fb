@@ -7,8 +7,11 @@ import {
   fetchRouteDetails,
   pushPassageToNotion,
   createActualTimesDatabase,
+  parisWeekday,
+  parisHm,
   type SaeRoute,
 } from "@/lib/sae.server";
+
 
 function todayIso(): string {
   const d = new Date();
@@ -84,20 +87,25 @@ export const recordStopPassage = createServerFn({ method: "POST" })
     const paxOn = data.paxOn ?? 0;
     const paxOff = data.paxOff ?? 0;
 
-    // diff (minutes): actual - scheduled, on the same date.
+    // diff (minutes) = actual - scheduled, both expressed as minutes-of-day
+    // in Europe/Paris. The previous local-TZ math gave wrong results on the
+    // Worker runtime (UTC), e.g. -118 min instead of +2 min.
     let diff: number | null = null;
     let status: string | null = null;
     if (scheduledTime) {
       const [h, m] = scheduledTime.split(":").map((n) => parseInt(n, 10));
       if (Number.isFinite(h) && Number.isFinite(m)) {
-        const sched = new Date(actualIso);
-        sched.setHours(h, m, 0, 0);
-        diff = Math.round((new Date(actualIso).getTime() - sched.getTime()) / 60000);
+        const [ah, am] = parisHm(actualIso).split(":").map((n) => parseInt(n, 10));
+        let d = ah * 60 + am - (h * 60 + m);
+        if (d > 720) d -= 1440;        // crossing midnight backwards
+        if (d < -720) d += 1440;       // crossing midnight forwards
+        diff = d;
         if (diff < 0) status = "en avance";
         else if (diff <= 5) status = "à l'heure";
         else status = "en retard";
       }
     }
+
 
     const row = {
       user_id: userId,
@@ -239,13 +247,17 @@ export const getSaeSettings = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data } = await supabase
       .from("user_notion_settings")
-      .select("planning_db_id, actual_times_db_id, actual_times_parent_page_id")
+      .select(
+        "planning_db_id, actual_times_db_id, actual_times_parent_page_id, sae_lmjv_db_id, sae_mercredi_db_id",
+      )
       .eq("user_id", userId)
       .maybeSingle();
     return {
       planning_db_id: data?.planning_db_id ?? null,
       actual_times_db_id: data?.actual_times_db_id ?? null,
       actual_times_parent_page_id: data?.actual_times_parent_page_id ?? null,
+      sae_lmjv_db_id: (data as any)?.sae_lmjv_db_id ?? null,
+      sae_mercredi_db_id: (data as any)?.sae_mercredi_db_id ?? null,
     };
   });
 
@@ -257,6 +269,8 @@ export const saveSaeSettings = createServerFn({ method: "POST" })
         planning_db_id: z.string().max(500).nullable().optional(),
         actual_times_db_id: z.string().max(500).nullable().optional(),
         actual_times_parent_page_id: z.string().max(500).nullable().optional(),
+        sae_lmjv_db_id: z.string().max(500).nullable().optional(),
+        sae_mercredi_db_id: z.string().max(500).nullable().optional(),
       })
       .parse(input),
   )
@@ -270,12 +284,15 @@ export const saveSaeSettings = createServerFn({ method: "POST" })
           planning_db_id: data.planning_db_id ?? null,
           actual_times_db_id: data.actual_times_db_id ?? null,
           actual_times_parent_page_id: data.actual_times_parent_page_id ?? null,
+          sae_lmjv_db_id: data.sae_lmjv_db_id ?? null,
+          sae_mercredi_db_id: data.sae_mercredi_db_id ?? null,
         },
         { onConflict: "user_id" },
       );
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
 
 export const createSaeNotionDatabase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

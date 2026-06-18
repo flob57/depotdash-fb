@@ -505,6 +505,8 @@ export type Database = {
           distance_summary_db_id: string | null
           fuel_fillups_db_id: string | null
           planning_db_id: string | null
+          sae_lmjv_db_id: string | null
+          sae_mercredi_db_id: string | null
           services_db_id: string | null
           services_db_id_sat_hol: string | null
           services_db_id_wed: string | null
@@ -523,6 +525,8 @@ export type Database = {
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
           planning_db_id?: string | null
+          sae_lmjv_db_id?: string | null
+          sae_mercredi_db_id?: string | null
           services_db_id?: string | null
           services_db_id_sat_hol?: string | null
           services_db_id_wed?: string | null
@@ -541,6 +545,8 @@ export type Database = {
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
           planning_db_id?: string | null
+          sae_lmjv_db_id?: string | null
+          sae_mercredi_db_id?: string | null
           services_db_id?: string | null
           services_db_id_sat_hol?: string | null
           services_db_id_wed?: string | null
