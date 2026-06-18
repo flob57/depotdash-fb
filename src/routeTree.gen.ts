@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SaeRouteImport } from './routes/sae'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
@@ -18,6 +19,11 @@ import { Route as ApiPublicGtfsAlertsRouteImport } from './routes/api/public/gtf
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
 import { Route as ApiPublicRouteIconUserFileRouteImport } from './routes/api/public/route-icon/$user/$file'
 
+const SaeRoute = SaeRouteImport.update({
+  id: '/sae',
+  path: '/sae',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae': typeof SaeRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae': typeof SaeRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae': typeof SaeRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
+  SaeRoute: typeof SaeRoute
   ApiPublicGtfsAlertsRoute: typeof ApiPublicGtfsAlertsRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
   ApiPublicRouteIconUserFileRoute: typeof ApiPublicRouteIconUserFileRoute
@@ -138,6 +151,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sae': {
+      id: '/sae'
+      path: '/sae'
+      fullPath: '/sae'
+      preLoaderRoute: typeof SaeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
+  SaeRoute: SaeRoute,
   ApiPublicGtfsAlertsRoute: ApiPublicGtfsAlertsRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
   ApiPublicRouteIconUserFileRoute: ApiPublicRouteIconUserFileRoute,
