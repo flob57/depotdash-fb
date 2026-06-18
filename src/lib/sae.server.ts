@@ -298,6 +298,11 @@ export async function fetchVehicleServiceNumber(
   fullRouteName: string,
   depTime: string,
 ): Promise<string | null> {
+  const normalizedDbId = normalizeNotionId(dbId);
+  if (!normalizedDbId) {
+    console.warn("[SAE] Invalid vehicle DB id", { dbId });
+    return null;
+  }
   const base = stripRouteSuffix(fullRouteName);
   if (!base) return null;
   const normalizedDep = normalizeHm(depTime);
