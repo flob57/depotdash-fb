@@ -72,6 +72,8 @@ export const recordStopPassage = createServerFn({ method: "POST" })
         stopName: z.string().min(1),
         scheduledTime: z.string().nullable().optional(),
         actualIso: z.string().optional(),
+        paxOn: z.number().int().min(0).optional(),
+        paxOff: z.number().int().min(0).optional(),
       })
       .parse(input),
   )
@@ -79,6 +81,8 @@ export const recordStopPassage = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const actualIso = data.actualIso ?? new Date().toISOString();
     const scheduledTime = data.scheduledTime ?? null;
+    const paxOn = data.paxOn ?? 0;
+    const paxOff = data.paxOff ?? 0;
 
     // diff (minutes): actual - scheduled, on the same date.
     let diff: number | null = null;
@@ -104,6 +108,8 @@ export const recordStopPassage = createServerFn({ method: "POST" })
       actual_time: actualIso,
       diff_minutes: diff,
       status,
+      pax_on: paxOn,
+      pax_off: paxOff,
     };
 
     const { data: saved, error } = await supabase
@@ -112,6 +118,19 @@ export const recordStopPassage = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    // Running pax on board for this route (up to and including this stop).
+    const { data: routeRows } = await supabase
+      .from("actual_stop_times")
+      .select("stop_index, pax_on, pax_off")
+      .eq("user_id", userId)
+      .eq("work_date", data.workDate)
+      .eq("route_notion_id", data.routeId)
+      .lte("stop_index", data.stopIndex);
+    const paxOnBoard = (routeRows ?? []).reduce(
+      (acc, r: any) => acc + (r.pax_on ?? 0) - (r.pax_off ?? 0),
+      0,
+    );
 
     // Sync to Notion (best-effort, do not fail the user click).
     const { data: settings } = await supabase
@@ -133,6 +152,9 @@ export const recordStopPassage = createServerFn({ method: "POST" })
           actualIso,
           diffMinutes: diff,
           status,
+          paxOn,
+          paxOff,
+          paxOnBoard,
         });
         await supabase
           .from("actual_stop_times")
@@ -143,7 +165,7 @@ export const recordStopPassage = createServerFn({ method: "POST" })
       }
     }
 
-    return { passage: saved, notionPageId, notionError };
+    return { passage: saved, notionPageId, notionError, paxOnBoard };
   });
 
 export const listStopPassages = createServerFn({ method: "POST" })
