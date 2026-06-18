@@ -283,6 +283,7 @@ export async function fetchRouteDetails(
   };
   const props = page.properties;
   const lineName = getTitle(props);
+  const vehicleRouteCandidates = await extractRouteCandidates(props, lineName);
   const depStop = extractScalar(props["Arret depart"]);
   const arrStop = extractScalar(props["Arret arrivee"]);
   const depTime = normalizeHm(extractScalar(props["Horaire depart"]));
@@ -337,7 +338,11 @@ export async function fetchRouteDetails(
   let vehicleService: string | null = null;
   if (opts?.vehicleDbId && lineName && depTime) {
     try {
-      vehicleService = await fetchVehicleServiceNumber(opts.vehicleDbId, lineName, depTime);
+      vehicleService = await fetchVehicleServiceNumber(
+        opts.vehicleDbId,
+        vehicleRouteCandidates.length ? vehicleRouteCandidates : [lineName],
+        depTime,
+      );
     } catch (e) {
       console.error("fetchVehicleServiceNumber failed", e);
     }
