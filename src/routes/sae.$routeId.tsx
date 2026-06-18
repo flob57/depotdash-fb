@@ -61,9 +61,9 @@ function RoutePage() {
 
   useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user, routeId]);
 
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    const id = setInterval(() => setTick((t) => t + 1), 1_000);
     return () => clearInterval(id);
   }, []);
 
@@ -88,13 +88,13 @@ function RoutePage() {
     [passages],
   );
 
-  const deviation = useMemo(() => {
+  const deviationSeconds = useMemo(() => {
     if (!currentStop?.scheduledTime) return null;
     const [h, m] = currentStop.scheduledTime.split(":").map(Number);
     const sched = new Date();
     sched.setHours(h, m, 0, 0);
-    return Math.round((Date.now() - sched.getTime()) / 60000);
-  }, [currentStop]);
+    return Math.round((Date.now() - sched.getTime()) / 1000);
+  }, [currentStop, tick]);
 
   const handleValidate = async () => {
     if (!details || !currentStop) return;
