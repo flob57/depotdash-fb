@@ -230,6 +230,9 @@ export async function pushPassageToNotion(params: {
   actualIso: string;        // ISO timestamp
   diffMinutes: number | null;
   status: string | null;
+  paxOn?: number | null;
+  paxOff?: number | null;
+  paxOnBoard?: number | null;
 }): Promise<string> {
   // Discover the DB schema so we map to properties that exist (or fall back).
   const db = (await notionFetch(`/databases/${params.databaseId}`)) as {
@@ -283,6 +286,15 @@ export async function pushPassageToNotion(params: {
   if (params.status) {
     setIfExists(["Statut", "Status"], "select", { select: { name: params.status } });
   }
+  if (params.paxOn != null) {
+    setIfExists(["Montées", "Montees", "Pax On", "Boarding"], "number", { number: params.paxOn });
+  }
+  if (params.paxOff != null) {
+    setIfExists(["Descentes", "Pax Off", "Alighting"], "number", { number: params.paxOff });
+  }
+  if (params.paxOnBoard != null) {
+    setIfExists(["À bord", "A bord", "On Board", "Pax"], "number", { number: params.paxOnBoard });
+  }
 
   const created = (await notionFetch(`/pages`, {
     method: "POST",
@@ -310,6 +322,9 @@ export async function createActualTimesDatabase(parentPageId: string): Promise<s
         "Horaire theorique": { rich_text: {} },
         "Horaire reel": { rich_text: {} },
         "Ecart (min)": { number: {} },
+        Montées: { number: {} },
+        Descentes: { number: {} },
+        "À bord": { number: {} },
         Statut: {
           select: {
             options: [
@@ -324,3 +339,4 @@ export async function createActualTimesDatabase(parentPageId: string): Promise<s
   })) as { id: string };
   return created.id;
 }
+
