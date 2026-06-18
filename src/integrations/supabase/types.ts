@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      actual_stop_times: {
+        Row: {
+          actual_time: string
+          created_at: string
+          diff_minutes: number | null
+          id: string
+          notion_page_id: string | null
+          notion_synced_at: string | null
+          route_name: string
+          route_notion_id: string
+          scheduled_time: string | null
+          status: string | null
+          stop_index: number
+          stop_name: string
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          actual_time?: string
+          created_at?: string
+          diff_minutes?: number | null
+          id?: string
+          notion_page_id?: string | null
+          notion_synced_at?: string | null
+          route_name: string
+          route_notion_id: string
+          scheduled_time?: string | null
+          status?: string | null
+          stop_index: number
+          stop_name: string
+          updated_at?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          actual_time?: string
+          created_at?: string
+          diff_minutes?: number | null
+          id?: string
+          notion_page_id?: string | null
+          notion_synced_at?: string | null
+          route_name?: string
+          route_notion_id?: string
+          scheduled_time?: string | null
+          status?: string | null
+          stop_index?: number
+          stop_name?: string
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: []
+      }
       correspondence_settings: {
         Row: {
           created_at: string
@@ -437,11 +491,14 @@ export type Database = {
       }
       user_notion_settings: {
         Row: {
+          actual_times_db_id: string | null
+          actual_times_parent_page_id: string | null
           correspondences_page_id: string | null
           created_at: string
           daily_totals_db_id: string | null
           distance_summary_db_id: string | null
           fuel_fillups_db_id: string | null
+          planning_db_id: string | null
           services_db_id: string | null
           services_db_id_sat_hol: string | null
           services_db_id_wed: string | null
@@ -452,11 +509,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_times_db_id?: string | null
+          actual_times_parent_page_id?: string | null
           correspondences_page_id?: string | null
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          planning_db_id?: string | null
           services_db_id?: string | null
           services_db_id_sat_hol?: string | null
           services_db_id_wed?: string | null
@@ -467,11 +527,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_times_db_id?: string | null
+          actual_times_parent_page_id?: string | null
           correspondences_page_id?: string | null
           created_at?: string
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          planning_db_id?: string | null
           services_db_id?: string | null
           services_db_id_sat_hol?: string | null
           services_db_id_wed?: string | null
