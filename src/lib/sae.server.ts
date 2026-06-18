@@ -180,9 +180,12 @@ async function extractRouteCandidates(props: Record<string, any>, fallbackTitle:
       values.push(...routeCodesFromText(scalar));
       if (/(course|route|ligne|line)/i.test(key)) values.push(scalar);
     }
-    if (/(course|route|ligne|line)/i.test(key)) {
+    if ((prop as any)?.type === "relation") {
       const related = await resolveRelationTitle(prop);
-      if (related) values.push(related, ...routeCodesFromText(related));
+      if (related) {
+        values.push(...routeCodesFromText(related));
+        if (/(course|route|ligne|line)/i.test(key)) values.push(related);
+      }
     }
   }
   return uniqueNonEmpty([...values.flatMap(routeCodesFromText), ...values]);
