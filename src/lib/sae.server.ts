@@ -71,8 +71,39 @@ function extractScalar(value: any): string | null {
       if (r.type === "array") return extractScalar(r.array);
       return extractScalar(r);
     }
+    case "relation": {
+      // Relations are an array of page IDs; resolve via resolveRelationTitles when needed.
+      return null;
+    }
+    case "people":
+      return (value.people ?? []).map((p: any) => p.name).filter(Boolean).join(", ") || null;
+    case "url":
+      return value.url ?? null;
+    case "email":
+      return value.email ?? null;
+    case "phone_number":
+      return value.phone_number ?? null;
+    case "checkbox":
+      return value.checkbox ? "true" : null;
+    case "status":
+      return value.status?.name ?? null;
     default:
       return null;
+  }
+}
+
+// Resolve a relation property to the title of its first linked page.
+async function resolveRelationTitle(value: any): Promise<string | null> {
+  if (!value || value.type !== "relation") return null;
+  const rels = (value.relation ?? []) as Array<{ id: string }>;
+  if (rels.length === 0) return null;
+  try {
+    const page = (await notionFetch(`/pages/${rels[0].id}`)) as {
+      properties: Record<string, any>;
+    };
+    return getTitle(page.properties) || null;
+  } catch {
+    return null;
   }
 }
 
