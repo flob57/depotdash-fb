@@ -289,37 +289,64 @@ export async function fetchVehicleServiceNumber(
   const base = stripRouteSuffix(fullRouteName);
   if (!base) return null;
   const normalizedDep = normalizeHm(depTime);
+  const baseLc = base.toLowerCase();
 
-  // Query: pull all rows whose title contains the base name. We do client-side
-  // matching for departure time to tolerate "7h01" / "07:01" / "7:01" formats.
-  const res = (await notionFetch(`/databases/${dbId}/query`, {
-    method: "POST",
-    body: JSON.stringify({ page_size: 100 }),
-  })) as { results: Array<{ id: string; properties: Record<string, any> }> };
+  // Page through the DB. The route name may be in the title OR in any
+  // text/select property; same for departure time and the service number.
+  let cursor: string | undefined;
+  let scanned = 0;
+  do {
+    const body: Record<string, unknown> = { page_size: 100 };
+    if (cursor) body.start_cursor = cursor;
+    const res = (await notionFetch(`/databases/${dbId}/query`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })) as {
+      results: Array<{ id: string; properties: Record<string, any> }>;
+      has_more?: boolean;
+      next_cursor?: string | null;
+    };
 
-  for (const row of res.results) {
-    const title = getTitle(row.properties);
-    if (stripRouteSuffix(title).toLowerCase() !== base.toLowerCase()) continue;
+    for (const row of res.results) {
+      scanned++;
+      const props = row.properties;
+      const title = getTitle(props);
 
-    // Find a "departure time"-ish property on the row.
-    let rowDep: string | null = null;
-    for (const [k, v] of Object.entries(row.properties)) {
-      if (!/(d[ée]part|horaire|heure|depart|time)/i.test(k)) continue;
-      const s = extractScalar(v);
-      const n = normalizeHm(s);
-      if (n) { rowDep = n; break; }
+      // Does this row reference our route name (in title or any prop)?
+      const routeMatches =
+        stripRouteSuffix(title).toLowerCase() === baseLc ||
+        Object.values(props).some((v) => {
+          const s = extractScalar(v);
+          return !!s && stripRouteSuffix(s).toLowerCase() === baseLc;
+        });
+      if (!routeMatches) continue;
+
+      // Departure time match — scan every property for a HH:MM-shaped value.
+      let depOk = false;
+      for (const v of Object.values(props)) {
+        const s = extractScalar(v);
+        const n = normalizeHm(s);
+        if (n && n === normalizedDep) { depOk = true; break; }
+      }
+      if (!depOk) continue;
+
+      // Service number: prefer a "service/vehicule/numero/bus" property; else
+      // fall back to the page title (often the row IS the service number).
+      for (const [k, v] of Object.entries(props)) {
+        if (!/(service|v[ée]hicule|vehicule|num[ée]ro|numero|bus)/i.test(k)) continue;
+        const s = extractScalar(v);
+        if (s) return s;
+      }
+      if (title) return title;
     }
-    if (!rowDep || rowDep !== normalizedDep) continue;
 
-    // Find the service / vehicle number property.
-    for (const [k, v] of Object.entries(row.properties)) {
-      if (!/(service|v[ée]hicule|vehicule|num[ée]ro|numero|bus)/i.test(k)) continue;
-      const s = extractScalar(v);
-      if (s) return s;
-    }
-  }
+    cursor = res.has_more && res.next_cursor ? res.next_cursor : undefined;
+  } while (cursor && scanned < 1000);
+
+  console.warn("[SAE] No vehicle service match", { base, normalizedDep, scanned });
   return null;
 }
+
 
 // Compute the Paris weekday index: 0 = Sunday ... 6 = Saturday.
 export function parisWeekday(d: Date = new Date()): number {
