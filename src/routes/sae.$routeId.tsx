@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ChevronLeft, Check, Undo2, MapPin } from "lucide-react";
 import {
-  getRouteDetails, recordStopPassage, listStopPassages,
+  getRouteDetails, recordStopPassage, listStopPassages, deleteStopPassage,
 } from "@/lib/sae.functions";
 import busIcon from "@/assets/bus-icon.png.asset.json";
 
