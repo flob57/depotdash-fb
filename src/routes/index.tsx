@@ -26,6 +26,7 @@ import { sumDeclaredMs } from "@/lib/declared";
 import { Fuel, LogOut, ClipboardCheck, Train, ArrowLeftRight } from "lucide-react";
 import { isWeekend, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 import logoOcelorn from "@/assets/logo-lestonan.png";
+import busIcon from "@/assets/bus-icon.png.asset.json";
 import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createFileRoute("/")({

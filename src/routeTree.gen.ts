@@ -16,6 +16,7 @@ import { Route as DeparturesRouteImport } from './routes/departures'
 import { Route as CorrespondancesRouteImport } from './routes/correspondances'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SaeIndexRouteImport } from './routes/sae.index'
+import { Route as SaeHistoryRouteImport } from './routes/sae.history'
 import { Route as SaeRouteIdRouteImport } from './routes/sae.$routeId'
 import { Route as ApiPublicGtfsAlertsRouteImport } from './routes/api/public/gtfs-alerts'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
@@ -56,6 +57,11 @@ const SaeIndexRoute = SaeIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SaeRoute,
 } as any)
+const SaeHistoryRoute = SaeHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => SaeRoute,
+} as any)
 const SaeRouteIdRoute = SaeRouteIdRouteImport.update({
   id: '/$routeId',
   path: '/$routeId',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/sae': typeof SaeRouteWithChildren
   '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
   '/sae/': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
   '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
   '/sae': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/sae': typeof SaeRouteWithChildren
   '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
   '/sae/': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sae'
     | '/sae/$routeId'
+    | '/sae/history'
     | '/sae/'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/duties'
     | '/login'
     | '/sae/$routeId'
+    | '/sae/history'
     | '/sae'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sae'
     | '/sae/$routeId'
+    | '/sae/history'
     | '/sae/'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
@@ -222,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SaeIndexRouteImport
       parentRoute: typeof SaeRoute
     }
+    '/sae/history': {
+      id: '/sae/history'
+      path: '/history'
+      fullPath: '/sae/history'
+      preLoaderRoute: typeof SaeHistoryRouteImport
+      parentRoute: typeof SaeRoute
+    }
     '/sae/$routeId': {
       id: '/sae/$routeId'
       path: '/$routeId'
@@ -255,11 +274,13 @@ declare module '@tanstack/react-router' {
 
 interface SaeRouteChildren {
   SaeRouteIdRoute: typeof SaeRouteIdRoute
+  SaeHistoryRoute: typeof SaeHistoryRoute
   SaeIndexRoute: typeof SaeIndexRoute
 }
 
 const SaeRouteChildren: SaeRouteChildren = {
   SaeRouteIdRoute: SaeRouteIdRoute,
+  SaeHistoryRoute: SaeHistoryRoute,
   SaeIndexRoute: SaeIndexRoute,
 }
 
