@@ -159,40 +159,8 @@ export const recordStopPassage = createServerFn({ method: "POST" })
       0,
     );
 
-    // Sync to Notion (best-effort, do not fail the user click).
-    const { data: settings } = await supabase
-      .from("user_notion_settings")
-      .select("actual_times_db_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    let notionPageId: string | null = null;
-    let notionError: string | null = null;
-    if (settings?.actual_times_db_id) {
-      try {
-        notionPageId = await pushPassageToNotion({
-          databaseId: settings.actual_times_db_id,
-          workDate: data.workDate,
-          routeName: data.routeName,
-          stopName: data.stopName,
-          scheduledTime,
-          actualIso,
-          diffMinutes: diff,
-          status,
-          paxOn,
-          paxOff,
-          paxOnBoard,
-        });
-        await supabase
-          .from("actual_stop_times")
-          .update({ notion_page_id: notionPageId, notion_synced_at: new Date().toISOString() })
-          .eq("id", saved.id);
-      } catch (e) {
-        notionError = e instanceof Error ? e.message : "Notion sync failed";
-      }
-    }
-
-    return { passage: saved, notionPageId, notionError, paxOnBoard };
+    // Notion sync is now manual only — triggered from the history page.
+    return { passage: saved, notionPageId: null, notionError: null, paxOnBoard };
   });
 
 export const listStopPassages = createServerFn({ method: "POST" })
