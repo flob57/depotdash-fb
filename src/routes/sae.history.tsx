@@ -150,49 +150,85 @@ function HistoryPage() {
             Aucun passage enregistré pour ce jour.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Arrêt</th>
-                  <th className="px-3 py-2 text-right">Théorique</th>
-                  <th className="px-3 py-2 text-right">Réel</th>
-                  <th className="px-3 py-2 text-right">Écart</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{r.stop_name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {r.route_name} · arrêt {r.stop_index}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">{r.scheduled_time ?? "—"}</td>
-                    <td className="px-3 py-2 text-right font-mono">{fmtHmFromIso(r.actual_time)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {r.diff_minutes == null ? (
-                        "—"
-                      ) : (
-                        <span
-                          className={cn(
-                            "font-mono",
-                            r.diff_minutes <= -1 && "text-blue-600",
-                            r.diff_minutes >= 1 && "text-red-600",
-                            r.diff_minutes > -1 && r.diff_minutes < 1 && "text-green-600",
-                          )}
-                        >
-                          {r.diff_minutes > 0 ? "+" : ""}{r.diff_minutes} min
-                        </span>
-                      )}
-                    </td>
+          <>
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const res = await syncFn({ data: { workDate: dateKey, routeId: selectedRoute } });
+                    if (res.errors.length) {
+                      toast.error(`Synchronisé ${res.synced}/${res.total} — ${res.errors[0]}`);
+                    } else {
+                      toast.success(`Notion : ${res.synced} passage(s) synchronisé(s)`);
+                    }
+                    const fresh = await listPassagesFn({ data: { workDate: dateKey, routeId: selectedRoute } });
+                    setRows(fresh);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Échec de la synchronisation");
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+              >
+                {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Envoyer vers Notion
+              </Button>
+            </div>
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Arrêt</th>
+                    <th className="px-3 py-2 text-right">Théorique</th>
+                    <th className="px-3 py-2 text-right">Réel</th>
+                    <th className="px-3 py-2 text-right">Écart</th>
+                    <th className="px-3 py-2 text-right">Montées</th>
+                    <th className="px-3 py-2 text-right">Descentes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const diff = computeDiff(r.scheduled_time, r.actual_time);
+                    return (
+                      <tr key={r.id} className="border-t">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{r.stop_name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {r.route_name} · arrêt {r.stop_index}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{r.scheduled_time ?? "—"}</td>
+                        <td className="px-3 py-2 text-right font-mono">{parisHm(r.actual_time)}</td>
+                        <td className="px-3 py-2 text-right">
+                          {diff == null ? (
+                            "—"
+                          ) : (
+                            <span
+                              className={cn(
+                                "font-mono",
+                                diff <= -1 && "text-blue-600",
+                                diff >= 1 && "text-red-600",
+                                diff > -1 && diff < 1 && "text-green-600",
+                              )}
+                            >
+                              {diff > 0 ? "+" : ""}{diff} min
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{(r as any).pax_on ?? 0}</td>
+                        <td className="px-3 py-2 text-right font-mono">{(r as any).pax_off ?? 0}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
+
       </main>
     </div>
   );
