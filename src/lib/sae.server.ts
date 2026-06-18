@@ -375,18 +375,25 @@ export function stripRouteSuffix(name: string): string {
 // in the user's SAE assignments database (LMJV or Mercredi).
 export async function fetchVehicleServiceNumber(
   dbId: string,
-  fullRouteName: string,
+  fullRouteNames: string | string[],
   depTime: string,
 ): Promise<string | null> {
-  const normalizedDbId = normalizeNotionId(dbId);
-  if (!normalizedDbId) {
-    console.warn("[SAE] Invalid vehicle DB id", { dbId });
-    return null;
-  }
-  const base = stripRouteSuffix(fullRouteName);
-  if (!base) return null;
   const normalizedDep = normalizeHm(depTime);
-  const baseLc = base.toLowerCase();
+  if (!normalizedDep) return null;
+  const routeCandidates = uniqueNonEmpty(Array.isArray(fullRouteNames) ? fullRouteNames : [fullRouteNames]);
+  if (routeCandidates.length === 0) return null;
+
+  let queryDbId: string;
+  try {
+    queryDbId = (await resolveDatabase(dbId)).id;
+  } catch {
+    const normalizedDbId = normalizeNotionId(dbId);
+    if (!normalizedDbId) {
+      console.warn("[SAE] Invalid vehicle DB id", { dbId });
+      return null;
+    }
+    queryDbId = normalizedDbId;
+  }
 
   // Page through the DB. The route name may be in the title OR in any
   // text/select property; same for departure time and the service number.
@@ -395,7 +402,7 @@ export async function fetchVehicleServiceNumber(
   do {
     const body: Record<string, unknown> = { page_size: 100 };
     if (cursor) body.start_cursor = cursor;
-    const res = (await notionFetch(`/databases/${normalizedDbId}/query`, {
+    const res = (await notionFetch(`/databases/${queryDbId}/query`, {
       method: "POST",
       body: JSON.stringify(body),
     })) as {
@@ -410,12 +417,19 @@ export async function fetchVehicleServiceNumber(
       const title = getTitle(props);
 
       // Does this row reference our route name (in title or any prop)?
-      const routeMatches =
-        stripRouteSuffix(title).toLowerCase() === baseLc ||
-        Object.values(props).some((v) => {
-          const s = extractScalar(v);
-          return !!s && stripRouteSuffix(s).toLowerCase() === baseLc;
-        });
+      let routeMatches =
+        textContainsRoute(title, routeCandidates) ||
+        Object.values(props).some((v) => textContainsRoute(extractScalar(v), routeCandidates));
+      if (!routeMatches) {
+        for (const [key, value] of Object.entries(props)) {
+          if (!/(course|route|ligne|line)/i.test(key)) continue;
+          const related = await resolveRelationTitle(value);
+          if (textContainsRoute(related, routeCandidates)) {
+            routeMatches = true;
+            break;
+          }
+        }
+      }
       if (!routeMatches) continue;
 
       // Departure time match — scan every property for a HH:MM-shaped value.
@@ -430,8 +444,8 @@ export async function fetchVehicleServiceNumber(
       // Service number: prefer a "service/vehicule/numero/bus" property; else
       // fall back to the page title (often the row IS the service number).
       for (const [k, v] of Object.entries(props)) {
-        if (!/(service|v[ée]hicule|vehicule|num[ée]ro|numero|bus)/i.test(k)) continue;
-        const s = extractScalar(v);
+        if (!/(service|v[ée]hicule|vehicule|voiture|num[ée]ro|numero|bus)/i.test(k)) continue;
+        const s = extractScalar(v) || (await resolveRelationTitle(v));
         if (s) return s;
       }
       if (title) return title;
@@ -440,7 +454,7 @@ export async function fetchVehicleServiceNumber(
     cursor = res.has_more && res.next_cursor ? res.next_cursor : undefined;
   } while (cursor && scanned < 1000);
 
-  console.warn("[SAE] No vehicle service match", { base, normalizedDep, scanned });
+  console.warn("[SAE] No vehicle service match", { routeCandidates, normalizedDep, scanned });
   return null;
 }
 
