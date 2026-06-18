@@ -315,7 +315,7 @@ export async function fetchVehicleServiceNumber(
   do {
     const body: Record<string, unknown> = { page_size: 100 };
     if (cursor) body.start_cursor = cursor;
-    const res = (await notionFetch(`/databases/${dbId}/query`, {
+    const res = (await notionFetch(`/databases/${normalizedDbId}/query`, {
       method: "POST",
       body: JSON.stringify(body),
     })) as {
