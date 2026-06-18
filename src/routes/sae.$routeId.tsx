@@ -190,23 +190,7 @@ function RoutePage() {
                 </div>
               </div>
               {deviation != null && (
-                <div className="mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                  style={{
-                    background:
-                      deviation <= -1 ? "rgb(59 130 246 / 0.12)" :
-                      deviation >= 1 ? "rgb(239 68 68 / 0.12)" :
-                      "rgb(34 197 94 / 0.12)",
-                    color:
-                      deviation <= -1 ? "rgb(37 99 235)" :
-                      deviation >= 1 ? "rgb(220 38 38)" :
-                      "rgb(22 163 74)",
-                  }}>
-                  {deviation === 0
-                    ? "à l'heure"
-                    : deviation > 0
-                    ? `+${deviation} min — en retard`
-                    : `${deviation} min — en avance`}
-                </div>
+                <DeviationCounter minutes={deviation} />
               )}
 
               {/* Passenger counters */}
