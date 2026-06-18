@@ -3,7 +3,7 @@
 // resolves each route's stop list via the linked Service page, and pushes
 // validated passing times to a Notion target database.
 
-import { notionFetch } from "@/lib/notion-export.server";
+import { notionFetch, resolveDatabase } from "@/lib/notion-export.server";
 
 const DEFAULT_PLANNING_DB_ID = "3836bbfa-7ec1-804e-9718-d9a7d1315870";
 
@@ -110,10 +110,85 @@ async function resolveRelationTitle(value: any): Promise<string | null> {
 // "07:50" -> "07:50". Also tolerates "7:50" / "08h02".
 function normalizeHm(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const m = String(raw).match(/(\d{1,2})\s*[:h]\s*(\d{2})/);
-  if (!m) return null;
-  const h = m[1].padStart(2, "0");
-  return `${h}:${m[2]}`;
+  const source = String(raw).trim();
+  const iso = source.match(/T(\d{2}):(\d{2})/);
+  const m = iso ?? source.match(/(\d{1,2})\s*[:h.]\s*(\d{2})/i);
+  if (m) {
+    const hour = Number(m[1]);
+    const minute = Number(m[2]);
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+  const compact = source.match(/^\d{3,4}$/)?.[0];
+  if (compact) {
+    const hour = Number(compact.slice(0, -2));
+    const minute = Number(compact.slice(-2));
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+  return null;
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function routeCodesFromText(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return Array.from(value.matchAll(/\bP\s*\d+(?:\.\d+)?\b/gi)).map((m) =>
+    m[0].replace(/\s+/g, "").toUpperCase(),
+  );
+}
+
+function routeMatchKey(value: string): string {
+  return stripRouteSuffix(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function textContainsRoute(value: string | null | undefined, candidates: string[]): boolean {
+  if (!value) return false;
+  const haystack = routeMatchKey(value);
+  return candidates.some((candidate) => {
+    const needle = routeMatchKey(candidate);
+    if (!needle) return false;
+    if (haystack === needle) return true;
+    return new RegExp(`(^|[^A-Z0-9])${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^A-Z0-9]|$)`).test(haystack);
+  });
+}
+
+async function extractRouteCandidates(props: Record<string, any>, fallbackTitle: string): Promise<string[]> {
+  const values: string[] = [fallbackTitle];
+  for (const [key, prop] of Object.entries(props)) {
+    const scalar = extractScalar(prop);
+    if (scalar) {
+      values.push(...routeCodesFromText(scalar));
+      if (/(course|route|ligne|line)/i.test(key)) values.push(scalar);
+    }
+    if ((prop as any)?.type === "relation") {
+      const related = await resolveRelationTitle(prop);
+      if (related) {
+        values.push(...routeCodesFromText(related));
+        if (/(course|route|ligne|line)/i.test(key)) values.push(related);
+      }
+    }
+  }
+  return uniqueNonEmpty([...values.flatMap(routeCodesFromText), ...values]);
 }
 
 // ---------- read stops from a Horaire QUB page table block ----------
@@ -211,6 +286,7 @@ export async function fetchRouteDetails(
   };
   const props = page.properties;
   const lineName = getTitle(props);
+  const vehicleRouteCandidates = await extractRouteCandidates(props, lineName);
   const depStop = extractScalar(props["Arret depart"]);
   const arrStop = extractScalar(props["Arret arrivee"]);
   const depTime = normalizeHm(extractScalar(props["Horaire depart"]));
@@ -265,7 +341,11 @@ export async function fetchRouteDetails(
   let vehicleService: string | null = null;
   if (opts?.vehicleDbId && lineName && depTime) {
     try {
-      vehicleService = await fetchVehicleServiceNumber(opts.vehicleDbId, lineName, depTime);
+      vehicleService = await fetchVehicleServiceNumber(
+        opts.vehicleDbId,
+        vehicleRouteCandidates.length ? vehicleRouteCandidates : [lineName],
+        depTime,
+      );
     } catch (e) {
       console.error("fetchVehicleServiceNumber failed", e);
     }
@@ -295,18 +375,25 @@ export function stripRouteSuffix(name: string): string {
 // in the user's SAE assignments database (LMJV or Mercredi).
 export async function fetchVehicleServiceNumber(
   dbId: string,
-  fullRouteName: string,
+  fullRouteNames: string | string[],
   depTime: string,
 ): Promise<string | null> {
-  const normalizedDbId = normalizeNotionId(dbId);
-  if (!normalizedDbId) {
-    console.warn("[SAE] Invalid vehicle DB id", { dbId });
-    return null;
-  }
-  const base = stripRouteSuffix(fullRouteName);
-  if (!base) return null;
   const normalizedDep = normalizeHm(depTime);
-  const baseLc = base.toLowerCase();
+  if (!normalizedDep) return null;
+  const routeCandidates = uniqueNonEmpty(Array.isArray(fullRouteNames) ? fullRouteNames : [fullRouteNames]);
+  if (routeCandidates.length === 0) return null;
+
+  let queryDbId: string;
+  try {
+    queryDbId = (await resolveDatabase(dbId)).id;
+  } catch {
+    const normalizedDbId = normalizeNotionId(dbId);
+    if (!normalizedDbId) {
+      console.warn("[SAE] Invalid vehicle DB id", { dbId });
+      return null;
+    }
+    queryDbId = normalizedDbId;
+  }
 
   // Page through the DB. The route name may be in the title OR in any
   // text/select property; same for departure time and the service number.
@@ -315,7 +402,7 @@ export async function fetchVehicleServiceNumber(
   do {
     const body: Record<string, unknown> = { page_size: 100 };
     if (cursor) body.start_cursor = cursor;
-    const res = (await notionFetch(`/databases/${normalizedDbId}/query`, {
+    const res = (await notionFetch(`/databases/${queryDbId}/query`, {
       method: "POST",
       body: JSON.stringify(body),
     })) as {
@@ -330,12 +417,19 @@ export async function fetchVehicleServiceNumber(
       const title = getTitle(props);
 
       // Does this row reference our route name (in title or any prop)?
-      const routeMatches =
-        stripRouteSuffix(title).toLowerCase() === baseLc ||
-        Object.values(props).some((v) => {
-          const s = extractScalar(v);
-          return !!s && stripRouteSuffix(s).toLowerCase() === baseLc;
-        });
+      let routeMatches =
+        textContainsRoute(title, routeCandidates) ||
+        Object.values(props).some((v) => textContainsRoute(extractScalar(v), routeCandidates));
+      if (!routeMatches) {
+        for (const [key, value] of Object.entries(props)) {
+          if (!/(course|route|ligne|line)/i.test(key)) continue;
+          const related = await resolveRelationTitle(value);
+          if (textContainsRoute(related, routeCandidates)) {
+            routeMatches = true;
+            break;
+          }
+        }
+      }
       if (!routeMatches) continue;
 
       // Departure time match — scan every property for a HH:MM-shaped value.
@@ -350,8 +444,8 @@ export async function fetchVehicleServiceNumber(
       // Service number: prefer a "service/vehicule/numero/bus" property; else
       // fall back to the page title (often the row IS the service number).
       for (const [k, v] of Object.entries(props)) {
-        if (!/(service|v[ée]hicule|vehicule|num[ée]ro|numero|bus)/i.test(k)) continue;
-        const s = extractScalar(v);
+        if (!/(service|v[ée]hicule|vehicule|voiture|num[ée]ro|numero|bus)/i.test(k)) continue;
+        const s = extractScalar(v) || (await resolveRelationTitle(v));
         if (s) return s;
       }
       if (title) return title;
@@ -360,7 +454,7 @@ export async function fetchVehicleServiceNumber(
     cursor = res.has_more && res.next_cursor ? res.next_cursor : undefined;
   } while (cursor && scanned < 1000);
 
-  console.warn("[SAE] No vehicle service match", { base, normalizedDep, scanned });
+  console.warn("[SAE] No vehicle service match", { routeCandidates, normalizedDep, scanned });
   return null;
 }
 
