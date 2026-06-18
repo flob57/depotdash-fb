@@ -36,6 +36,7 @@ function RoutePage() {
   const fetchDetails = useServerFn(getRouteDetails);
   const recordFn = useServerFn(recordStopPassage);
   const listFn = useServerFn(listStopPassages);
+  const deleteFn = useServerFn(deleteStopPassage);
 
   const [details, setDetails] = useState<RouteDetails | null>(null);
   const [passages, setPassages] = useState<Passage[]>([]);
