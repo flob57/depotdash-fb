@@ -189,8 +189,8 @@ function RoutePage() {
                   </div>
                 </div>
               </div>
-              {deviation != null && (
-                <DeviationCounter minutes={deviation} />
+              {deviationSeconds != null && (
+                <DeviationCounter seconds={deviationSeconds} />
               )}
 
               {/* Passenger counters */}
