@@ -9,15 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SaeRouteImport } from './routes/sae'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
 import { Route as CorrespondancesRouteImport } from './routes/correspondances'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SaeIndexRouteImport } from './routes/sae.index'
+import { Route as SaeHistoryRouteImport } from './routes/sae.history'
+import { Route as SaeRouteIdRouteImport } from './routes/sae.$routeId'
 import { Route as ApiPublicGtfsAlertsRouteImport } from './routes/api/public/gtfs-alerts'
 import { Route as ApiPublicCronNightlyExportRouteImport } from './routes/api/public/cron/nightly-export'
 import { Route as ApiPublicRouteIconUserFileRouteImport } from './routes/api/public/route-icon/$user/$file'
 
+const SaeRoute = SaeRouteImport.update({
+  id: '/sae',
+  path: '/sae',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -43,6 +52,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SaeIndexRoute = SaeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SaeRoute,
+} as any)
+const SaeHistoryRoute = SaeHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => SaeRoute,
+} as any)
+const SaeRouteIdRoute = SaeRouteIdRouteImport.update({
+  id: '/$routeId',
+  path: '/$routeId',
+  getParentRoute: () => SaeRoute,
+} as any)
 const ApiPublicGtfsAlertsRoute = ApiPublicGtfsAlertsRouteImport.update({
   id: '/api/public/gtfs-alerts',
   path: '/api/public/gtfs-alerts',
@@ -67,6 +91,10 @@ export interface FileRoutesByFullPath {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae': typeof SaeRouteWithChildren
+  '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
+  '/sae/': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -77,6 +105,9 @@ export interface FileRoutesByTo {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
+  '/sae': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -88,6 +119,10 @@ export interface FileRoutesById {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/sae': typeof SaeRouteWithChildren
+  '/sae/$routeId': typeof SaeRouteIdRoute
+  '/sae/history': typeof SaeHistoryRoute
+  '/sae/': typeof SaeIndexRoute
   '/api/public/gtfs-alerts': typeof ApiPublicGtfsAlertsRoute
   '/api/public/cron/nightly-export': typeof ApiPublicCronNightlyExportRoute
   '/api/public/route-icon/$user/$file': typeof ApiPublicRouteIconUserFileRoute
@@ -100,6 +135,10 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae'
+    | '/sae/$routeId'
+    | '/sae/history'
+    | '/sae/'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -110,6 +149,9 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae/$routeId'
+    | '/sae/history'
+    | '/sae'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -120,6 +162,10 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/sae'
+    | '/sae/$routeId'
+    | '/sae/history'
+    | '/sae/'
     | '/api/public/gtfs-alerts'
     | '/api/public/cron/nightly-export'
     | '/api/public/route-icon/$user/$file'
@@ -131,6 +177,7 @@ export interface RootRouteChildren {
   DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
+  SaeRoute: typeof SaeRouteWithChildren
   ApiPublicGtfsAlertsRoute: typeof ApiPublicGtfsAlertsRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
   ApiPublicRouteIconUserFileRoute: typeof ApiPublicRouteIconUserFileRoute
@@ -138,6 +185,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sae': {
+      id: '/sae'
+      path: '/sae'
+      fullPath: '/sae'
+      preLoaderRoute: typeof SaeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -173,6 +227,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sae/': {
+      id: '/sae/'
+      path: '/'
+      fullPath: '/sae/'
+      preLoaderRoute: typeof SaeIndexRouteImport
+      parentRoute: typeof SaeRoute
+    }
+    '/sae/history': {
+      id: '/sae/history'
+      path: '/history'
+      fullPath: '/sae/history'
+      preLoaderRoute: typeof SaeHistoryRouteImport
+      parentRoute: typeof SaeRoute
+    }
+    '/sae/$routeId': {
+      id: '/sae/$routeId'
+      path: '/$routeId'
+      fullPath: '/sae/$routeId'
+      preLoaderRoute: typeof SaeRouteIdRouteImport
+      parentRoute: typeof SaeRoute
+    }
     '/api/public/gtfs-alerts': {
       id: '/api/public/gtfs-alerts'
       path: '/api/public/gtfs-alerts'
@@ -197,12 +272,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SaeRouteChildren {
+  SaeRouteIdRoute: typeof SaeRouteIdRoute
+  SaeHistoryRoute: typeof SaeHistoryRoute
+  SaeIndexRoute: typeof SaeIndexRoute
+}
+
+const SaeRouteChildren: SaeRouteChildren = {
+  SaeRouteIdRoute: SaeRouteIdRoute,
+  SaeHistoryRoute: SaeHistoryRoute,
+  SaeIndexRoute: SaeIndexRoute,
+}
+
+const SaeRouteWithChildren = SaeRoute._addFileChildren(SaeRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CorrespondancesRoute: CorrespondancesRoute,
   DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
+  SaeRoute: SaeRouteWithChildren,
   ApiPublicGtfsAlertsRoute: ApiPublicGtfsAlertsRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
   ApiPublicRouteIconUserFileRoute: ApiPublicRouteIconUserFileRoute,
