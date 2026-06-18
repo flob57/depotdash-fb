@@ -151,7 +151,17 @@ function HistoryPage() {
           </div>
         ) : (
           <>
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm text-muted-foreground">
+                Total montées :{" "}
+                <span className="font-semibold text-foreground">
+                  {rows.reduce((acc, r) => acc + ((r as any).pax_on ?? 0), 0)}
+                </span>{" "}
+                · descentes :{" "}
+                <span className="font-semibold text-foreground">
+                  {rows.reduce((acc, r) => acc + ((r as any).pax_off ?? 0), 0)}
+                </span>
+              </div>
               <Button
                 size="sm"
                 onClick={async () => {
