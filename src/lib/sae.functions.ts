@@ -93,7 +93,9 @@ export const recordStopPassage = createServerFn({ method: "POST" })
         const sched = new Date(actualIso);
         sched.setHours(h, m, 0, 0);
         diff = Math.round((new Date(actualIso).getTime() - sched.getTime()) / 60000);
-        status = diff <= -1 ? "en avance" : diff >= 1 ? "en retard" : "à l'heure";
+        if (diff < 0) status = "en avance";
+        else if (diff <= 5) status = "à l'heure";
+        else status = "en retard";
       }
     }
 
