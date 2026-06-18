@@ -87,20 +87,25 @@ export const recordStopPassage = createServerFn({ method: "POST" })
     const paxOn = data.paxOn ?? 0;
     const paxOff = data.paxOff ?? 0;
 
-    // diff (minutes): actual - scheduled, on the same date.
+    // diff (minutes) = actual - scheduled, both expressed as minutes-of-day
+    // in Europe/Paris. The previous local-TZ math gave wrong results on the
+    // Worker runtime (UTC), e.g. -118 min instead of +2 min.
     let diff: number | null = null;
     let status: string | null = null;
     if (scheduledTime) {
       const [h, m] = scheduledTime.split(":").map((n) => parseInt(n, 10));
       if (Number.isFinite(h) && Number.isFinite(m)) {
-        const sched = new Date(actualIso);
-        sched.setHours(h, m, 0, 0);
-        diff = Math.round((new Date(actualIso).getTime() - sched.getTime()) / 60000);
+        const [ah, am] = parisHm(actualIso).split(":").map((n) => parseInt(n, 10));
+        let d = ah * 60 + am - (h * 60 + m);
+        if (d > 720) d -= 1440;        // crossing midnight backwards
+        if (d < -720) d += 1440;       // crossing midnight forwards
+        diff = d;
         if (diff < 0) status = "en avance";
         else if (diff <= 5) status = "à l'heure";
         else status = "en retard";
       }
     }
+
 
     const row = {
       user_id: userId,
