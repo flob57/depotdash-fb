@@ -247,13 +247,17 @@ export const getSaeSettings = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data } = await supabase
       .from("user_notion_settings")
-      .select("planning_db_id, actual_times_db_id, actual_times_parent_page_id")
+      .select(
+        "planning_db_id, actual_times_db_id, actual_times_parent_page_id, sae_lmjv_db_id, sae_mercredi_db_id",
+      )
       .eq("user_id", userId)
       .maybeSingle();
     return {
       planning_db_id: data?.planning_db_id ?? null,
       actual_times_db_id: data?.actual_times_db_id ?? null,
       actual_times_parent_page_id: data?.actual_times_parent_page_id ?? null,
+      sae_lmjv_db_id: (data as any)?.sae_lmjv_db_id ?? null,
+      sae_mercredi_db_id: (data as any)?.sae_mercredi_db_id ?? null,
     };
   });
 
@@ -265,6 +269,8 @@ export const saveSaeSettings = createServerFn({ method: "POST" })
         planning_db_id: z.string().max(500).nullable().optional(),
         actual_times_db_id: z.string().max(500).nullable().optional(),
         actual_times_parent_page_id: z.string().max(500).nullable().optional(),
+        sae_lmjv_db_id: z.string().max(500).nullable().optional(),
+        sae_mercredi_db_id: z.string().max(500).nullable().optional(),
       })
       .parse(input),
   )
@@ -278,12 +284,15 @@ export const saveSaeSettings = createServerFn({ method: "POST" })
           planning_db_id: data.planning_db_id ?? null,
           actual_times_db_id: data.actual_times_db_id ?? null,
           actual_times_parent_page_id: data.actual_times_parent_page_id ?? null,
+          sae_lmjv_db_id: data.sae_lmjv_db_id ?? null,
+          sae_mercredi_db_id: data.sae_mercredi_db_id ?? null,
         },
         { onConflict: "user_id" },
       );
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
 
 export const createSaeNotionDatabase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
