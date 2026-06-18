@@ -367,9 +367,10 @@ export async function pushPassageToNotion(params: {
   }
   setIfExists(["Horaire réel", "Horaire reel", "Actual"], "rich_text", {
     rich_text: [
-      { text: { content: new Date(params.actualIso).toISOString().slice(11, 16) } },
+      { text: { content: parisHm(params.actualIso) } },
     ],
   });
+
   if (params.diffMinutes != null) {
     setIfExists(["Écart (min)", "Ecart (min)", "Écart", "Ecart", "Diff"], "number", {
       number: params.diffMinutes,
