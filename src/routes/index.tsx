@@ -172,6 +172,9 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="SAE — Suivi de tournée">
+              <Link to="/sae"><img src={busIcon.url} alt="" className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">SAE</span></Link>
+            </Button>
             <Button asChild variant="ghost" size="sm" className="px-2 sm:px-3" title="Prochains départs">
               <Link to="/departures"><Train className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Prochains départs</span></Link>
             </Button>
