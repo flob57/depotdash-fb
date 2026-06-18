@@ -334,3 +334,96 @@ export const createSaeNotionDatabase = createServerFn({ method: "POST" })
       );
     return { databaseId: dbId };
   });
+
+// Re-sync a set of passages (a given day / route) to Notion.
+export const syncPassagesToNotion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        workDate: z.string(),
+        routeId: z.string().optional().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: settings } = await supabase
+      .from("user_notion_settings")
+      .select("actual_times_db_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!settings?.actual_times_db_id) {
+      throw new Error("Aucune base Notion configurée pour les horaires réels.");
+    }
+
+    let q = supabase
+      .from("actual_stop_times")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("work_date", data.workDate)
+      .order("stop_index", { ascending: true });
+    if (data.routeId) q = q.eq("route_notion_id", data.routeId);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    let synced = 0;
+    const errors: string[] = [];
+
+    // Group by route to compute paxOnBoard correctly
+    const byRoute = new Map<string, typeof rows>();
+    for (const r of rows ?? []) {
+      const arr = byRoute.get(r.route_notion_id) ?? [];
+      arr.push(r);
+      byRoute.set(r.route_notion_id, arr);
+    }
+
+    for (const [, routeRows] of byRoute) {
+      let onBoard = 0;
+      for (const r of routeRows) {
+        onBoard += (r.pax_on ?? 0) - (r.pax_off ?? 0);
+        try {
+          // Recompute diff from stored scheduled_time and actual_time (Paris).
+          let diff: number | null = r.diff_minutes;
+          let status: string | null = r.status;
+          if (r.scheduled_time) {
+            const [h, m] = r.scheduled_time.split(":").map((n: string) => parseInt(n, 10));
+            const [ah, am] = parisHm(r.actual_time).split(":").map((n) => parseInt(n, 10));
+            let d = ah * 60 + am - (h * 60 + m);
+            if (d > 720) d -= 1440;
+            if (d < -720) d += 1440;
+            diff = d;
+            status = d < 0 ? "en avance" : d <= 5 ? "à l'heure" : "en retard";
+          }
+
+          const pageId = await pushPassageToNotion({
+            databaseId: settings.actual_times_db_id,
+            workDate: r.work_date,
+            routeName: r.route_name,
+            stopName: r.stop_name,
+            scheduledTime: r.scheduled_time,
+            actualIso: r.actual_time,
+            diffMinutes: diff,
+            status,
+            paxOn: r.pax_on,
+            paxOff: r.pax_off,
+            paxOnBoard: onBoard,
+          });
+          await supabase
+            .from("actual_stop_times")
+            .update({
+              notion_page_id: pageId,
+              notion_synced_at: new Date().toISOString(),
+              diff_minutes: diff,
+              status,
+            })
+            .eq("id", r.id);
+          synced++;
+        } catch (e) {
+          errors.push(e instanceof Error ? e.message : "Notion sync failed");
+        }
+      }
+    }
+
+    return { synced, total: rows?.length ?? 0, errors };
+  });

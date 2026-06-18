@@ -7,12 +7,13 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronLeft, CalendarIcon } from "lucide-react";
+import { ChevronLeft, CalendarIcon, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { listStopPassages, listPassageDates } from "@/lib/sae.functions";
+import { listStopPassages, listPassageDates, syncPassagesToNotion } from "@/lib/sae.functions";
 import busIcon from "@/assets/bus-icon.png.asset.json";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/sae/history")({
   component: HistoryPage,
@@ -24,9 +25,23 @@ type Passage = Awaited<ReturnType<typeof listStopPassages>>[number];
 function toIso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function fmtHmFromIso(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function parisHm(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+function computeDiff(scheduled: string | null, actualIso: string): number | null {
+  if (!scheduled) return null;
+  const [h, m] = scheduled.split(":").map((n) => parseInt(n, 10));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  const [ah, am] = parisHm(actualIso).split(":").map((n) => parseInt(n, 10));
+  let d = ah * 60 + am - (h * 60 + m);
+  if (d > 720) d -= 1440;
+  if (d < -720) d += 1440;
+  return d;
 }
 
 function HistoryPage() {
@@ -34,6 +49,9 @@ function HistoryPage() {
   const navigate = useNavigate();
   const listPassagesFn = useServerFn(listStopPassages);
   const listDatesFn = useServerFn(listPassageDates);
+  const syncFn = useServerFn(syncPassagesToNotion);
+  const [syncing, setSyncing] = useState(false);
+
 
   const [date, setDate] = useState<Date>(new Date());
   const [available, setAvailable] = useState<{ work_date: string; routes: { id: string; name: string }[] }[]>([]);
@@ -132,49 +150,85 @@ function HistoryPage() {
             Aucun passage enregistré pour ce jour.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Arrêt</th>
-                  <th className="px-3 py-2 text-right">Théorique</th>
-                  <th className="px-3 py-2 text-right">Réel</th>
-                  <th className="px-3 py-2 text-right">Écart</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{r.stop_name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {r.route_name} · arrêt {r.stop_index}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">{r.scheduled_time ?? "—"}</td>
-                    <td className="px-3 py-2 text-right font-mono">{fmtHmFromIso(r.actual_time)}</td>
-                    <td className="px-3 py-2 text-right">
-                      {r.diff_minutes == null ? (
-                        "—"
-                      ) : (
-                        <span
-                          className={cn(
-                            "font-mono",
-                            r.diff_minutes <= -1 && "text-blue-600",
-                            r.diff_minutes >= 1 && "text-red-600",
-                            r.diff_minutes > -1 && r.diff_minutes < 1 && "text-green-600",
-                          )}
-                        >
-                          {r.diff_minutes > 0 ? "+" : ""}{r.diff_minutes} min
-                        </span>
-                      )}
-                    </td>
+          <>
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const res = await syncFn({ data: { workDate: dateKey, routeId: selectedRoute } });
+                    if (res.errors.length) {
+                      toast.error(`Synchronisé ${res.synced}/${res.total} — ${res.errors[0]}`);
+                    } else {
+                      toast.success(`Notion : ${res.synced} passage(s) synchronisé(s)`);
+                    }
+                    const fresh = await listPassagesFn({ data: { workDate: dateKey, routeId: selectedRoute } });
+                    setRows(fresh);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Échec de la synchronisation");
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+              >
+                {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Envoyer vers Notion
+              </Button>
+            </div>
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Arrêt</th>
+                    <th className="px-3 py-2 text-right">Théorique</th>
+                    <th className="px-3 py-2 text-right">Réel</th>
+                    <th className="px-3 py-2 text-right">Écart</th>
+                    <th className="px-3 py-2 text-right">Montées</th>
+                    <th className="px-3 py-2 text-right">Descentes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const diff = computeDiff(r.scheduled_time, r.actual_time);
+                    return (
+                      <tr key={r.id} className="border-t">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{r.stop_name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {r.route_name} · arrêt {r.stop_index}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{r.scheduled_time ?? "—"}</td>
+                        <td className="px-3 py-2 text-right font-mono">{parisHm(r.actual_time)}</td>
+                        <td className="px-3 py-2 text-right">
+                          {diff == null ? (
+                            "—"
+                          ) : (
+                            <span
+                              className={cn(
+                                "font-mono",
+                                diff <= -1 && "text-blue-600",
+                                diff >= 1 && "text-red-600",
+                                diff > -1 && diff < 1 && "text-green-600",
+                              )}
+                            >
+                              {diff > 0 ? "+" : ""}{diff} min
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{(r as any).pax_on ?? 0}</td>
+                        <td className="px-3 py-2 text-right font-mono">{(r as any).pax_off ?? 0}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
+
       </main>
     </div>
   );
