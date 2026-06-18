@@ -22,8 +22,11 @@ export type SaeRoute = {
   depTime: string | null;
   arrStop: string | null;
   arrTime: string | null;
+  codeGirouette: string | null;
+  vehicleService: string | null;
   stops: SaeStop[];       // full ordered stop list (best-effort)
 };
+
 
 // ---------- helpers ----------
 
@@ -155,7 +158,10 @@ export async function fetchTodayRouteIds(dbId: string, isoDate: string): Promise
 }
 
 // Fetch a Horaire QUB row + resolve its service / stops.
-export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
+export async function fetchRouteDetails(
+  routeId: string,
+  opts?: { vehicleDbId?: string | null },
+): Promise<SaeRoute> {
   const page = (await notionFetch(`/pages/${routeId}`)) as {
     id: string;
     properties: Record<string, any>;
@@ -166,6 +172,15 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
   const arrStop = extractScalar(props["Arret arrivee"]);
   const depTime = normalizeHm(extractScalar(props["Horaire depart"]));
   const arrTime = normalizeHm(extractScalar(props["Horaire arrivee"]));
+
+  // "Codes girouette" / "Code girouette" (tolerant key match)
+  let codeGirouette: string | null = null;
+  for (const [k, v] of Object.entries(props)) {
+    if (/codes?\s*girouette/i.test(k)) {
+      codeGirouette = extractScalar(v);
+      if (codeGirouette) break;
+    }
+  }
 
   // Find first non-empty service relation.
   let serviceId: string | null = null;
@@ -181,8 +196,6 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
   let serviceName: string | null = null;
   let stops: SaeStop[] = [];
 
-  // Preferred source: a table block inside the Horaire QUB page itself
-  // (2 columns: stop name | scheduled time).
   try {
     stops = await fetchStopsFromPageTable(page.id);
   } catch (e) {
@@ -200,10 +213,19 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
     }
   }
 
-  // Fallback: build a 2-stop "route" from dep/arr if we couldn't resolve a service.
   if (stops.length === 0) {
     if (depStop) stops.push({ index: 1, name: depStop, scheduledTime: depTime });
     if (arrStop) stops.push({ index: stops.length + 1, name: arrStop, scheduledTime: arrTime });
+  }
+
+  // Look up vehicle / service number from the SAE assignments DB (LMJV or Mercredi).
+  let vehicleService: string | null = null;
+  if (opts?.vehicleDbId && lineName && depTime) {
+    try {
+      vehicleService = await fetchVehicleServiceNumber(opts.vehicleDbId, lineName, depTime);
+    } catch (e) {
+      console.error("fetchVehicleServiceNumber failed", e);
+    }
   }
 
   return {
@@ -215,9 +237,79 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
     depTime,
     arrStop,
     arrTime,
+    codeGirouette,
+    vehicleService,
     stops,
   };
 }
+
+// Strip the suffix from a route name: "P63.01" -> "P63"
+export function stripRouteSuffix(name: string): string {
+  return (name || "").split(".")[0].trim();
+}
+
+// Look up the vehicle/service number for a given route + departure time
+// in the user's SAE assignments database (LMJV or Mercredi).
+export async function fetchVehicleServiceNumber(
+  dbId: string,
+  fullRouteName: string,
+  depTime: string,
+): Promise<string | null> {
+  const base = stripRouteSuffix(fullRouteName);
+  if (!base) return null;
+  const normalizedDep = normalizeHm(depTime);
+
+  // Query: pull all rows whose title contains the base name. We do client-side
+  // matching for departure time to tolerate "7h01" / "07:01" / "7:01" formats.
+  const res = (await notionFetch(`/databases/${dbId}/query`, {
+    method: "POST",
+    body: JSON.stringify({ page_size: 100 }),
+  })) as { results: Array<{ id: string; properties: Record<string, any> }> };
+
+  for (const row of res.results) {
+    const title = getTitle(row.properties);
+    if (stripRouteSuffix(title).toLowerCase() !== base.toLowerCase()) continue;
+
+    // Find a "departure time"-ish property on the row.
+    let rowDep: string | null = null;
+    for (const [k, v] of Object.entries(row.properties)) {
+      if (!/(d[ée]part|horaire|heure|depart|time)/i.test(k)) continue;
+      const s = extractScalar(v);
+      const n = normalizeHm(s);
+      if (n) { rowDep = n; break; }
+    }
+    if (!rowDep || rowDep !== normalizedDep) continue;
+
+    // Find the service / vehicle number property.
+    for (const [k, v] of Object.entries(row.properties)) {
+      if (!/(service|v[ée]hicule|vehicule|num[ée]ro|numero|bus)/i.test(k)) continue;
+      const s = extractScalar(v);
+      if (s) return s;
+    }
+  }
+  return null;
+}
+
+// Compute the Paris weekday index: 0 = Sunday ... 6 = Saturday.
+export function parisWeekday(d: Date = new Date()): number {
+  const wd = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Paris",
+    weekday: "short",
+  }).format(d);
+  return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[wd as "Sun"] ?? 0;
+}
+
+// "HH:MM" in Europe/Paris for a given timestamp.
+export function parisHm(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 
 // ---------- push a passage to Notion ----------
 
