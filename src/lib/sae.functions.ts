@@ -29,17 +29,22 @@ export const getTodayRoutes = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: settings } = await supabase
       .from("user_notion_settings")
-      .select("planning_db_id")
+      .select("planning_db_id, sae_lmjv_db_id, sae_mercredi_db_id")
       .eq("user_id", userId)
       .maybeSingle();
     const dbId = planningDbId(settings?.planning_db_id);
+    const wd = parisWeekday();
+    const vehicleDbId =
+      wd === 3
+        ? (settings as any)?.sae_mercredi_db_id ?? null
+        : (settings as any)?.sae_lmjv_db_id ?? null;
     const iso = data.date ?? todayIso();
     try {
       const ids = await fetchTodayRouteIds(dbId, iso);
       const routes: SaeRoute[] = [];
       for (const id of ids) {
         try {
-          routes.push(await fetchRouteDetails(id));
+          routes.push(await fetchRouteDetails(id, { vehicleDbId }));
         } catch (e) {
           console.error("fetchRouteDetails failed", id, e);
         }
@@ -58,9 +63,21 @@ export const getTodayRoutes = createServerFn({ method: "POST" })
 export const getRouteDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ routeId: z.string().min(1) }).parse(input))
-  .handler(async ({ data }) => {
-    return await fetchRouteDetails(data.routeId);
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: settings } = await supabase
+      .from("user_notion_settings")
+      .select("sae_lmjv_db_id, sae_mercredi_db_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const wd = parisWeekday();
+    const vehicleDbId =
+      wd === 3
+        ? (settings as any)?.sae_mercredi_db_id ?? null
+        : (settings as any)?.sae_lmjv_db_id ?? null;
+    return await fetchRouteDetails(data.routeId, { vehicleDbId });
   });
+
 
 // Record one stop passage. Saves to Supabase and (if configured) pushes to Notion.
 export const recordStopPassage = createServerFn({ method: "POST" })
