@@ -207,11 +207,11 @@ export async function fetchRouteDetails(
   // "Codes girouette" / "Code girouette" (tolerant key match)
   let codeGirouette: string | null = null;
   for (const [k, v] of Object.entries(props)) {
-    if (/codes?\s*girouette/i.test(k)) {
-      codeGirouette = extractScalar(v);
-      if (codeGirouette) break;
-    }
+    if (!/codes?\s*girouette/i.test(k)) continue;
+    codeGirouette = extractScalar(v) || (await resolveRelationTitle(v));
+    if (codeGirouette) break;
   }
+
 
   // Find first non-empty service relation.
   let serviceId: string | null = null;
