@@ -141,6 +141,8 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
   const [planning, setPlanning] = useState("");
   const [actualDb, setActualDb] = useState("");
   const [parent, setParent] = useState("");
+  const [lmjv, setLmjv] = useState("");
+  const [mercredi, setMercredi] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -149,6 +151,8 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
       setPlanning(s.planning_db_id ?? "");
       setActualDb(s.actual_times_db_id ?? "");
       setParent(s.actual_times_parent_page_id ?? "");
+      setLmjv(s.sae_lmjv_db_id ?? "");
+      setMercredi(s.sae_mercredi_db_id ?? "");
     });
   }, [open, get]);
 
@@ -160,6 +164,8 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
           planning_db_id: planning.trim() || null,
           actual_times_db_id: actualDb.trim() || null,
           actual_times_parent_page_id: parent.trim() || null,
+          sae_lmjv_db_id: lmjv.trim() || null,
+          sae_mercredi_db_id: mercredi.trim() || null,
         },
       });
       toast.success("Paramètres SAE enregistrés");
@@ -193,7 +199,7 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
           <Settings2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Paramètres SAE</DialogTitle>
         </DialogHeader>
@@ -205,6 +211,14 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
           <div>
             <Label htmlFor="actual">Base "Mes horaires réel" (URL ou ID)</Label>
             <Input id="actual" value={actualDb} onChange={(e) => setActualDb(e.target.value)} placeholder="Laissez vide si vous voulez la créer ci-dessous" />
+          </div>
+          <div>
+            <Label htmlFor="lmjv">Base "SAE LMJV" — Lun / Mar / Jeu / Ven (URL ou ID)</Label>
+            <Input id="lmjv" value={lmjv} onChange={(e) => setLmjv(e.target.value)} placeholder="ID de la base d'affectations véhicules" />
+          </div>
+          <div>
+            <Label htmlFor="mercredi">Base "SAE Mercredi" (URL ou ID)</Label>
+            <Input id="mercredi" value={mercredi} onChange={(e) => setMercredi(e.target.value)} placeholder="ID de la base d'affectations véhicules" />
           </div>
           <div className="rounded-md border bg-muted/30 p-3">
             <Label htmlFor="parent">Page parente Notion (pour création auto)</Label>
@@ -229,3 +243,4 @@ function SettingsDialog({ onSaved }: { onSaved: () => void }) {
     </Dialog>
   );
 }
+
