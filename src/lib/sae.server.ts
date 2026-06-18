@@ -82,7 +82,52 @@ function normalizeHm(raw: string | null | undefined): string | null {
   return `${h}:${m[2]}`;
 }
 
-// ---------- planning DB ----------
+// ---------- read stops from a Horaire QUB page table block ----------
+
+type NotionBlock = {
+  id: string;
+  type: string;
+  has_children?: boolean;
+  table?: { table_width: number; has_column_header?: boolean; has_row_header?: boolean };
+  table_row?: { cells: Array<Array<{ plain_text?: string }>> };
+};
+
+async function fetchBlockChildren(blockId: string): Promise<NotionBlock[]> {
+  const out: NotionBlock[] = [];
+  let cursor: string | undefined;
+  do {
+    const qs = cursor ? `?start_cursor=${cursor}&page_size=100` : `?page_size=100`;
+    const res = (await notionFetch(`/blocks/${blockId}/children${qs}`)) as {
+      results: NotionBlock[];
+      has_more: boolean;
+      next_cursor: string | null;
+    };
+    out.push(...res.results);
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
+  } while (cursor);
+  return out;
+}
+
+async function fetchStopsFromPageTable(pageId: string): Promise<SaeStop[]> {
+  const children = await fetchBlockChildren(pageId);
+  const table = children.find((b) => b.type === "table");
+  if (!table) return [];
+  const rows = await fetchBlockChildren(table.id);
+  const stops: SaeStop[] = [];
+  const skipHeader = !!table.table?.has_column_header;
+  rows.forEach((r, idx) => {
+    if (r.type !== "table_row" || !r.table_row) return;
+    if (skipHeader && idx === 0) return;
+    const cells = r.table_row.cells;
+    const name = plainText(cells[0]);
+    const time = normalizeHm(plainText(cells[1]));
+    if (!name) return;
+    stops.push({ index: stops.length + 1, name, scheduledTime: time });
+  });
+  return stops;
+}
+
+
 
 export function planningDbId(custom: string | null | undefined): string {
   return (custom && custom.trim()) || DEFAULT_PLANNING_DB_ID;
