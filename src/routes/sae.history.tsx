@@ -7,12 +7,13 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronLeft, CalendarIcon } from "lucide-react";
+import { ChevronLeft, CalendarIcon, Send, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { listStopPassages, listPassageDates } from "@/lib/sae.functions";
+import { listStopPassages, listPassageDates, syncPassagesToNotion } from "@/lib/sae.functions";
 import busIcon from "@/assets/bus-icon.png.asset.json";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/sae/history")({
   component: HistoryPage,
@@ -24,9 +25,23 @@ type Passage = Awaited<ReturnType<typeof listStopPassages>>[number];
 function toIso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function fmtHmFromIso(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function parisHm(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+function computeDiff(scheduled: string | null, actualIso: string): number | null {
+  if (!scheduled) return null;
+  const [h, m] = scheduled.split(":").map((n) => parseInt(n, 10));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  const [ah, am] = parisHm(actualIso).split(":").map((n) => parseInt(n, 10));
+  let d = ah * 60 + am - (h * 60 + m);
+  if (d > 720) d -= 1440;
+  if (d < -720) d += 1440;
+  return d;
 }
 
 function HistoryPage() {
@@ -34,6 +49,9 @@ function HistoryPage() {
   const navigate = useNavigate();
   const listPassagesFn = useServerFn(listStopPassages);
   const listDatesFn = useServerFn(listPassageDates);
+  const syncFn = useServerFn(syncPassagesToNotion);
+  const [syncing, setSyncing] = useState(false);
+
 
   const [date, setDate] = useState<Date>(new Date());
   const [available, setAvailable] = useState<{ work_date: string; routes: { id: string; name: string }[] }[]>([]);
