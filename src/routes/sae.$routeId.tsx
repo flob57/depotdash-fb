@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { ChevronLeft, Check, Undo2, MapPin } from "lucide-react";
+import { ChevronLeft, Check, Undo2, MapPin, Plus, Minus, Users } from "lucide-react";
 import {
   getRouteDetails, recordStopPassage, listStopPassages, deleteStopPassage,
 } from "@/lib/sae.functions";
@@ -24,11 +24,6 @@ function todayIso() {
 type RouteDetails = Awaited<ReturnType<typeof getRouteDetails>>;
 type Passage = Awaited<ReturnType<typeof listStopPassages>>[number];
 
-function fmtHmFromIso(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 function RoutePage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -42,6 +37,8 @@ function RoutePage() {
   const [passages, setPassages] = useState<Passage[]>([]);
   const [busy, setBusy] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [paxOn, setPaxOn] = useState(0);
+  const [paxOff, setPaxOff] = useState(0);
   const workDate = todayIso();
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
@@ -64,7 +61,6 @@ function RoutePage() {
 
   useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user, routeId]);
 
-  // 1-minute tick for delay display
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30_000);
@@ -87,8 +83,11 @@ function RoutePage() {
     return details.stops.find((s) => s.index > currentStop.index) ?? null;
   }, [details, currentStop]);
 
-  // Current expected deviation: if there's a scheduled time for current stop,
-  // show now() - scheduled
+  const paxOnBoard = useMemo(
+    () => passages.reduce((acc, p: any) => acc + (p.pax_on ?? 0) - (p.pax_off ?? 0), 0),
+    [passages],
+  );
+
   const deviation = useMemo(() => {
     if (!currentStop?.scheduledTime) return null;
     const [h, m] = currentStop.scheduledTime.split(":").map(Number);
@@ -109,16 +108,20 @@ function RoutePage() {
           stopIndex: currentStop.index,
           stopName: currentStop.name,
           scheduledTime: currentStop.scheduledTime,
+          paxOn,
+          paxOff,
         },
       });
       const diff = r.passage.diff_minutes;
       const status = r.passage.status;
       toast.success(
         diff == null
-          ? `Arrêt ${currentStop.name} enregistré`
+          ? `${currentStop.name} ✓`
           : `${currentStop.name}: ${status} (${diff > 0 ? "+" : ""}${diff} min)`,
       );
       if (r.notionError) toast.warning(`Notion: ${r.notionError}`);
+      setPaxOn(0);
+      setPaxOff(0);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
@@ -138,7 +141,7 @@ function RoutePage() {
   const allDone = currentStop == null;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-40">
       <Toaster />
       <header className="sticky top-0 z-10 border-b bg-card">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
@@ -154,6 +157,10 @@ function RoutePage() {
               )}
             </div>
           </div>
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
+            <Users className="h-4 w-4" />
+            {paxOnBoard}
+          </div>
         </div>
       </header>
 
@@ -163,7 +170,7 @@ function RoutePage() {
             <Check className="mx-auto mb-2 h-10 w-10 text-green-600" />
             <p className="text-lg font-semibold">Tournée terminée</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tous les arrêts ont été validés.
+              {passages.length} arrêts enregistrés · {paxOnBoard} à bord
             </p>
           </div>
         ) : (
@@ -175,7 +182,7 @@ function RoutePage() {
               <div className="mt-1 flex items-baseline gap-3">
                 <MapPin className="h-5 w-5 shrink-0 text-primary" />
                 <div className="min-w-0">
-                  <div className="text-xl font-semibold leading-tight">{currentStop.name}</div>
+                  <div className="text-2xl font-semibold leading-tight">{currentStop.name}</div>
                   <div className="mt-0.5 text-sm text-muted-foreground">
                     Théorique :{" "}
                     <span className="font-mono">{currentStop.scheduledTime ?? "—"}</span>
@@ -201,9 +208,25 @@ function RoutePage() {
                     : `${deviation} min — en avance`}
                 </div>
               )}
+
+              {/* Passenger counters */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <PaxCounter
+                  label="Montées"
+                  value={paxOn}
+                  onChange={setPaxOn}
+                  tone="up"
+                />
+                <PaxCounter
+                  label="Descentes"
+                  value={paxOff}
+                  onChange={setPaxOff}
+                  tone="down"
+                />
+              </div>
             </section>
 
-            {nextStop && (
+            {nextStop ? (
               <section className="rounded-lg border bg-card p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Prochain arrêt
@@ -215,57 +238,13 @@ function RoutePage() {
                   </div>
                 </div>
               </section>
+            ) : (
+              <section className="rounded-lg border bg-card p-3 text-center text-sm text-muted-foreground">
+                Dernier arrêt de la tournée
+              </section>
             )}
           </>
         )}
-
-        <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Itinéraire ({details.stops.length})
-          </h2>
-          <ol className="space-y-1.5">
-            {details.stops.map((s) => {
-              const p = validated.get(s.index);
-              const isCurrent = currentStop?.index === s.index;
-              return (
-                <li
-                  key={s.index}
-                  className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ${
-                    p ? "bg-muted/40" : isCurrent ? "border-primary bg-primary/5" : "bg-card"
-                  }`}
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {String(s.index).padStart(2, "0")}
-                    </span>
-                    <span className={`truncate ${p ? "line-through opacity-70" : ""}`}>
-                      {s.name}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2 font-mono text-xs">
-                    <span className="text-muted-foreground">{s.scheduledTime ?? "—"}</span>
-                    {p && (
-                      <span className="text-foreground">→ {fmtHmFromIso(p.actual_time)}</span>
-                    )}
-                    {p?.diff_minutes != null && (
-                      <span
-                        className={
-                          p.diff_minutes <= -1
-                            ? "text-blue-600"
-                            : p.diff_minutes >= 1
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }
-                      >
-                        ({p.diff_minutes > 0 ? "+" : ""}{p.diff_minutes})
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
       </main>
 
       {!allDone && (
@@ -278,7 +257,6 @@ function RoutePage() {
                 onClick={async () => {
                   const last = passages[passages.length - 1];
                   if (!last) return;
-                  // simple undo: delete the last passage row
                   try {
                     await deleteFn({ data: { id: last.id } });
                   } catch (e) {
@@ -298,11 +276,53 @@ function RoutePage() {
               onClick={handleValidate}
             >
               <Check className="mr-2 h-5 w-5" />
-              Je suis à cet arrêt
+              Valider ({paxOn}↑ / {paxOff}↓)
             </Button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PaxCounter({
+  label, value, onChange, tone,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  tone: "up" | "down";
+}) {
+  const accent = tone === "up" ? "text-green-600" : "text-red-600";
+  return (
+    <div className="rounded-lg border bg-background p-2">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        <span className={`font-mono text-lg font-bold ${accent}`}>{value}</span>
+      </div>
+      <div className="flex items-stretch gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 flex-1"
+          onClick={() => onChange(Math.max(0, value - 1))}
+          disabled={value === 0}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 flex-1"
+          onClick={() => onChange(value + 1)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

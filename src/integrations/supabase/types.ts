@@ -22,6 +22,8 @@ export type Database = {
           id: string
           notion_page_id: string | null
           notion_synced_at: string | null
+          pax_off: number
+          pax_on: number
           route_name: string
           route_notion_id: string
           scheduled_time: string | null
@@ -39,6 +41,8 @@ export type Database = {
           id?: string
           notion_page_id?: string | null
           notion_synced_at?: string | null
+          pax_off?: number
+          pax_on?: number
           route_name: string
           route_notion_id: string
           scheduled_time?: string | null
@@ -56,6 +60,8 @@ export type Database = {
           id?: string
           notion_page_id?: string | null
           notion_synced_at?: string | null
+          pax_off?: number
+          pax_on?: number
           route_name?: string
           route_notion_id?: string
           scheduled_time?: string | null

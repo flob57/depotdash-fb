@@ -82,7 +82,52 @@ function normalizeHm(raw: string | null | undefined): string | null {
   return `${h}:${m[2]}`;
 }
 
-// ---------- planning DB ----------
+// ---------- read stops from a Horaire QUB page table block ----------
+
+type NotionBlock = {
+  id: string;
+  type: string;
+  has_children?: boolean;
+  table?: { table_width: number; has_column_header?: boolean; has_row_header?: boolean };
+  table_row?: { cells: Array<Array<{ plain_text?: string }>> };
+};
+
+async function fetchBlockChildren(blockId: string): Promise<NotionBlock[]> {
+  const out: NotionBlock[] = [];
+  let cursor: string | undefined;
+  do {
+    const qs = cursor ? `?start_cursor=${cursor}&page_size=100` : `?page_size=100`;
+    const res = (await notionFetch(`/blocks/${blockId}/children${qs}`)) as {
+      results: NotionBlock[];
+      has_more: boolean;
+      next_cursor: string | null;
+    };
+    out.push(...res.results);
+    cursor = res.has_more ? res.next_cursor ?? undefined : undefined;
+  } while (cursor);
+  return out;
+}
+
+async function fetchStopsFromPageTable(pageId: string): Promise<SaeStop[]> {
+  const children = await fetchBlockChildren(pageId);
+  const table = children.find((b) => b.type === "table");
+  if (!table) return [];
+  const rows = await fetchBlockChildren(table.id);
+  const stops: SaeStop[] = [];
+  const skipHeader = !!table.table?.has_column_header;
+  rows.forEach((r, idx) => {
+    if (r.type !== "table_row" || !r.table_row) return;
+    if (skipHeader && idx === 0) return;
+    const cells = r.table_row.cells;
+    const name = plainText(cells[0]);
+    const time = normalizeHm(plainText(cells[1]));
+    if (!name) return;
+    stops.push({ index: stops.length + 1, name, scheduledTime: time });
+  });
+  return stops;
+}
+
+
 
 export function planningDbId(custom: string | null | undefined): string {
   return (custom && custom.trim()) || DEFAULT_PLANNING_DB_ID;
@@ -136,28 +181,22 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
   let serviceName: string | null = null;
   let stops: SaeStop[] = [];
 
+  // Preferred source: a table block inside the Horaire QUB page itself
+  // (2 columns: stop name | scheduled time).
+  try {
+    stops = await fetchStopsFromPageTable(page.id);
+  } catch (e) {
+    console.error("fetchStopsFromPageTable failed", page.id, e);
+  }
+
   if (serviceId) {
     try {
       const service = (await notionFetch(`/pages/${serviceId}`)) as {
         properties: Record<string, any>;
       };
       serviceName = getTitle(service.properties);
-      // Walk Lieu 1..20 / Horaire 1..20 rollups (Horaire QUB typically tops at 10).
-      for (let i = 1; i <= 20; i++) {
-        const lieuKey = Object.keys(service.properties).find(
-          (k) => k.toLowerCase() === `lieu ${i}` || k.toLowerCase() === `lieu${i}`,
-        );
-        const horaireKey = Object.keys(service.properties).find(
-          (k) => k.toLowerCase() === `horaire ${i}` || k.toLowerCase() === `horaire${i}`,
-        );
-        const name = lieuKey ? extractScalar(service.properties[lieuKey]) : null;
-        const time = horaireKey ? normalizeHm(extractScalar(service.properties[horaireKey])) : null;
-        if (!name && !time) continue;
-        if (!name) continue;
-        stops.push({ index: stops.length + 1, name, scheduledTime: time });
-      }
     } catch {
-      /* fall through to dep/arr fallback */
+      /* ignore */
     }
   }
 
@@ -191,6 +230,9 @@ export async function pushPassageToNotion(params: {
   actualIso: string;        // ISO timestamp
   diffMinutes: number | null;
   status: string | null;
+  paxOn?: number | null;
+  paxOff?: number | null;
+  paxOnBoard?: number | null;
 }): Promise<string> {
   // Discover the DB schema so we map to properties that exist (or fall back).
   const db = (await notionFetch(`/databases/${params.databaseId}`)) as {
@@ -244,6 +286,15 @@ export async function pushPassageToNotion(params: {
   if (params.status) {
     setIfExists(["Statut", "Status"], "select", { select: { name: params.status } });
   }
+  if (params.paxOn != null) {
+    setIfExists(["Montées", "Montees", "Pax On", "Boarding"], "number", { number: params.paxOn });
+  }
+  if (params.paxOff != null) {
+    setIfExists(["Descentes", "Pax Off", "Alighting"], "number", { number: params.paxOff });
+  }
+  if (params.paxOnBoard != null) {
+    setIfExists(["À bord", "A bord", "On Board", "Pax"], "number", { number: params.paxOnBoard });
+  }
 
   const created = (await notionFetch(`/pages`, {
     method: "POST",
@@ -271,6 +322,9 @@ export async function createActualTimesDatabase(parentPageId: string): Promise<s
         "Horaire theorique": { rich_text: {} },
         "Horaire reel": { rich_text: {} },
         "Ecart (min)": { number: {} },
+        Montées: { number: {} },
+        Descentes: { number: {} },
+        "À bord": { number: {} },
         Statut: {
           select: {
             options: [
@@ -285,3 +339,4 @@ export async function createActualTimesDatabase(parentPageId: string): Promise<s
   })) as { id: string };
   return created.id;
 }
+
