@@ -164,7 +164,19 @@ async function fetchStopsFromPageTable(pageId: string): Promise<SaeStop[]> {
 
 
 export function planningDbId(custom: string | null | undefined): string {
-  return (custom && custom.trim()) || DEFAULT_PLANNING_DB_ID;
+  return normalizeNotionId((custom && custom.trim()) || DEFAULT_PLANNING_DB_ID) ?? DEFAULT_PLANNING_DB_ID;
+}
+
+// Accepts a raw UUID, dashed UUID, or full Notion URL and returns a dashed UUID.
+export function normalizeNotionId(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = raw.trim();
+  if (!s) return null;
+  const m = s.match(/([0-9a-fA-F]{32})|([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/);
+  if (!m) return null;
+  const hex = (m[0] || "").replace(/-/g, "").toLowerCase();
+  if (hex.length !== 32) return null;
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
 export async function fetchTodayRouteIds(dbId: string, isoDate: string): Promise<string[]> {
@@ -286,6 +298,11 @@ export async function fetchVehicleServiceNumber(
   fullRouteName: string,
   depTime: string,
 ): Promise<string | null> {
+  const normalizedDbId = normalizeNotionId(dbId);
+  if (!normalizedDbId) {
+    console.warn("[SAE] Invalid vehicle DB id", { dbId });
+    return null;
+  }
   const base = stripRouteSuffix(fullRouteName);
   if (!base) return null;
   const normalizedDep = normalizeHm(depTime);
@@ -298,7 +315,7 @@ export async function fetchVehicleServiceNumber(
   do {
     const body: Record<string, unknown> = { page_size: 100 };
     if (cursor) body.start_cursor = cursor;
-    const res = (await notionFetch(`/databases/${dbId}/query`, {
+    const res = (await notionFetch(`/databases/${normalizedDbId}/query`, {
       method: "POST",
       body: JSON.stringify(body),
     })) as {
