@@ -280,8 +280,7 @@ function RoutePage() {
                   if (!last) return;
                   // simple undo: delete the last passage row
                   try {
-                    const { deleteStopPassage } = await import("@/lib/sae.functions");
-                    await useServerFn(deleteStopPassage)({ data: { id: last.id } });
+                    await deleteFn({ data: { id: last.id } });
                   } catch (e) {
                     toast.error(e instanceof Error ? e.message : "Erreur");
                   }
