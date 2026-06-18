@@ -337,11 +337,10 @@ function DeviationCounter({ minutes }: { minutes: number }) {
   return (
     <div className="mt-4 flex flex-col items-center gap-1">
       <div
-        className="relative flex h-24 w-24 items-center justify-center rounded-full"
+        className="relative flex h-24 w-24 items-center justify-center rounded-full animate-pulse"
         style={{
           background: bgColor,
           boxShadow: `0 0 0 4px ${ringColor}`,
-          animation: "deviation-ring-pulse 2s ease-in-out infinite",
         }}
       >
         <span
