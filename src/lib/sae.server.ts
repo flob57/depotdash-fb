@@ -136,28 +136,22 @@ export async function fetchRouteDetails(routeId: string): Promise<SaeRoute> {
   let serviceName: string | null = null;
   let stops: SaeStop[] = [];
 
+  // Preferred source: a table block inside the Horaire QUB page itself
+  // (2 columns: stop name | scheduled time).
+  try {
+    stops = await fetchStopsFromPageTable(page.id);
+  } catch (e) {
+    console.error("fetchStopsFromPageTable failed", page.id, e);
+  }
+
   if (serviceId) {
     try {
       const service = (await notionFetch(`/pages/${serviceId}`)) as {
         properties: Record<string, any>;
       };
       serviceName = getTitle(service.properties);
-      // Walk Lieu 1..20 / Horaire 1..20 rollups (Horaire QUB typically tops at 10).
-      for (let i = 1; i <= 20; i++) {
-        const lieuKey = Object.keys(service.properties).find(
-          (k) => k.toLowerCase() === `lieu ${i}` || k.toLowerCase() === `lieu${i}`,
-        );
-        const horaireKey = Object.keys(service.properties).find(
-          (k) => k.toLowerCase() === `horaire ${i}` || k.toLowerCase() === `horaire${i}`,
-        );
-        const name = lieuKey ? extractScalar(service.properties[lieuKey]) : null;
-        const time = horaireKey ? normalizeHm(extractScalar(service.properties[horaireKey])) : null;
-        if (!name && !time) continue;
-        if (!name) continue;
-        stops.push({ index: stops.length + 1, name, scheduledTime: time });
-      }
     } catch {
-      /* fall through to dep/arr fallback */
+      /* ignore */
     }
   }
 
