@@ -3,7 +3,7 @@
 // resolves each route's stop list via the linked Service page, and pushes
 // validated passing times to a Notion target database.
 
-import { notionFetch } from "@/lib/notion-export.server";
+import { notionFetch, resolveDatabase } from "@/lib/notion-export.server";
 
 const DEFAULT_PLANNING_DB_ID = "3836bbfa-7ec1-804e-9718-d9a7d1315870";
 
@@ -110,10 +110,82 @@ async function resolveRelationTitle(value: any): Promise<string | null> {
 // "07:50" -> "07:50". Also tolerates "7:50" / "08h02".
 function normalizeHm(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const m = String(raw).match(/(\d{1,2})\s*[:h]\s*(\d{2})/);
-  if (!m) return null;
-  const h = m[1].padStart(2, "0");
-  return `${h}:${m[2]}`;
+  const source = String(raw).trim();
+  const iso = source.match(/T(\d{2}):(\d{2})/);
+  const m = iso ?? source.match(/(\d{1,2})\s*[:h.]\s*(\d{2})/i);
+  if (m) {
+    const hour = Number(m[1]);
+    const minute = Number(m[2]);
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+  const compact = source.match(/^\d{3,4}$/)?.[0];
+  if (compact) {
+    const hour = Number(compact.slice(0, -2));
+    const minute = Number(compact.slice(-2));
+    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+  }
+  return null;
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function routeCodesFromText(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return Array.from(value.matchAll(/\bP\s*\d+(?:\.\d+)?\b/gi)).map((m) =>
+    m[0].replace(/\s+/g, "").toUpperCase(),
+  );
+}
+
+function routeMatchKey(value: string): string {
+  return stripRouteSuffix(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function textContainsRoute(value: string | null | undefined, candidates: string[]): boolean {
+  if (!value) return false;
+  const haystack = routeMatchKey(value);
+  return candidates.some((candidate) => {
+    const needle = routeMatchKey(candidate);
+    if (!needle) return false;
+    if (haystack === needle) return true;
+    return new RegExp(`(^|[^A-Z0-9])${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^A-Z0-9]|$)`).test(haystack);
+  });
+}
+
+async function extractRouteCandidates(props: Record<string, any>, fallbackTitle: string): Promise<string[]> {
+  const values: string[] = [fallbackTitle];
+  for (const [key, prop] of Object.entries(props)) {
+    const scalar = extractScalar(prop);
+    if (scalar) {
+      values.push(...routeCodesFromText(scalar));
+      if (/(course|route|ligne|line)/i.test(key)) values.push(scalar);
+    }
+    if (/(course|route|ligne|line)/i.test(key)) {
+      const related = await resolveRelationTitle(prop);
+      if (related) values.push(related, ...routeCodesFromText(related));
+    }
+  }
+  return uniqueNonEmpty([...values.flatMap(routeCodesFromText), ...values]);
 }
 
 // ---------- read stops from a Horaire QUB page table block ----------
