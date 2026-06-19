@@ -121,6 +121,7 @@ const SettingsSchema = z.object({
   daily_totals_db_id: z.string().max(500).nullable().optional(),
   distance_summary_db_id: z.string().max(500).nullable().optional(),
   fuel_fillups_db_id: z.string().max(500).nullable().optional(),
+  weekly_tasks_db_id: z.string().max(500).nullable().optional(),
   timezone: z.string().min(1).max(100).optional(),
 });
 
@@ -142,6 +143,7 @@ export const getNotionSettings = createServerFn({ method: "GET" })
         daily_totals_db_id: null,
         distance_summary_db_id: null,
         fuel_fillups_db_id: null,
+        weekly_tasks_db_id: null,
         timezone: "Europe/Brussels",
       }
     );
@@ -159,6 +161,7 @@ export const saveNotionSettings = createServerFn({ method: "POST" })
       daily_totals_db_id: data.daily_totals_db_id ?? null,
       distance_summary_db_id: data.distance_summary_db_id ?? null,
       fuel_fillups_db_id: data.fuel_fillups_db_id ?? null,
+      weekly_tasks_db_id: data.weekly_tasks_db_id ?? null,
       timezone: data.timezone ?? "Europe/Brussels",
     };
     const { error } = await supabase
