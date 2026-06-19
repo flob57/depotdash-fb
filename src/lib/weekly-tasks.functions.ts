@@ -112,7 +112,8 @@ function findDateProp(properties: Record<string, { type: string }>): string | nu
   return null;
 }
 
-async function getTimezone(supabase: ReturnType<typeof require>, userId: string): Promise<{ tz: string; dbId: string | null }> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getTimezone(supabase: any, userId: string): Promise<{ tz: string; dbId: string | null }> {
   const { data } = await supabase
     .from("user_notion_settings")
     .select("timezone, weekly_tasks_db_id")
