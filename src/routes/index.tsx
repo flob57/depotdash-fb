@@ -195,6 +195,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
 
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <WeeklyTasksCard />
         <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
 
         <OvertimeBanner overtimeMinutes={overtimeMinutes} leave={leaveBalance} />
