@@ -32,7 +32,7 @@ export function WeeklyTasksCard() {
     return () => { cancelled = true; };
   }, [fetchTasks]);
 
-  if (!configured) return null;
+  
 
   const onCheck = async (t: Task) => {
     setPending((p) => ({ ...p, [t.id]: true }));
