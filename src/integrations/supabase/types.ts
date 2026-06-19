@@ -515,6 +515,7 @@ export type Database = {
           timezone: string
           updated_at: string
           user_id: string
+          weekly_tasks_db_id: string | null
         }
         Insert: {
           actual_times_db_id?: string | null
@@ -535,6 +536,7 @@ export type Database = {
           timezone?: string
           updated_at?: string
           user_id: string
+          weekly_tasks_db_id?: string | null
         }
         Update: {
           actual_times_db_id?: string | null
@@ -555,6 +557,7 @@ export type Database = {
           timezone?: string
           updated_at?: string
           user_id?: string
+          weekly_tasks_db_id?: string | null
         }
         Relationships: []
       }

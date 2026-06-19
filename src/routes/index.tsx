@@ -14,6 +14,7 @@ import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
 import { FuelFillupsCard } from "@/components/FuelFillupsCard";
 import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
 import { HomeNotionControls } from "@/components/HomeNotionControls";
+import { WeeklyTasksCard } from "@/components/WeeklyTasksCard";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
 import {
@@ -194,6 +195,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
 
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6">
+        <WeeklyTasksCard />
         <HomeNotionControls userId={userId} schoolHolidays={schoolHolidays} onHolidaysChanged={refresh} />
 
         <OvertimeBanner overtimeMinutes={overtimeMinutes} leave={leaveBalance} />

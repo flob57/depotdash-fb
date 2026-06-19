@@ -28,6 +28,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [totals, setTotals] = useState("");
   const [distance, setDistance] = useState("");
   const [fuel, setFuel] = useState("");
+  const [weeklyTasks, setWeeklyTasks] = useState("");
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,6 +44,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
         setTotals(s.daily_totals_db_id ?? "");
         setDistance(s.distance_summary_db_id ?? "");
         setFuel(s.fuel_fillups_db_id ?? "");
+        setWeeklyTasks((s as { weekly_tasks_db_id?: string | null }).weekly_tasks_db_id ?? "");
         setTimezone(s.timezone ?? "Europe/Brussels");
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load settings"))
@@ -59,6 +61,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           daily_totals_db_id: totals.trim() || null,
           distance_summary_db_id: distance.trim() || null,
           fuel_fillups_db_id: fuel.trim() || null,
+          weekly_tasks_db_id: weeklyTasks.trim() || null,
           timezone: timezone.trim() || "Europe/Brussels",
         },
       });
@@ -145,6 +148,22 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
             <p className="text-xs text-muted-foreground">
               Expected columns: a title, "Vehicle" (text), "Date" (date), "km" (number),
               "Liters" (number), optional "Consumption (L/100km)" (number).
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="weeklyTasksDb">Weekly recurring tasks database</Label>
+            <Input
+              id="weeklyTasksDb"
+              value={weeklyTasks}
+              onChange={(e) => setWeeklyTasks(e.target.value)}
+              placeholder="https://www.notion.so/…"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: a title (task name), a "Jour"/"Day" property (select, multi-select
+              or status) with weekday names, and a Date property (e.g. "Last completed") that gets
+              stamped with today's date when you check a task.
             </p>
           </div>
 
