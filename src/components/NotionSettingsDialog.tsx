@@ -28,6 +28,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [totals, setTotals] = useState("");
   const [distance, setDistance] = useState("");
   const [fuel, setFuel] = useState("");
+  const [weeklyTasks, setWeeklyTasks] = useState("");
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -43,6 +44,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
         setTotals(s.daily_totals_db_id ?? "");
         setDistance(s.distance_summary_db_id ?? "");
         setFuel(s.fuel_fillups_db_id ?? "");
+        setWeeklyTasks((s as { weekly_tasks_db_id?: string | null }).weekly_tasks_db_id ?? "");
         setTimezone(s.timezone ?? "Europe/Brussels");
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load settings"))
