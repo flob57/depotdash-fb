@@ -61,6 +61,7 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           daily_totals_db_id: totals.trim() || null,
           distance_summary_db_id: distance.trim() || null,
           fuel_fillups_db_id: fuel.trim() || null,
+          weekly_tasks_db_id: weeklyTasks.trim() || null,
           timezone: timezone.trim() || "Europe/Brussels",
         },
       });
