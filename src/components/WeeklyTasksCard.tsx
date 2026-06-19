@@ -58,7 +58,12 @@ export function WeeklyTasksCard() {
           Tâches du jour
         </h2>
       </div>
-      {error ? (
+      {!configured ? (
+        <p className="text-sm text-muted-foreground">
+          Aucune base Notion liée. Ouvrez « Export Notion automatique » dans le panneau d'actions
+          et collez le lien de votre base « Tâches hebdomadaires ».
+        </p>
+      ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : tasks === null ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
