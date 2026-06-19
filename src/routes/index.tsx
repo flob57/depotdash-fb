@@ -14,6 +14,7 @@ import { PublicHolidaysCard } from "@/components/PublicHolidaysCard";
 import { FuelFillupsCard } from "@/components/FuelFillupsCard";
 import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
 import { HomeNotionControls } from "@/components/HomeNotionControls";
+import { WeeklyTasksCard } from "@/components/WeeklyTasksCard";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
 import {
