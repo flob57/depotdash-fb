@@ -152,6 +152,22 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="weeklyTasksDb">Weekly recurring tasks database</Label>
+            <Input
+              id="weeklyTasksDb"
+              value={weeklyTasks}
+              onChange={(e) => setWeeklyTasks(e.target.value)}
+              placeholder="https://www.notion.so/…"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: a title (task name), a "Jour"/"Day" property (select, multi-select
+              or status) with weekday names, and a Date property (e.g. "Last completed") that gets
+              stamped with today's date when you check a task.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="tz">Timezone</Label>
             <Input
               id="tz"
