@@ -32,7 +32,7 @@ export function WeeklyTasksCard() {
     return () => { cancelled = true; };
   }, [fetchTasks]);
 
-  
+  if (!configured) return null;
 
   const onCheck = async (t: Task) => {
     setPending((p) => ({ ...p, [t.id]: true }));
@@ -58,12 +58,7 @@ export function WeeklyTasksCard() {
           Tâches du jour
         </h2>
       </div>
-      {!configured ? (
-        <p className="text-sm text-muted-foreground">
-          Aucune base Notion liée. Ouvrez « Export Notion automatique » dans le panneau d'actions
-          et collez le lien de votre base « Tâches hebdomadaires ».
-        </p>
-      ) : error ? (
+      {error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : tasks === null ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
