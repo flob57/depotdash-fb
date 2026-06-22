@@ -515,6 +515,7 @@ function DeparturesView() {
                           const isP = /^p/i.test(r.route?.trim() ?? "");
                           const expanded = expandedDiagrams.has(r.id);
                           const next = nextStopOf(r.timetable, now);
+                          const rt = computeRt(r, vehicles, now);
                           return (
                             <Fragment key={r.id}>
                               <tr className="border-t bg-primary/5">
@@ -523,6 +524,7 @@ function DeparturesView() {
                                   <span className="inline-flex items-center gap-1.5">
                                     <RouteIcon icon={r.route_icon} />
                                     {routeLabel(r.route)}
+                                    {rt && <RtBadge rt={rt} />}
                                   </span>
                                 </td>
                                 <td className="px-3 py-2">{r.location || "—"}</td>
