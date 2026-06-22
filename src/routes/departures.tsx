@@ -247,10 +247,21 @@ function DeparturesView() {
   const [rows, setRows] = useState<Departure[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
+  const [vehicles, setVehicles] = useState<VehiclePos[]>([]);
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 15000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      const f = loadFeedFromStorage();
+      setVehicles(f?.vehicles ?? []);
+    };
+    load();
+    window.addEventListener("gtfsrt:updated", load);
+    return () => window.removeEventListener("gtfsrt:updated", load);
   }, []);
 
   const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
