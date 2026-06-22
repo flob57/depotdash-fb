@@ -442,6 +442,7 @@ function DeparturesView() {
                       const isP = /^p/i.test(r.route?.trim() ?? "");
                       const expanded = expandedDiagrams.has(r.id);
                       const next = nextStopOf(r.timetable, now);
+                      const rt = computeRt(r, vehicles, now);
                       return (
                         <div key={r.id} className="rounded-md border bg-primary/5 overflow-hidden">
                           <div className="flex items-center justify-between gap-2 px-3 py-2">
