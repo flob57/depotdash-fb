@@ -93,7 +93,17 @@ function RouteIcon({ icon }: { icon: string | null }) {
   return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
 }
 
-function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
+function RouteProgressBar({
+  timetable,
+  now,
+  realPct,
+  realColor,
+}: {
+  timetable: TimetableStop[] | null;
+  now: number;
+  realPct?: number | null;
+  realColor?: "green" | "orange" | "red" | null;
+}) {
   if (!timetable || timetable.length < 2) {
     return (
       <div className="px-4 py-3 text-[11px] text-muted-foreground">
@@ -121,6 +131,13 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
     }
   }
   const nextIdx = stops.findIndex((s) => s.mins > now);
+  const showReal = typeof realPct === "number" && !Number.isNaN(realPct);
+  const realDotClass =
+    realColor === "red"
+      ? "bg-red-500 ring-red-500/40"
+      : realColor === "orange"
+        ? "bg-orange-500 ring-orange-500/40"
+        : "bg-green-500 ring-green-500/40";
   return (
     <>
       {/* Desktop: horizontal bar with rotated labels */}
@@ -156,15 +173,32 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
           })}
           <img
             src={busIcon.url}
-            alt="Bus"
-            className="absolute -top-5 w-6 h-6"
+            alt="Bus (théorique)"
+            title="Position théorique"
+            className="absolute -top-5 w-6 h-6 opacity-70"
             style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
           />
+          {showReal && (
+            <div
+              title="Position GPS réelle"
+              className={cn(
+                "absolute -bottom-3 h-4 w-4 rounded-full border-2 border-background ring-4 shadow-md",
+                realDotClass,
+              )}
+              style={{ left: `${realPct}%`, transform: "translateX(-50%)" }}
+            />
+          )}
         </div>
       </div>
 
       {/* Mobile: vertical timeline */}
       <div className="sm:hidden px-4 py-3">
+        {showReal && (
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={cn("inline-block h-2.5 w-2.5 rounded-full", realDotClass)} />
+            Position GPS réelle
+          </div>
+        )}
         <ol className="relative ml-2 border-l-2 border-muted">
           {stops.map((s, i) => {
             const passed = now >= s.mins;
