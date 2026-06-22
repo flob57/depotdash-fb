@@ -452,8 +452,11 @@ function DeparturesView() {
                               <span className="text-muted-foreground">·</span>
                               <span className="text-foreground">{r.location || "—"}</span>
                             </div>
-                            <div className="font-mono text-xs tabular-nums text-muted-foreground shrink-0">
-                              {hm(r.start_time)} → {hm(r.arrival_time as string)}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {rt && <RtBadge rt={rt} />}
+                              <div className="font-mono text-xs tabular-nums text-muted-foreground">
+                                {hm(r.start_time)} → {hm(r.arrival_time as string)}
+                              </div>
                             </div>
                           </div>
                           <div className="px-3 pb-2 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5">
