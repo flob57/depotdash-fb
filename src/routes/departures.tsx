@@ -93,6 +93,60 @@ function RouteIcon({ icon }: { icon: string | null }) {
   return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
 }
 
+type RtInfo = {
+  vehicle: VehiclePos;
+  pct: number | null;
+  color: "green" | "orange" | "red";
+  label: string;
+  ageSec: number | null;
+};
+
+function computeRt(
+  r: { route: string; vehicle: string | null; timetable: TimetableStop[] | null },
+  vehicles: VehiclePos[],
+  nowMins: number,
+): RtInfo | null {
+  if (!vehicles.length) return null;
+  const veh = findVehicleForDeparture(vehicles, { route: r.route, vehicle: r.vehicle });
+  if (!veh) return null;
+  let pct: number | null = null;
+  let delaySec = 0;
+  if (r.timetable && r.timetable.length >= 2) {
+    const geo = geocodeTimetable(r.timetable, veh.lat, veh.lon);
+    const proj = projectVehicleOnTimetable(geo, veh.lat, veh.lon);
+    if (proj) {
+      pct = proj.pct;
+      // delay = now - theoretical_time_at_vehicle_position (positive = late)
+      delaySec = (nowMins - proj.theoreticalMins) * 60;
+    }
+  }
+  const color = delayColor(delaySec);
+  const label = pct === null ? "GPS" : formatDelay(delaySec);
+  const ageSec = veh.timestamp ? Math.max(0, Math.floor(Date.now() / 1000) - veh.timestamp) : null;
+  return { vehicle: veh, pct, color, label, ageSec };
+}
+
+function RtBadge({ rt }: { rt: RtInfo }) {
+  const cls =
+    rt.color === "red"
+      ? "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30"
+      : rt.color === "orange"
+        ? "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30"
+        : "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30";
+  return (
+    <span
+      title={`GPS — véh. ${rt.vehicle.vehicleLabel ?? rt.vehicle.entityId}${rt.ageSec !== null ? ` · ${rt.ageSec}s` : ""}`}
+      className={cn(
+        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium font-mono tabular-nums",
+        cls,
+      )}
+    >
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+      {rt.label}
+    </span>
+  );
+}
+
 function RouteProgressBar({
   timetable,
   now,
