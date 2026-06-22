@@ -10,6 +10,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import busIcon from "@/assets/bus-icon.png.asset.json";
+import { GtfsRtUploader } from "@/components/GtfsRtUploader";
+import {
+  delayColor,
+  findVehicleForDeparture,
+  formatDelay,
+  geocodeTimetable,
+  loadFeedFromStorage,
+  projectVehicleOnTimetable,
+  type VehiclePos,
+} from "@/lib/gtfs-rt";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
@@ -83,7 +93,71 @@ function RouteIcon({ icon }: { icon: string | null }) {
   return <span className="inline-block align-middle text-base leading-none">{icon}</span>;
 }
 
-function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | null; now: number }) {
+type RtInfo = {
+  vehicle: VehiclePos;
+  pct: number | null;
+  color: "green" | "orange" | "red";
+  label: string;
+  ageSec: number | null;
+};
+
+function computeRt(
+  r: { route: string; vehicle: string | null; timetable: TimetableStop[] | null },
+  vehicles: VehiclePos[],
+  nowMins: number,
+): RtInfo | null {
+  if (!vehicles.length) return null;
+  const veh = findVehicleForDeparture(vehicles, { route: r.route, vehicle: r.vehicle });
+  if (!veh) return null;
+  let pct: number | null = null;
+  let delaySec = 0;
+  if (r.timetable && r.timetable.length >= 2) {
+    const geo = geocodeTimetable(r.timetable, veh.lat, veh.lon);
+    const proj = projectVehicleOnTimetable(geo, veh.lat, veh.lon);
+    if (proj) {
+      pct = proj.pct;
+      // delay = now - theoretical_time_at_vehicle_position (positive = late)
+      delaySec = (nowMins - proj.theoreticalMins) * 60;
+    }
+  }
+  const color = delayColor(delaySec);
+  const label = pct === null ? "GPS" : formatDelay(delaySec);
+  const ageSec = veh.timestamp ? Math.max(0, Math.floor(Date.now() / 1000) - veh.timestamp) : null;
+  return { vehicle: veh, pct, color, label, ageSec };
+}
+
+function RtBadge({ rt }: { rt: RtInfo }) {
+  const cls =
+    rt.color === "red"
+      ? "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30"
+      : rt.color === "orange"
+        ? "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30"
+        : "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30";
+  return (
+    <span
+      title={`GPS — véh. ${rt.vehicle.vehicleLabel ?? rt.vehicle.entityId}${rt.ageSec !== null ? ` · ${rt.ageSec}s` : ""}`}
+      className={cn(
+        "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium font-mono tabular-nums",
+        cls,
+      )}
+    >
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+      {rt.label}
+    </span>
+  );
+}
+
+function RouteProgressBar({
+  timetable,
+  now,
+  realPct,
+  realColor,
+}: {
+  timetable: TimetableStop[] | null;
+  now: number;
+  realPct?: number | null;
+  realColor?: "green" | "orange" | "red" | null;
+}) {
   if (!timetable || timetable.length < 2) {
     return (
       <div className="px-4 py-3 text-[11px] text-muted-foreground">
@@ -111,6 +185,13 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
     }
   }
   const nextIdx = stops.findIndex((s) => s.mins > now);
+  const showReal = typeof realPct === "number" && !Number.isNaN(realPct);
+  const realDotClass =
+    realColor === "red"
+      ? "bg-red-500 ring-red-500/40"
+      : realColor === "orange"
+        ? "bg-orange-500 ring-orange-500/40"
+        : "bg-green-500 ring-green-500/40";
   return (
     <>
       {/* Desktop: horizontal bar with rotated labels */}
@@ -146,15 +227,32 @@ function RouteProgressBar({ timetable, now }: { timetable: TimetableStop[] | nul
           })}
           <img
             src={busIcon.url}
-            alt="Bus"
-            className="absolute -top-5 w-6 h-6"
+            alt="Bus (théorique)"
+            title="Position théorique"
+            className="absolute -top-5 w-6 h-6 opacity-70"
             style={{ left: `${pct}%`, transform: "translateX(-50%)" }}
           />
+          {showReal && (
+            <div
+              title="Position GPS réelle"
+              className={cn(
+                "absolute -bottom-3 h-4 w-4 rounded-full border-2 border-background ring-4 shadow-md",
+                realDotClass,
+              )}
+              style={{ left: `${realPct}%`, transform: "translateX(-50%)" }}
+            />
+          )}
         </div>
       </div>
 
       {/* Mobile: vertical timeline */}
       <div className="sm:hidden px-4 py-3">
+        {showReal && (
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={cn("inline-block h-2.5 w-2.5 rounded-full", realDotClass)} />
+            Position GPS réelle
+          </div>
+        )}
         <ol className="relative ml-2 border-l-2 border-muted">
           {stops.map((s, i) => {
             const passed = now >= s.mins;
@@ -203,10 +301,21 @@ function DeparturesView() {
   const [rows, setRows] = useState<Departure[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
+  const [vehicles, setVehicles] = useState<VehiclePos[]>([]);
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 15000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      const f = loadFeedFromStorage();
+      setVehicles(f?.vehicles ?? []);
+    };
+    load();
+    window.addEventListener("gtfsrt:updated", load);
+    return () => window.removeEventListener("gtfsrt:updated", load);
   }, []);
 
   const [checkedPages, setCheckedPages] = useState<Set<string>>(new Set());
@@ -291,6 +400,7 @@ function DeparturesView() {
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <GtfsRtUploader />
             <Button variant={showAll ? "default" : "outline"} size="sm" className="text-xs px-2 sm:text-sm sm:px-3" onClick={() => setShowAll((s) => !s)}>
               {showAll ? "Prochains" : "Tous"}
             </Button>
@@ -332,6 +442,7 @@ function DeparturesView() {
                       const isP = /^p/i.test(r.route?.trim() ?? "");
                       const expanded = expandedDiagrams.has(r.id);
                       const next = nextStopOf(r.timetable, now);
+                      const rt = computeRt(r, vehicles, now);
                       return (
                         <div key={r.id} className="rounded-md border bg-primary/5 overflow-hidden">
                           <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -341,8 +452,11 @@ function DeparturesView() {
                               <span className="text-muted-foreground">·</span>
                               <span className="text-foreground">{r.location || "—"}</span>
                             </div>
-                            <div className="font-mono text-xs tabular-nums text-muted-foreground shrink-0">
-                              {hm(r.start_time)} → {hm(r.arrival_time as string)}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {rt && <RtBadge rt={rt} />}
+                              <div className="font-mono text-xs tabular-nums text-muted-foreground">
+                                {hm(r.start_time)} → {hm(r.arrival_time as string)}
+                              </div>
                             </div>
                           </div>
                           <div className="px-3 pb-2 text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -365,7 +479,14 @@ function DeparturesView() {
                               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                               {expanded ? "Masquer le tracé" : "Afficher le tracé"}
                             </button>
-                            {expanded && <RouteProgressBar timetable={r.timetable} now={now} />}
+                            {expanded && (
+                              <RouteProgressBar
+                                timetable={r.timetable}
+                                now={now}
+                                realPct={rt?.pct ?? null}
+                                realColor={rt?.color ?? null}
+                              />
+                            )}
                           </div>
                         </div>
                       );
@@ -394,6 +515,7 @@ function DeparturesView() {
                           const isP = /^p/i.test(r.route?.trim() ?? "");
                           const expanded = expandedDiagrams.has(r.id);
                           const next = nextStopOf(r.timetable, now);
+                          const rt = computeRt(r, vehicles, now);
                           return (
                             <Fragment key={r.id}>
                               <tr className="border-t bg-primary/5">
@@ -402,6 +524,7 @@ function DeparturesView() {
                                   <span className="inline-flex items-center gap-1.5">
                                     <RouteIcon icon={r.route_icon} />
                                     {routeLabel(r.route)}
+                                    {rt && <RtBadge rt={rt} />}
                                   </span>
                                 </td>
                                 <td className="px-3 py-2">{r.location || "—"}</td>
@@ -434,7 +557,12 @@ function DeparturesView() {
                               {expanded && (
                                 <tr className="bg-primary/5">
                                   <td colSpan={9} className="p-0">
-                                    <RouteProgressBar timetable={r.timetable} now={now} />
+                                    <RouteProgressBar
+                                      timetable={r.timetable}
+                                      now={now}
+                                      realPct={rt?.pct ?? null}
+                                      realColor={rt?.color ?? null}
+                                    />
                                   </td>
                                 </tr>
                               )}
