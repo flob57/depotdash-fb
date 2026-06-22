@@ -248,7 +248,7 @@ function RoutePage() {
   }
 
   const allDone = currentStop == null;
-  const currentMatch = currentStop ? matches.get(currentStop.index) : null;
+  const currentMatch: StopMatch = currentStop ? matches.get(currentStop.index) ?? null : null;
 
   return (
     <div className="min-h-screen bg-background pb-40">
