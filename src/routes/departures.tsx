@@ -10,6 +10,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import busIcon from "@/assets/bus-icon.png.asset.json";
+import { GtfsRtUploader } from "@/components/GtfsRtUploader";
+import {
+  delayColor,
+  findVehicleForDeparture,
+  formatDelay,
+  geocodeTimetable,
+  loadFeedFromStorage,
+  projectVehicleOnTimetable,
+  type VehiclePos,
+} from "@/lib/gtfs-rt";
 
 export const Route = createFileRoute("/departures")({
   component: DeparturesPage,
