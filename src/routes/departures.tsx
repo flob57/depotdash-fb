@@ -563,6 +563,7 @@ function DeparturesView() {
                                       realPct={rt?.pct ?? null}
                                       realColor={rt?.color ?? null}
                                     />
+                                  </td>
                                 </tr>
                               )}
                             </Fragment>
