@@ -557,8 +557,12 @@ function DeparturesView() {
                               {expanded && (
                                 <tr className="bg-primary/5">
                                   <td colSpan={9} className="p-0">
-                                    <RouteProgressBar timetable={r.timetable} now={now} />
-                                  </td>
+                                    <RouteProgressBar
+                                      timetable={r.timetable}
+                                      now={now}
+                                      realPct={rt?.pct ?? null}
+                                      realColor={rt?.color ?? null}
+                                    />
                                 </tr>
                               )}
                             </Fragment>
