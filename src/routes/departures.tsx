@@ -346,6 +346,7 @@ function DeparturesView() {
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <GtfsRtUploader />
             <Button variant={showAll ? "default" : "outline"} size="sm" className="text-xs px-2 sm:text-sm sm:px-3" onClick={() => setShowAll((s) => !s)}>
               {showAll ? "Prochains" : "Tous"}
             </Button>
