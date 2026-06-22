@@ -479,7 +479,14 @@ function DeparturesView() {
                               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                               {expanded ? "Masquer le tracé" : "Afficher le tracé"}
                             </button>
-                            {expanded && <RouteProgressBar timetable={r.timetable} now={now} />}
+                            {expanded && (
+                              <RouteProgressBar
+                                timetable={r.timetable}
+                                now={now}
+                                realPct={rt?.pct ?? null}
+                                realColor={rt?.color ?? null}
+                              />
+                            )}
                           </div>
                         </div>
                       );
