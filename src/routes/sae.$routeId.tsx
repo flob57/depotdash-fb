@@ -447,6 +447,184 @@ function GpsStopBadge({
   );
 }
 
+function formatDistance(d: number) {
+  if (d < 1000) return `${Math.round(d)} m`;
+  return `${(d / 1000).toFixed(1)} km`;
+}
+
+function ProximityBlock({
+  match, distance,
+}: { match: StopMatch; distance: number | null }) {
+  if (!match) return (
+    <span className="rounded-md bg-amber-500/15 px-2 py-1 text-[10px] font-semibold text-amber-700" title="Aucune coordonnée trouvée — validation manuelle">
+      Non géolocalisé
+    </span>
+  );
+  if (distance == null) return null;
+
+  const textColor =
+    distance < 200 ? "text-orange-500"
+    : distance < 500 ? "text-yellow-500"
+    : "text-green-600";
+  const bandColor =
+    distance < 200 ? "bg-orange-500"
+    : distance < 500 ? "bg-yellow-500"
+    : "bg-green-500";
+
+  // Bus position: 100% (right) when far (≥1000m), 0% (at pole on left) at 0m
+  const maxRange = 1000;
+  const frac = Math.min(1, Math.max(0, distance / maxRange));
+  const busLeftPct = frac * 100;
+  const conf = match.confidence === "low" ? " ?" : "";
+
+  return (
+    <div className="flex w-[150px] shrink-0 flex-col items-end gap-1">
+      <div className={`font-mono text-2xl font-bold leading-none ${textColor}`} title={`±${match.distance}`}>
+        {formatDistance(distance)}{conf}
+      </div>
+      <div className="relative h-10 w-full overflow-hidden rounded-md border bg-background">
+        {/* road */}
+        <div className="absolute inset-x-0 top-0 h-7 bg-neutral-800">
+          {/* dashed center line */}
+          <div
+            className="absolute left-0 right-0 top-1/2 h-[2px] -translate-y-1/2"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(to right, #facc15 0 8px, transparent 8px 16px)",
+            }}
+          />
+        </div>
+        {/* color band */}
+        <div className={`absolute inset-x-0 bottom-0 h-3 ${bandColor}`} />
+        {/* stop pole at left */}
+        <div className="absolute left-1 top-0 flex h-7 flex-col items-center">
+          <div className="h-1.5 w-3 rounded-sm bg-red-500" />
+          <div className="h-full w-[2px] bg-neutral-400" />
+        </div>
+        {/* bus (flipped to face left) */}
+        <img
+          src={busIcon.url}
+          alt=""
+          className="absolute top-1 h-5 w-auto transition-[left] duration-700 ease-out"
+          style={{ left: `calc(${busLeftPct}% - 12px)`, transform: "scaleX(-1)" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function RouteProgressChart({
+  stops, currentIndex, completedCount, distanceToCurrent, nearMeters,
+}: {
+  stops: { index: number; name: string; scheduledTime: string | null }[];
+  currentIndex: number;
+  completedCount: number;
+  distanceToCurrent: number | null;
+  nearMeters: number;
+}) {
+  if (stops.length < 2) return null;
+
+  // Progress in stop-units: 0 = at first stop, stops.length-1 = at last
+  let progress = completedCount; // we're between completed and current
+  if (distanceToCurrent != null) {
+    // approach fraction: 0 when far (>500m), 1 when at/under nearMeters
+    const approach = Math.min(1, Math.max(0, 1 - (distanceToCurrent - nearMeters) / 500));
+    progress = Math.max(0, completedCount - 1) + approach;
+  }
+  progress = Math.min(stops.length - 1, Math.max(0, progress));
+  const progressPct = (progress / (stops.length - 1)) * 100;
+
+  // Make chart scroll horizontally when there are many stops
+  const minWidth = Math.max(320, stops.length * 64);
+
+  return (
+    <section className="rounded-lg border bg-card p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Progression de la tournée
+        </div>
+        <div className="font-mono text-[11px] text-muted-foreground">
+          {completedCount}/{stops.length - 1}
+        </div>
+      </div>
+      <div className="overflow-x-auto pb-1">
+        <div className="relative pt-7" style={{ width: minWidth, height: 90 }}>
+          {/* bus icon */}
+          <img
+            src={busIcon.url}
+            alt=""
+            className="absolute z-10 h-7 w-auto -translate-x-1/2 transition-[left] duration-700 ease-out"
+            style={{ left: `${progressPct}%`, top: 0 }}
+          />
+          {/* line container */}
+          <div className="relative h-6">
+            {/* base line */}
+            <div className="absolute left-0 right-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-muted" />
+            {/* progress line */}
+            <div
+              className="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-primary"
+              style={{ width: `${progressPct}%` }}
+            />
+            {/* stop dots */}
+            {stops.map((s, i) => {
+              const x = (i / (stops.length - 1)) * 100;
+              const done = i < completedCount;
+              const isCurrent = s.index === currentIndex;
+              return (
+                <div
+                  key={s.index}
+                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${x}%` }}
+                >
+                  <div
+                    className={`h-3 w-3 rounded-full border-2 ${
+                      isCurrent
+                        ? "border-primary bg-background"
+                        : done
+                          ? "border-primary bg-primary"
+                          : "border-muted-foreground/40 bg-background"
+                    }`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {/* labels */}
+          <div className="relative mt-1 h-12">
+            {stops.map((s, i) => {
+              const x = (i / (stops.length - 1)) * 100;
+              const isCurrent = s.index === currentIndex;
+              return (
+                <div
+                  key={s.index}
+                  className="absolute origin-top-left whitespace-nowrap text-[10px] leading-tight"
+                  style={{
+                    left: `${x}%`,
+                    top: 0,
+                    transform: "rotate(45deg) translateX(2px)",
+                  }}
+                >
+                  <span
+                    className={
+                      isCurrent
+                        ? "font-semibold text-primary"
+                        : i < completedCount
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground/80"
+                    }
+                  >
+                    {s.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function GpsSettingsButton({
   gps, setGps,
 }: { gps: GpsSettings; setGps: (s: GpsSettings) => void }) {
