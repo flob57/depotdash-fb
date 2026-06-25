@@ -304,23 +304,25 @@ function RoutePage() {
                 isNear ? "border-green-500/70 bg-green-500/5" : "border-primary/50"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className={`text-[11px] font-semibold uppercase tracking-wide ${isNear ? "text-green-700" : "text-primary"}`}>
-                  {isNear ? "Vous êtes à l'arrêt" : "Arrêt actuel"}
-                </div>
-                {gps.enabled && (
-                  <GpsStopBadge match={currentMatch} distance={distanceToCurrent} />
-                )}
-              </div>
-              <div className="mt-1 flex items-baseline gap-3">
-                <MapPin className={`h-5 w-5 shrink-0 ${isNear ? "text-green-600" : "text-primary"}`} />
-                <div className="min-w-0">
-                  <div className="text-2xl font-semibold leading-tight">{currentStop.name}</div>
-                  <div className="mt-0.5 text-sm text-muted-foreground">
-                    Théorique :{" "}
-                    <span className="font-mono">{currentStop.scheduledTime ?? "—"}</span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className={`text-[11px] font-semibold uppercase tracking-wide ${isNear ? "text-green-700" : "text-primary"}`}>
+                    {isNear ? "Vous êtes à l'arrêt" : "Arrêt actuel"}
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-3">
+                    <MapPin className={`h-5 w-5 shrink-0 ${isNear ? "text-green-600" : "text-primary"}`} />
+                    <div className="min-w-0">
+                      <div className="text-2xl font-semibold leading-tight">{currentStop.name}</div>
+                      <div className="mt-0.5 text-sm text-muted-foreground">
+                        Théorique :{" "}
+                        <span className="font-mono">{currentStop.scheduledTime ?? "—"}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+                {gps.enabled && (
+                  <ProximityBlock match={currentMatch} distance={distanceToCurrent} />
+                )}
               </div>
               {deviationSeconds != null && (
                 <DeviationCounter seconds={deviationSeconds} />
@@ -349,6 +351,14 @@ function RoutePage() {
                 Dernier arrêt de la tournée
               </section>
             )}
+
+            <RouteProgressChart
+              stops={details.stops}
+              currentIndex={currentStop.index}
+              completedCount={validated.size}
+              distanceToCurrent={distanceToCurrent}
+              nearMeters={gps.nearMeters}
+            />
           </>
         )}
       </main>
