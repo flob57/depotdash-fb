@@ -187,21 +187,54 @@ export const getWeeklyTasksForToday = createServerFn({ method: "GET" })
     return { tasks, configured: true, error: null, datePropName: dateProp };
   });
 
+const UUID_RE = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+
 export const completeWeeklyTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ pageId: z.string().min(1).max(200) }).parse(input))
+  .inputValidator((input) =>
+    z
+      .object({
+        pageId: z
+          .string()
+          .min(1)
+          .max(200)
+          .refine((s) => UUID_RE.test(s.replace(/-/g, "").replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, "$1-$2-$3-$4-$5")), {
+            message: "pageId must be a Notion UUID",
+          }),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const settings = await getTimezone(supabase as never, userId);
     if (!settings.dbId) throw new Error("Weekly-tasks database not configured.");
 
-    const { db } = await resolveDatabase(settings.dbId);
+    const { id: dbId, db } = await resolveDatabase(settings.dbId);
     const dateProp = findDateProp(db.properties as never);
     if (!dateProp) {
       throw new Error(
         'Add a Date property (e.g. "Last completed") to your weekly-tasks Notion database.',
       );
     }
+
+    // Authorization: confirm the page lives inside *this user's* configured
+    // weekly-tasks database before issuing the PATCH. Without this check, any
+    // authenticated user could PATCH any Notion page reachable by the shared
+    // integration token by supplying its ID.
+    const normalize = (s: string) => s.replace(/-/g, "").toLowerCase();
+    const target = normalize(data.pageId);
+    const pageMeta = (await notionFetch(`/pages/${data.pageId}`, { method: "GET" })) as {
+      id: string;
+      parent?: { type: string; database_id?: string };
+    };
+    if (normalize(pageMeta.id) !== target) {
+      throw new Error("Notion page not found.");
+    }
+    const parentDb = pageMeta.parent?.database_id ? normalize(pageMeta.parent.database_id) : "";
+    if (pageMeta.parent?.type !== "database_id" || parentDb !== normalize(dbId)) {
+      throw new Error("Forbidden: page does not belong to your weekly-tasks database.");
+    }
+
     const { iso } = localDateParts(settings.tz, new Date());
     await notionFetch(`/pages/${data.pageId}`, {
       method: "PATCH",
@@ -213,3 +246,4 @@ export const completeWeeklyTask = createServerFn({ method: "POST" })
     });
     return { success: true };
   });
+
