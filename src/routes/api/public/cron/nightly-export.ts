@@ -117,17 +117,19 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Authenticate the scheduler using the project's anon/publishable key
-        // sent in the standard `apikey` header (pg_cron + pg_net pattern).
-        const expected =
-          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "";
-        const provided = request.headers.get("apikey") ?? "";
+        // Authenticate the scheduler with a server-only shared secret. The
+        // previous publishable-key check was insufficient: that key is bundled
+        // into the public client JS and could be replayed by anyone.
+        const expected = process.env.CRON_SECRET ?? "";
+        const provided =
+          request.headers.get("x-cron-secret") ??
+          request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+          "";
+        const { timingSafeEqual } = await import("crypto");
         const a = Buffer.from(provided);
         const b = Buffer.from(expected);
         const ok =
-          expected.length > 0 &&
-          a.length === b.length &&
-          (await import("crypto")).timingSafeEqual(a, b);
+          expected.length > 0 && a.length === b.length && timingSafeEqual(a, b);
         if (!ok) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
@@ -148,7 +150,9 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
           });
         }
         const settings = (data ?? []) as Settings[];
-        const results = [];
+        let processed = 0;
+        let skipped = 0;
+        let errored = 0;
         for (const s of settings) {
           if (
             !s.shifts_db_id &&
@@ -158,13 +162,32 @@ export const Route = createFileRoute("/api/public/cron/nightly-export")({
             !s.fuel_fillups_db_id
           )
             continue;
-          results.push(await runForUser(s, force));
+          try {
+            const r = await runForUser(s, force);
+            if ((r as { skipped?: boolean }).skipped) skipped++;
+            else if ((r as { error?: string }).error) {
+              // Log server-side only; never leak per-user details to the caller.
+              console.error("[nightly-export] user run failed", (r as { error: string }).error);
+              errored++;
+            } else processed++;
+          } catch (e) {
+            console.error("[nightly-export] unexpected error", e);
+            errored++;
+          }
         }
+        // Aggregated response only — no user IDs, no per-user payloads.
         return new Response(
-          JSON.stringify({ ran_at: new Date().toISOString(), users: results.length, results }),
+          JSON.stringify({
+            ok: true,
+            ran_at: new Date().toISOString(),
+            processed,
+            skipped,
+            errored,
+          }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       },
+
       GET: async () =>
         new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405,
