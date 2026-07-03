@@ -174,6 +174,24 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="parkingDb">Parking (Stationnement) database</Label>
+            <Input
+              id="parkingDb"
+              value={parking}
+              onChange={(e) => setParking(e.target.value)}
+              placeholder="https://www.notion.so/…"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: <strong>Emplacement</strong> (title), <strong>Depot</strong>{" "}
+              (select), <strong>X</strong> / <strong>Y</strong> (number, 0–100), <strong>Statut</strong>{" "}
+              (status/select: Libre / Occupé), <strong>Type</strong> (select), optional{" "}
+              <strong>Vehicle</strong> relation.
+            </p>
+          </div>
+
+
+          <div className="space-y-2">
             <Label htmlFor="tz">Timezone</Label>
             <Input
               id="tz"
