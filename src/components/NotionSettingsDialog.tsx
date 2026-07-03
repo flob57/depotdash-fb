@@ -29,6 +29,8 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [distance, setDistance] = useState("");
   const [fuel, setFuel] = useState("");
   const [weeklyTasks, setWeeklyTasks] = useState("");
+  const [parking, setParking] = useState("");
+
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,9 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
         setDistance(s.distance_summary_db_id ?? "");
         setFuel(s.fuel_fillups_db_id ?? "");
         setWeeklyTasks((s as { weekly_tasks_db_id?: string | null }).weekly_tasks_db_id ?? "");
+        setParking((s as { parking_db_id?: string | null }).parking_db_id ?? "");
         setTimezone(s.timezone ?? "Europe/Brussels");
+
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load settings"))
       .finally(() => setLoading(false));
@@ -62,7 +66,9 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           distance_summary_db_id: distance.trim() || null,
           fuel_fillups_db_id: fuel.trim() || null,
           weekly_tasks_db_id: weeklyTasks.trim() || null,
+          parking_db_id: parking.trim() || null,
           timezone: timezone.trim() || "Europe/Brussels",
+
         },
       });
       toast.success("Auto-export settings saved");
@@ -166,6 +172,24 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
               stamped with today's date when you check a task.
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="parkingDb">Parking (Stationnement) database</Label>
+            <Input
+              id="parkingDb"
+              value={parking}
+              onChange={(e) => setParking(e.target.value)}
+              placeholder="https://www.notion.so/…"
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Expected columns: <strong>Emplacement</strong> (title), <strong>Depot</strong>{" "}
+              (select), <strong>X</strong> / <strong>Y</strong> (number, 0–100), <strong>Statut</strong>{" "}
+              (status/select: Libre / Occupé), <strong>Type</strong> (select), optional{" "}
+              <strong>Vehicle</strong> relation.
+            </p>
+          </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="tz">Timezone</Label>

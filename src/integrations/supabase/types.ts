@@ -504,6 +504,7 @@ export type Database = {
           daily_totals_db_id: string | null
           distance_summary_db_id: string | null
           fuel_fillups_db_id: string | null
+          parking_db_id: string | null
           planning_db_id: string | null
           sae_lmjv_db_id: string | null
           sae_mercredi_db_id: string | null
@@ -525,6 +526,7 @@ export type Database = {
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          parking_db_id?: string | null
           planning_db_id?: string | null
           sae_lmjv_db_id?: string | null
           sae_mercredi_db_id?: string | null
@@ -546,6 +548,7 @@ export type Database = {
           daily_totals_db_id?: string | null
           distance_summary_db_id?: string | null
           fuel_fillups_db_id?: string | null
+          parking_db_id?: string | null
           planning_db_id?: string | null
           sae_lmjv_db_id?: string | null
           sae_mercredi_db_id?: string | null
