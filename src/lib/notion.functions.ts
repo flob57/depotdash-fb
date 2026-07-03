@@ -146,6 +146,7 @@ export const getNotionSettings = createServerFn({ method: "GET" })
         distance_summary_db_id: null,
         fuel_fillups_db_id: null,
         weekly_tasks_db_id: null,
+        parking_db_id: null,
         timezone: "Europe/Brussels",
       }
     );
@@ -164,6 +165,7 @@ export const saveNotionSettings = createServerFn({ method: "POST" })
       distance_summary_db_id: data.distance_summary_db_id ?? null,
       fuel_fillups_db_id: data.fuel_fillups_db_id ?? null,
       weekly_tasks_db_id: data.weekly_tasks_db_id ?? null,
+      parking_db_id: data.parking_db_id ?? null,
       timezone: data.timezone ?? "Europe/Brussels",
     };
     const { error } = await supabase
@@ -172,6 +174,7 @@ export const saveNotionSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
 
 // Manually trigger the same logic as the nightly cron, for the current user.
 // Useful for testing the configured databases without waiting for 23:59.
