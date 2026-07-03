@@ -47,7 +47,9 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
         setDistance(s.distance_summary_db_id ?? "");
         setFuel(s.fuel_fillups_db_id ?? "");
         setWeeklyTasks((s as { weekly_tasks_db_id?: string | null }).weekly_tasks_db_id ?? "");
+        setParking((s as { parking_db_id?: string | null }).parking_db_id ?? "");
         setTimezone(s.timezone ?? "Europe/Brussels");
+
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load settings"))
       .finally(() => setLoading(false));
