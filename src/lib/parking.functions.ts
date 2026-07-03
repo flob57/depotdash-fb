@@ -116,11 +116,12 @@ async function loadSchema(userId: string, supabase: unknown): Promise<ParkingSch
   if (error) throw new Error(error.message);
   if (!data?.parking_db_id) throw new Error("Parking database not configured.");
 
-  const { id: dbId, db } = (await resolveDatabase(data.parking_db_id)) as {
+  const { id: dbId, db } = (await resolveDatabase(data.parking_db_id)) as unknown as {
     id: string;
     db: NotionDb;
   };
   const props = db.properties;
+
 
   // Title (name)
   let nameProp = "";
