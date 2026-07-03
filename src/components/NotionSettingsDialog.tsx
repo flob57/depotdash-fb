@@ -66,7 +66,9 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
           distance_summary_db_id: distance.trim() || null,
           fuel_fillups_db_id: fuel.trim() || null,
           weekly_tasks_db_id: weeklyTasks.trim() || null,
+          parking_db_id: parking.trim() || null,
           timezone: timezone.trim() || "Europe/Brussels",
+
         },
       });
       toast.success("Auto-export settings saved");
