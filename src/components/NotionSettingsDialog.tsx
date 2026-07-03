@@ -29,6 +29,8 @@ export function NotionSettingsDialog({ open, onOpenChange }: Props) {
   const [distance, setDistance] = useState("");
   const [fuel, setFuel] = useState("");
   const [weeklyTasks, setWeeklyTasks] = useState("");
+  const [parking, setParking] = useState("");
+
   const [timezone, setTimezone] = useState("Europe/Brussels");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
