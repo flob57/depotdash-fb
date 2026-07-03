@@ -122,8 +122,10 @@ const SettingsSchema = z.object({
   distance_summary_db_id: z.string().max(500).nullable().optional(),
   fuel_fillups_db_id: z.string().max(500).nullable().optional(),
   weekly_tasks_db_id: z.string().max(500).nullable().optional(),
+  parking_db_id: z.string().max(500).nullable().optional(),
   timezone: z.string().min(1).max(100).optional(),
 });
+
 
 export const getNotionSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
