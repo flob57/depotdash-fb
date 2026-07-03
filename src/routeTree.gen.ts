@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SaeRouteImport } from './routes/sae'
+import { Route as ParkingRouteImport } from './routes/parking'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DutiesRouteImport } from './routes/duties'
 import { Route as DeparturesRouteImport } from './routes/departures'
@@ -25,6 +26,11 @@ import { Route as ApiPublicRouteIconUserFileRouteImport } from './routes/api/pub
 const SaeRoute = SaeRouteImport.update({
   id: '/sae',
   path: '/sae',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParkingRoute = ParkingRouteImport.update({
+  id: '/parking',
+  path: '/parking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/parking': typeof ParkingRoute
   '/sae': typeof SaeRouteWithChildren
   '/sae/$routeId': typeof SaeRouteIdRoute
   '/sae/history': typeof SaeHistoryRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/parking': typeof ParkingRoute
   '/sae/$routeId': typeof SaeRouteIdRoute
   '/sae/history': typeof SaeHistoryRoute
   '/sae': typeof SaeIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/departures': typeof DeparturesRoute
   '/duties': typeof DutiesRoute
   '/login': typeof LoginRoute
+  '/parking': typeof ParkingRoute
   '/sae': typeof SaeRouteWithChildren
   '/sae/$routeId': typeof SaeRouteIdRoute
   '/sae/history': typeof SaeHistoryRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/parking'
     | '/sae'
     | '/sae/$routeId'
     | '/sae/history'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/parking'
     | '/sae/$routeId'
     | '/sae/history'
     | '/sae'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/departures'
     | '/duties'
     | '/login'
+    | '/parking'
     | '/sae'
     | '/sae/$routeId'
     | '/sae/history'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   DeparturesRoute: typeof DeparturesRoute
   DutiesRoute: typeof DutiesRoute
   LoginRoute: typeof LoginRoute
+  ParkingRoute: typeof ParkingRoute
   SaeRoute: typeof SaeRouteWithChildren
   ApiPublicGtfsAlertsRoute: typeof ApiPublicGtfsAlertsRoute
   ApiPublicCronNightlyExportRoute: typeof ApiPublicCronNightlyExportRoute
@@ -190,6 +203,13 @@ declare module '@tanstack/react-router' {
       path: '/sae'
       fullPath: '/sae'
       preLoaderRoute: typeof SaeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parking': {
+      id: '/parking'
+      path: '/parking'
+      fullPath: '/parking'
+      preLoaderRoute: typeof ParkingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -292,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeparturesRoute: DeparturesRoute,
   DutiesRoute: DutiesRoute,
   LoginRoute: LoginRoute,
+  ParkingRoute: ParkingRoute,
   SaeRoute: SaeRouteWithChildren,
   ApiPublicGtfsAlertsRoute: ApiPublicGtfsAlertsRoute,
   ApiPublicCronNightlyExportRoute: ApiPublicCronNightlyExportRoute,
