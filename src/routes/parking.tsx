@@ -158,7 +158,7 @@ function LestonanMap({
           <PlanBlock left={74} top={16} width={7} height={9} className="bg-sky-300 text-neutral-900">
             Ad&nbsp;Blue
           </PlanBlock>
-          <PlanBlock left={82} top={6} width={6} height={22} className="bg-white text-neutral-800 border writing-vertical">
+          <PlanBlock left={82} top={6} width={6} height={22} className="bg-white text-neutral-800 border" verticalText>
             LAVAGE
           </PlanBlock>
 
