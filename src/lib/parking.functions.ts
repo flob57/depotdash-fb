@@ -186,10 +186,10 @@ export const getParkingSpots = createServerFn({ method: "GET" })
         const props = page.properties;
         const name = readText(props[schema.nameProp]);
         const depot = readText(props[schema.depotProp]);
-        const x = readNumber(props[schema.xProp]);
-        const y = readNumber(props[schema.yProp]);
-        const statut = readText(props[schema.statutProp]);
-        const type = readText(props[schema.typeProp]);
+        const x = schema.xProp ? readNumber(props[schema.xProp]) : null;
+        const y = schema.yProp ? readNumber(props[schema.yProp]) : null;
+        const statut = schema.statutProp ? readText(props[schema.statutProp]) : "";
+        const type = schema.typeProp ? readText(props[schema.typeProp]) : "";
         let vehicleId: string | null = null;
         if (schema.vehicleProp) {
           const vp = props[schema.vehicleProp];
