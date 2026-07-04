@@ -97,10 +97,10 @@ type ParkingSchema = {
   dbId: string;
   nameProp: string; // title
   depotProp: string;
-  xProp: string;
-  yProp: string;
-  statutProp: string;
-  typeProp: string;
+  xProp: string | null;
+  yProp: string | null;
+  statutProp: string | null;
+  typeProp: string | null;
   vehicleProp: string | null;
   vehicleDbId: string | null;
 };
@@ -122,7 +122,6 @@ async function loadSchema(userId: string, supabase: unknown): Promise<ParkingSch
   };
   const props = db.properties;
 
-
   // Title (name)
   let nameProp = "";
   for (const [name, p] of Object.entries(props)) {
@@ -135,12 +134,13 @@ async function loadSchema(userId: string, supabase: unknown): Promise<ParkingSch
   const yProp = findPropByCandidates(props, ["y"], ["number", "formula"]);
   const statutProp = findPropByCandidates(props, ["statut", "status", "state"]);
   const typeProp = findPropByCandidates(props, ["type", "categorie", "catégorie"]);
-  const vehicleProp = findPropByCandidates(props, ["vehicle", "vehicule", "véhicule", "bus", "car"], ["relation", "rich_text", "title"]);
+  const vehicleProp = findPropByCandidates(
+    props,
+    ["mon parc", "vehicle", "vehicule", "véhicule", "bus", "car"],
+    ["relation", "rich_text", "title"],
+  );
 
   if (!depotProp) throw new Error('Missing "Depot" property in Stationnement DB.');
-  if (!xProp || !yProp) throw new Error('Missing "X" or "Y" number property in Stationnement DB.');
-  if (!statutProp) throw new Error('Missing "Statut" property in Stationnement DB.');
-  if (!typeProp) throw new Error('Missing "Type" property in Stationnement DB.');
 
   const vehicleDbId =
     vehicleProp && props[vehicleProp].type === "relation"
