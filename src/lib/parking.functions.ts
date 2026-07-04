@@ -312,27 +312,16 @@ export const freeSpot = createServerFn({ method: "POST" })
   .inputValidator((input) => FreeSchema.parse(input))
   .handler(async ({ data, context }) => {
     const schema = await loadSchema(context.userId, context.supabase);
+    if (!schema.vehicleProp) throw new Error("No vehicle relation on Stationnement DB.");
     await assertSpotBelongsToUser(data.pageId, schema.dbId);
 
-    const properties: Record<string, unknown> = {};
-    properties[schema.statutProp] = { status: { name: "Libre" } };
-    if (schema.vehicleProp) properties[schema.vehicleProp] = { relation: [] };
-
-    try {
-      await notionFetch(`/pages/${data.pageId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ properties }),
-      });
-    } catch (e) {
-      if (String(e).includes("status")) {
-        properties[schema.statutProp] = { select: { name: "Libre" } };
-        await notionFetch(`/pages/${data.pageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ properties }),
-        });
-      } else {
-        throw e;
-      }
-    }
+    await notionFetch(`/pages/${data.pageId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          [schema.vehicleProp]: { relation: [] },
+        },
+      }),
+    });
     return { success: true };
   });
