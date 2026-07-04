@@ -300,25 +300,9 @@ export const assignVehicleToSpot = createServerFn({ method: "POST" })
       method: "PATCH",
       body: JSON.stringify({
         properties: {
-          [schema.statutProp]: { status: { name: "Occupé" } },
           [schema.vehicleProp]: { relation: [{ id: data.vehicleId }] },
         },
       }),
-    }).catch(async (e) => {
-      // Fallback: some setups use "select" instead of "status".
-      if (String(e).includes("status")) {
-        await notionFetch(`/pages/${data.pageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            properties: {
-              [schema.statutProp]: { select: { name: "Occupé" } },
-              [schema.vehicleProp!]: { relation: [{ id: data.vehicleId }] },
-            },
-          }),
-        });
-        return;
-      }
-      throw e;
     });
     return { success: true };
   });
