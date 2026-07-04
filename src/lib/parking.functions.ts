@@ -97,10 +97,10 @@ type ParkingSchema = {
   dbId: string;
   nameProp: string; // title
   depotProp: string;
-  xProp: string;
-  yProp: string;
-  statutProp: string;
-  typeProp: string;
+  xProp: string | null;
+  yProp: string | null;
+  statutProp: string | null;
+  typeProp: string | null;
   vehicleProp: string | null;
   vehicleDbId: string | null;
 };
@@ -122,7 +122,6 @@ async function loadSchema(userId: string, supabase: unknown): Promise<ParkingSch
   };
   const props = db.properties;
 
-
   // Title (name)
   let nameProp = "";
   for (const [name, p] of Object.entries(props)) {
@@ -135,12 +134,13 @@ async function loadSchema(userId: string, supabase: unknown): Promise<ParkingSch
   const yProp = findPropByCandidates(props, ["y"], ["number", "formula"]);
   const statutProp = findPropByCandidates(props, ["statut", "status", "state"]);
   const typeProp = findPropByCandidates(props, ["type", "categorie", "catégorie"]);
-  const vehicleProp = findPropByCandidates(props, ["vehicle", "vehicule", "véhicule", "bus", "car"], ["relation", "rich_text", "title"]);
+  const vehicleProp = findPropByCandidates(
+    props,
+    ["mon parc", "vehicle", "vehicule", "véhicule", "bus", "car"],
+    ["relation", "rich_text", "title"],
+  );
 
   if (!depotProp) throw new Error('Missing "Depot" property in Stationnement DB.');
-  if (!xProp || !yProp) throw new Error('Missing "X" or "Y" number property in Stationnement DB.');
-  if (!statutProp) throw new Error('Missing "Statut" property in Stationnement DB.');
-  if (!typeProp) throw new Error('Missing "Type" property in Stationnement DB.');
 
   const vehicleDbId =
     vehicleProp && props[vehicleProp].type === "relation"
@@ -186,10 +186,10 @@ export const getParkingSpots = createServerFn({ method: "GET" })
         const props = page.properties;
         const name = readText(props[schema.nameProp]);
         const depot = readText(props[schema.depotProp]);
-        const x = readNumber(props[schema.xProp]);
-        const y = readNumber(props[schema.yProp]);
-        const statut = readText(props[schema.statutProp]);
-        const type = readText(props[schema.typeProp]);
+        const x = schema.xProp ? readNumber(props[schema.xProp]) : null;
+        const y = schema.yProp ? readNumber(props[schema.yProp]) : null;
+        const statut = schema.statutProp ? readText(props[schema.statutProp]) : "";
+        const type = schema.typeProp ? readText(props[schema.typeProp]) : "";
         let vehicleId: string | null = null;
         if (schema.vehicleProp) {
           const vp = props[schema.vehicleProp];
@@ -300,25 +300,9 @@ export const assignVehicleToSpot = createServerFn({ method: "POST" })
       method: "PATCH",
       body: JSON.stringify({
         properties: {
-          [schema.statutProp]: { status: { name: "Occupé" } },
           [schema.vehicleProp]: { relation: [{ id: data.vehicleId }] },
         },
       }),
-    }).catch(async (e) => {
-      // Fallback: some setups use "select" instead of "status".
-      if (String(e).includes("status")) {
-        await notionFetch(`/pages/${data.pageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            properties: {
-              [schema.statutProp]: { select: { name: "Occupé" } },
-              [schema.vehicleProp!]: { relation: [{ id: data.vehicleId }] },
-            },
-          }),
-        });
-        return;
-      }
-      throw e;
     });
     return { success: true };
   });
@@ -328,27 +312,16 @@ export const freeSpot = createServerFn({ method: "POST" })
   .inputValidator((input) => FreeSchema.parse(input))
   .handler(async ({ data, context }) => {
     const schema = await loadSchema(context.userId, context.supabase);
+    if (!schema.vehicleProp) throw new Error("No vehicle relation on Stationnement DB.");
     await assertSpotBelongsToUser(data.pageId, schema.dbId);
 
-    const properties: Record<string, unknown> = {};
-    properties[schema.statutProp] = { status: { name: "Libre" } };
-    if (schema.vehicleProp) properties[schema.vehicleProp] = { relation: [] };
-
-    try {
-      await notionFetch(`/pages/${data.pageId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ properties }),
-      });
-    } catch (e) {
-      if (String(e).includes("status")) {
-        properties[schema.statutProp] = { select: { name: "Libre" } };
-        await notionFetch(`/pages/${data.pageId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ properties }),
-        });
-      } else {
-        throw e;
-      }
-    }
+    await notionFetch(`/pages/${data.pageId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          [schema.vehicleProp]: { relation: [] },
+        },
+      }),
+    });
     return { success: true };
   });
