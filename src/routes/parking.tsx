@@ -227,17 +227,22 @@ function SpotButton({
 }
 
 function PlanBlock({
-  left, top, width, height, className, children,
+  left, top, width, height, className, children, verticalText,
 }: {
   left: number; top: number; width: number; height: number;
-  className?: string; children: React.ReactNode;
+  className?: string; children: React.ReactNode; verticalText?: boolean;
 }) {
   return (
     <div
       className={`absolute flex items-center justify-center rounded-sm text-center text-[10px] font-semibold leading-tight ${className ?? ""}`}
       style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }}
     >
-      <span className="px-1">{children}</span>
+      <span
+        className="px-1"
+        style={verticalText ? { writingMode: "vertical-rl", transform: "rotate(180deg)" } : undefined}
+      >
+        {children}
+      </span>
     </div>
   );
 }
