@@ -70,16 +70,13 @@ function inferTypeFromName(name: string): "standard" | "surcharge" | "VL" | "Min
 function spotColorClass(spot: ParkingSpot): string {
   const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
   const occ = isOccupied(spot);
-  if (t === "VL" || t === "Mini") {
+  // Mini, VL and Surcharge: grey when free, red when occupied.
+  if (t === "VL" || t === "Mini" || t === "surcharge") {
     return occ
-      ? "bg-slate-600 text-white border-slate-700"
-      : "bg-slate-200 text-slate-900 border-slate-300";
+      ? "bg-red-500 text-white border-red-600"
+      : "bg-slate-300 text-slate-900 border-slate-400";
   }
-  if (t === "surcharge") {
-    return occ
-      ? "bg-red-900 text-white border-red-950"
-      : "bg-orange-400 text-neutral-950 border-orange-500";
-  }
+  // Standard spots (Lestonan 1..11): green free / red occupied.
   return occ
     ? "bg-red-500 text-white border-red-600"
     : "bg-green-500 text-white border-green-600";
