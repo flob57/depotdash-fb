@@ -67,6 +67,14 @@ function inferTypeFromName(name: string): "standard" | "surcharge" | "VL" | "Min
   return "standard";
 }
 
+const STACKED_SPOTS = new Set([
+  "lestonan 1", "lestonan 2", "lestonan 3", "lestonan 4", "lestonan 5", "lestonan 11",
+]);
+
+function usesStackedFormat(name: string): boolean {
+  return STACKED_SPOTS.has(normName(name));
+}
+
 function spotColorClass(spot: ParkingSpot): string {
   const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
   const occ = isOccupied(spot);
