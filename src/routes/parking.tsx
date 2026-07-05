@@ -67,6 +67,14 @@ function inferTypeFromName(name: string): "standard" | "surcharge" | "VL" | "Min
   return "standard";
 }
 
+const STACKED_SPOTS = new Set([
+  "lestonan 1", "lestonan 2", "lestonan 3", "lestonan 4", "lestonan 5", "lestonan 11",
+]);
+
+function usesStackedFormat(name: string): boolean {
+  return STACKED_SPOTS.has(normName(name));
+}
+
 function spotColorClass(spot: ParkingSpot): string {
   const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
   const occ = isOccupied(spot);
@@ -205,6 +213,7 @@ function SpotButton({
   const color = spotColorClass(spot);
   const occ = isOccupied(spot);
   const shortLabel = spot.name.replace(/^LESTONAN\s+/i, "");
+  const stacked = usesStackedFormat(spot.name);
   const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
   return (
     <button
@@ -223,11 +232,17 @@ function SpotButton({
     >
       <div className="w-full truncate text-[10px]">{shortLabel || spot.name}</div>
       {occ && (
-        <div className="mt-0.5 flex w-full flex-col items-center text-[8px] font-bold leading-[1.05]">
-          {plateLines.length > 0
-            ? plateLines.map((l, i) => <span key={i}>{l}</span>)
-            : <span>—</span>}
-        </div>
+        stacked ? (
+          <div className="mt-0.5 flex w-full flex-col items-center text-[8px] font-bold leading-[1.05]">
+            {plateLines.length > 0
+              ? plateLines.map((l, i) => <span key={i}>{l}</span>)
+              : <span>—</span>}
+          </div>
+        ) : (
+          <div className="mt-0.5 w-full truncate text-[8px] font-bold leading-[1.05]">
+            {spot.vehicleName}
+          </div>
+        )
       )}
     </button>
   );
