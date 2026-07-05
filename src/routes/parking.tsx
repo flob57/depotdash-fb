@@ -94,7 +94,7 @@ const LESTONAN_LAYOUT: Record<string, Box> = {
   "lestonan 2":         { left: 56,  top: 30,  width: 8,  height: 16 },
   "lestonan 4":         { left: 65,  top: 30,  width: 8,  height: 16 },
   "lestonan 5":         { left: 74,  top: 30,  width: 8,  height: 16 },
-  "lestonan mini 1":    { left: 87,  top: 5,   width: 12, height: 7 },
+  "lestonan mini 1":    { left: 89,  top: 1,   width: 10, height: 11 },
   "lestonan 11":        { left: 89,  top: 14,  width: 9,  height: 17 },
   "lestonan 10":        { left: 2,   top: 52,  width: 20, height: 7 },
   "lestonan 9":         { left: 2,   top: 61,  width: 20, height: 7 },
