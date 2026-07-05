@@ -192,17 +192,25 @@ function LestonanMap({
   );
 }
 
+function formatPlate(plate: string): string[] {
+  // Split "AA-123-BB" into ["AA-", "123", "-BB"] for stacked display.
+  const m = plate.match(/^([A-Za-z]+)[\s-]*(\d+)[\s-]*([A-Za-z]+)$/);
+  if (m) return [`${m[1]}-`, m[2], `-${m[3]}`];
+  return [plate];
+}
+
 function SpotButton({
   spot, box, onSelect,
 }: { spot: ParkingSpot; box: Box; onSelect: (s: ParkingSpot) => void }) {
   const color = spotColorClass(spot);
   const occ = isOccupied(spot);
   const shortLabel = spot.name.replace(/^LESTONAN\s+/i, "");
+  const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
   return (
     <button
       type="button"
       onClick={() => onSelect(spot)}
-      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-1 text-center text-[10px] font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
+      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center text-[10px] font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
       style={{
         left: `${box.left}%`,
         top: `${box.top}%`,
@@ -213,10 +221,12 @@ function SpotButton({
       }}
       title={`${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}`}
     >
-      <div className="w-full truncate">{shortLabel || spot.name}</div>
+      <div className="w-full truncate text-[10px]">{shortLabel || spot.name}</div>
       {occ && (
-        <div className="w-full truncate text-[9px] font-bold opacity-95">
-          {spot.vehicleName ?? "—"}
+        <div className="mt-0.5 flex w-full flex-col items-center text-[8px] font-bold leading-[1.05]">
+          {plateLines.length > 0
+            ? plateLines.map((l, i) => <span key={i}>{l}</span>)
+            : <span>—</span>}
         </div>
       )}
     </button>
