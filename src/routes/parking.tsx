@@ -70,16 +70,13 @@ function inferTypeFromName(name: string): "standard" | "surcharge" | "VL" | "Min
 function spotColorClass(spot: ParkingSpot): string {
   const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
   const occ = isOccupied(spot);
-  if (t === "VL" || t === "Mini") {
+  // Mini, VL and Surcharge: grey when free, red when occupied.
+  if (t === "VL" || t === "Mini" || t === "surcharge") {
     return occ
-      ? "bg-slate-600 text-white border-slate-700"
-      : "bg-slate-200 text-slate-900 border-slate-300";
+      ? "bg-red-500 text-white border-red-600"
+      : "bg-slate-300 text-slate-900 border-slate-400";
   }
-  if (t === "surcharge") {
-    return occ
-      ? "bg-red-900 text-white border-red-950"
-      : "bg-orange-400 text-neutral-950 border-orange-500";
-  }
+  // Standard spots (Lestonan 1..11): green free / red occupied.
   return occ
     ? "bg-red-500 text-white border-red-600"
     : "bg-green-500 text-white border-green-600";
@@ -97,7 +94,7 @@ const LESTONAN_LAYOUT: Record<string, Box> = {
   "lestonan 2":         { left: 56,  top: 30,  width: 8,  height: 16 },
   "lestonan 4":         { left: 65,  top: 30,  width: 8,  height: 16 },
   "lestonan 5":         { left: 74,  top: 30,  width: 8,  height: 16 },
-  "lestonan mini 1":    { left: 87,  top: 5,   width: 12, height: 7 },
+  "lestonan mini 1":    { left: 89,  top: 1,   width: 10, height: 11 },
   "lestonan 11":        { left: 89,  top: 14,  width: 9,  height: 17 },
   "lestonan 10":        { left: 2,   top: 52,  width: 20, height: 7 },
   "lestonan 9":         { left: 2,   top: 61,  width: 20, height: 7 },
@@ -195,17 +192,25 @@ function LestonanMap({
   );
 }
 
+function formatPlate(plate: string): string[] {
+  // Split "AA-123-BB" into ["AA-", "123", "-BB"] for stacked display.
+  const m = plate.match(/^([A-Za-z]+)[\s-]*(\d+)[\s-]*([A-Za-z]+)$/);
+  if (m) return [`${m[1]}-`, m[2], `-${m[3]}`];
+  return [plate];
+}
+
 function SpotButton({
   spot, box, onSelect,
 }: { spot: ParkingSpot; box: Box; onSelect: (s: ParkingSpot) => void }) {
   const color = spotColorClass(spot);
   const occ = isOccupied(spot);
   const shortLabel = spot.name.replace(/^LESTONAN\s+/i, "");
+  const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
   return (
     <button
       type="button"
       onClick={() => onSelect(spot)}
-      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-1 text-center text-[10px] font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
+      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center text-[10px] font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
       style={{
         left: `${box.left}%`,
         top: `${box.top}%`,
@@ -216,10 +221,12 @@ function SpotButton({
       }}
       title={`${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}`}
     >
-      <div className="w-full truncate">{shortLabel || spot.name}</div>
+      <div className="w-full truncate text-[10px]">{shortLabel || spot.name}</div>
       {occ && (
-        <div className="w-full truncate text-[9px] font-bold opacity-95">
-          {spot.vehicleName ?? "—"}
+        <div className="mt-0.5 flex w-full flex-col items-center text-[8px] font-bold leading-[1.05]">
+          {plateLines.length > 0
+            ? plateLines.map((l, i) => <span key={i}>{l}</span>)
+            : <span>—</span>}
         </div>
       )}
     </button>
