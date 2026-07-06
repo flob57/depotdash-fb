@@ -194,16 +194,22 @@ export const getParkingSpots = createServerFn({ method: "GET" })
         const statut = schema.statutProp ? readText(props[schema.statutProp]) : "";
         const type = schema.typeProp ? readText(props[schema.typeProp]) : "";
         let vehicleId: string | null = null;
+        const vehicleIdsList: string[] = [];
         if (schema.vehicleProp) {
           const vp = props[schema.vehicleProp];
           if (vp?.type === "relation" && vp.relation && vp.relation.length > 0) {
-            vehicleId = vp.relation[0].id;
-            vehicleIds.add(vehicleId);
+            for (const r of vp.relation) {
+              vehicleIdsList.push(r.id);
+              vehicleIds.add(r.id);
+            }
+            vehicleId = vehicleIdsList[0];
           }
         }
         spots.push({
           id: page.id, name, depot, x, y, statut, type,
           vehicleId, vehicleName: null,
+          vehicleIds: vehicleIdsList,
+          vehicleNames: [],
         });
       }
       hasMore = res.has_more;
@@ -219,9 +225,11 @@ export const getParkingSpots = createServerFn({ method: "GET" })
     );
     for (const s of spots) {
       if (s.vehicleId) s.vehicleName = nameMap.get(s.vehicleId) ?? "—";
+      s.vehicleNames = s.vehicleIds.map((id) => nameMap.get(id) ?? "—");
     }
     return { spots, hasVehicleRelation: !!schema.vehicleDbId };
   });
+
 
 export const listParkingVehicles = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
