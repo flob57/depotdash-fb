@@ -54,9 +54,9 @@ function normalizeType(raw: string): "standard" | "surcharge" | "VL" | "Mini" {
   return "standard";
 }
 
-// Occupied = vehicle assigned in "Mon Parc". No more Statut column.
+// Occupied = at least one vehicle assigned in "Mon Parc".
 function isOccupied(spot: ParkingSpot): boolean {
-  return !!spot.vehicleId;
+  return (spot.vehicleIds?.length ?? 0) > 0 || !!spot.vehicleId;
 }
 
 function inferTypeFromName(name: string): "standard" | "surcharge" | "VL" | "Mini" {
@@ -71,64 +71,61 @@ const STACKED_SPOTS = new Set([
   "lestonan 1", "lestonan 2", "lestonan 3", "lestonan 4", "lestonan 5", "lestonan 11",
 ]);
 
+function normName(n: string): string {
+  return n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 function usesStackedFormat(name: string): boolean {
   return STACKED_SPOTS.has(normName(name));
 }
 
-function spotColorClass(spot: ParkingSpot): string {
+// Color scheme for Lestonan (specific for Mini/VL/Surcharge).
+function lestonanColorClass(spot: ParkingSpot): string {
   const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
   const occ = isOccupied(spot);
-  // Mini, VL and Surcharge: grey when free, red when occupied.
   if (t === "VL" || t === "Mini" || t === "surcharge") {
     return occ
       ? "bg-red-500 text-white border-red-600"
       : "bg-slate-300 text-slate-900 border-slate-400";
   }
-  // Standard spots (Lestonan 1..11): green free / red occupied.
   return occ
     ? "bg-red-500 text-white border-red-600"
     : "bg-green-500 text-white border-green-600";
 }
 
-// ---------- Lestonan schematic layout (matches the depot plan) ----------
-// Coordinates are percentages inside a 100x100 container.
-type Box = { left: number; top: number; width: number; height: number; rotate?: number };
-function normName(n: string): string {
-  return n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+// Simple green/red for Gourvily & Exterieur.
+function simpleColorClass(occupied: boolean): string {
+  return occupied
+    ? "bg-red-500 text-white border-red-600"
+    : "bg-green-500 text-white border-green-600";
 }
+
+// ---------- Lestonan schematic layout ----------
+type Box = { left: number; top: number; width: number; height: number; rotate?: number };
+
 const LESTONAN_LAYOUT: Record<string, Box> = {
-  "lestonan 1":         { left: 56,  top: 6,   width: 8,  height: 16 },
-  "lestonan 3":         { left: 65,  top: 6,   width: 8,  height: 16 },
-  "lestonan 2":         { left: 56,  top: 30,  width: 8,  height: 16 },
-  "lestonan 4":         { left: 65,  top: 30,  width: 8,  height: 16 },
-  "lestonan 5":         { left: 74,  top: 30,  width: 8,  height: 16 },
-  "lestonan mini 1":    { left: 89,  top: 1,   width: 10, height: 11 },
-  "lestonan 11":        { left: 89,  top: 14,  width: 9,  height: 17 },
-  "lestonan 10":        { left: 2,   top: 52,  width: 20, height: 7 },
-  "lestonan 9":         { left: 2,   top: 61,  width: 20, height: 7 },
-  "lestonan 8":         { left: 2,   top: 70,  width: 20, height: 7 },
-  "lestonan 7":         { left: 2,   top: 79,  width: 20, height: 7 },
-  "lestonan 6":         { left: 2,   top: 88,  width: 20, height: 7 },
-  "lestonan mini 2":    { left: 26,  top: 88,  width: 14, height: 7 },
-  "lestonan vl 1":      { left: 78,  top: 55,  width: 16, height: 6, rotate: -18 },
-  "lestonan vl 2":      { left: 78,  top: 65,  width: 16, height: 6, rotate: -18 },
-  "lestonan surcharge 2": { left: 84, top: 82, width: 6, height: 15 },
-  "lestonan surcharge 1": { left: 91, top: 82, width: 6, height: 15 },
+  "lestonan 1":           { left: 56,  top: 6,   width: 8,  height: 16 },
+  "lestonan 3":           { left: 65,  top: 6,   width: 8,  height: 16 },
+  "lestonan 2":           { left: 56,  top: 30,  width: 8,  height: 16 },
+  "lestonan 4":           { left: 65,  top: 30,  width: 8,  height: 16 },
+  "lestonan 5":           { left: 74,  top: 30,  width: 8,  height: 16 },
+  "lestonan mini 1":      { left: 90,  top: 2,   width: 9,  height: 10 },
+  "lestonan 11":          { left: 90,  top: 14,  width: 9,  height: 20 },
+  "lestonan 10":          { left: 2,   top: 52,  width: 20, height: 7 },
+  "lestonan 9":           { left: 2,   top: 61,  width: 20, height: 7 },
+  "lestonan 8":           { left: 2,   top: 70,  width: 20, height: 7 },
+  "lestonan 7":           { left: 2,   top: 79,  width: 20, height: 7 },
+  "lestonan 6":           { left: 2,   top: 88,  width: 20, height: 7 },
+  "lestonan mini 2":      { left: 26,  top: 88,  width: 14, height: 7 },
+  "lestonan vl 1":        { left: 78,  top: 55,  width: 16, height: 6, rotate: -18 },
+  "lestonan vl 2":        { left: 78,  top: 65,  width: 16, height: 6, rotate: -18 },
+  "lestonan surcharge 2": { left: 84,  top: 82,  width: 6,  height: 15 },
+  "lestonan surcharge 1": { left: 91,  top: 82,  width: 6,  height: 15 },
 };
 
 function LestonanMap({
-  spots,
-  onSelect,
-}: {
-  spots: ParkingSpot[];
-  onSelect: (s: ParkingSpot) => void;
-}) {
-  const byName = useMemo(() => {
-    const m = new Map<string, ParkingSpot>();
-    for (const s of spots) m.set(normName(s.name), s);
-    return m;
-  }, [spots]);
-
+  spots, onSelect,
+}: { spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
   const positioned: Array<{ spot: ParkingSpot; box: Box }> = [];
   const unpositioned: ParkingSpot[] = [];
   for (const s of spots) {
@@ -136,18 +133,11 @@ function LestonanMap({
     if (box) positioned.push({ spot: s, box });
     else unpositioned.push(s);
   }
-  // Names present in layout but missing from DB — surface nothing, we just skip.
-  void byName;
 
   return (
     <>
-      {/* Horizontally scrollable on small screens so labels stay readable. */}
       <div className="w-full overflow-x-auto rounded-lg border bg-slate-50 dark:bg-slate-900/40">
-        <div
-          className="relative"
-          style={{ width: "100%", minWidth: 640, aspectRatio: "16 / 11" }}
-        >
-          {/* Static plan elements (non-clickable) */}
+        <div className="relative" style={{ width: "100%", minWidth: 640, aspectRatio: "16 / 11" }}>
           <PlanBlock left={22} top={5} width={33} height={42} className="bg-blue-700 text-white">
             GARAGE BOURBIGOT
           </PlanBlock>
@@ -167,59 +157,307 @@ function LestonanMap({
             LAVAGE
           </PlanBlock>
 
-          {/* Spots */}
           {positioned.map(({ spot, box }) => (
-            <SpotButton key={spot.id} spot={spot} box={box} onSelect={onSelect} />
+            <SpotButton
+              key={spot.id}
+              spot={spot}
+              box={box}
+              onSelect={onSelect}
+              colorClass={lestonanColorClass(spot)}
+              stacked={usesStackedFormat(spot.name)}
+              displayName={spot.name.replace(/^LESTONAN\s+/i, "")}
+            />
           ))}
         </div>
       </div>
 
       {unpositioned.length > 0 && (
-        <div className="mt-3">
-          <div className="mb-2 text-xs text-muted-foreground">
-            Autres emplacements (sans position dans le plan)
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {unpositioned.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => onSelect(s)}
-                className={`rounded-md border px-2 py-2 text-left text-xs shadow-sm ${spotColorClass(s)}`}
-              >
-                <div className="truncate font-semibold">{s.name || "—"}</div>
-                <div className="truncate opacity-90">
-                  {isOccupied(s) ? (s.vehicleName ?? "Occupé") : "Libre"}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        <UnpositionedList spots={unpositioned} onSelect={onSelect} colorFn={lestonanColorClass} />
       )}
     </>
   );
 }
 
+// ---------- Gourvily schematic layout ----------
+const GOURVILY_LAYOUT: Record<string, Box> = {
+  "gourvily mini":        { left: 4,  top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 1":           { left: 11, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 2":           { left: 18, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 3":           { left: 25, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 4":           { left: 32, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 5":           { left: 39, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 6":           { left: 46, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 7":           { left: 53, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 8":           { left: 60, top: 15, width: 6,  height: 22, rotate: -20 },
+  "gourvily 9":           { left: 70, top: 16, width: 12, height: 8,  rotate: -12 },
+  "gourvily 10":          { left: 70, top: 26, width: 12, height: 8,  rotate: -12 },
+  "gourvily 11":          { left: 84, top: 34, width: 14, height: 9 },
+  "gourvily vl":          { left: 75, top: 78, width: 6,  height: 14 },
+  "gourvily surcharge 2": { left: 84, top: 68, width: 12, height: 8 },
+  "gourvily surcharge 1": { left: 84, top: 80, width: 12, height: 8 },
+};
+
+function GourvilyMap({
+  spots, onSelect,
+}: { spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
+  const positioned: Array<{ spot: ParkingSpot; box: Box }> = [];
+  const unpositioned: ParkingSpot[] = [];
+  for (const s of spots) {
+    const box = GOURVILY_LAYOUT[normName(s.name)];
+    if (box) positioned.push({ spot: s, box });
+    else unpositioned.push(s);
+  }
+
+  return (
+    <>
+      <div className="w-full overflow-x-auto rounded-lg border bg-slate-50 dark:bg-slate-900/40">
+        <div className="relative" style={{ width: "100%", minWidth: 640, aspectRatio: "16 / 11" }}>
+          {/* Depot buildings */}
+          <PlanBlock left={2}  top={48} width={60} height={50} className="bg-blue-700 text-white">
+            &nbsp;
+          </PlanBlock>
+          <PlanBlock left={40} top={62} width={40} height={36} className="bg-blue-700 text-white">
+            &nbsp;
+          </PlanBlock>
+          <PlanBlock left={69} top={62} width={5}  height={12} className="bg-emerald-300 text-neutral-900" verticalText>
+            ALGECO
+          </PlanBlock>
+          <PlanBlock left={62} top={88} width={7}  height={9}  className="bg-emerald-300 text-neutral-900">
+            LOCAL
+          </PlanBlock>
+          {positioned.map(({ spot, box }) => (
+            <SpotButton
+              key={spot.id}
+              spot={spot}
+              box={box}
+              onSelect={onSelect}
+              colorClass={simpleColorClass(isOccupied(spot))}
+              stacked={false}
+              displayName={spot.name.replace(/^GOURVILY\s+/i, "")}
+            />
+          ))}
+        </div>
+      </div>
+
+      {unpositioned.length > 0 && (
+        <UnpositionedList
+          spots={unpositioned}
+          onSelect={onSelect}
+          colorFn={(s) => simpleColorClass(isOccupied(s))}
+        />
+      )}
+    </>
+  );
+}
+
+// ---------- Exterieur schematic ----------
+type ExtSection = {
+  title: string;
+  rotate?: number;
+  spots: string[]; // canonical (normName) names to look for
+};
+
+const EXTERIEUR_SECTIONS: ExtSection[] = [
+  {
+    title: "Quimper",
+    rotate: -14,
+    spots: ["quimper - thepot 1", "quimper - thepot 2", "quimper - thepot 3"],
+  },
+  {
+    title: "Briec",
+    rotate: -14,
+    spots: ["briec - p. stephan", "briec - penity", "briec - gougastel"],
+  },
+  {
+    title: "Autres",
+    rotate: -14,
+    spots: [
+      "landudal - keriou", "cast", "tregourez",
+      "quemeneven", "saint-coulitz", "saint-goazec",
+    ],
+  },
+];
+
+const COAT_CONQ_KEY = "coat-conq - atelier";
+
+// Match spot to canonical name (accents/dash-space insensitive).
+function matchSpot(spots: ParkingSpot[], canonical: string): ParkingSpot | undefined {
+  const target = canonical.replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+  return spots.find((s) => {
+    const n = normName(s.name).replace(/[–—]/g, "-").replace(/\s+/g, " ");
+    return n === target;
+  });
+}
+
+function ExterieurMap({
+  spots, onSelect,
+}: { spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
+  const consumedIds = new Set<string>();
+
+  // Build display order.
+  const sections = EXTERIEUR_SECTIONS.map((sec) => ({
+    ...sec,
+    resolved: sec.spots.map((cand) => {
+      const match = matchSpot(spots, cand);
+      if (match) consumedIds.add(match.id);
+      return { key: cand, label: prettyExtLabel(cand), spot: match };
+    }),
+  }));
+
+  const coatConqSpot = matchSpot(spots, COAT_CONQ_KEY);
+  if (coatConqSpot) consumedIds.add(coatConqSpot.id);
+  const coatSlots = Array.from({ length: 5 }, (_, i) => {
+    const name = coatConqSpot?.vehicleNames?.[i] ?? null;
+    return { index: i + 1, vehicleName: name };
+  });
+
+  const unmatched = spots.filter((s) => !consumedIds.has(s.id));
+
+  return (
+    <div className="space-y-6">
+      {sections.map((sec) => (
+        <section key={sec.title}>
+          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{sec.title}</h3>
+          <div className="flex flex-wrap gap-3">
+            {sec.resolved.map(({ key, label, spot }) => (
+              <ExtCard
+                key={key}
+                label={label}
+                spot={spot}
+                rotate={sec.rotate}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Coat-Conq - Atelier</h3>
+        {!coatConqSpot ? (
+          <div className="text-xs text-muted-foreground">
+            Aucun emplacement "Coat-Conq - Atelier" trouvé dans Notion.
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {coatSlots.map((slot) => (
+              <button
+                key={slot.index}
+                type="button"
+                onClick={() => onSelect(coatConqSpot)}
+                className={`flex h-16 w-40 flex-col items-start justify-between rounded-md border px-2 py-1.5 text-left shadow-sm transition hover:scale-[1.02] ${simpleColorClass(!!slot.vehicleName)}`}
+                style={{ transform: "rotate(-14deg)" }}
+                title={`Coat-Conq ${slot.index} · ${slot.vehicleName ?? "Libre"}`}
+              >
+                <span className="text-xs font-semibold opacity-90">{slot.index}</span>
+                <span className="w-full truncate text-sm font-bold">
+                  {slot.vehicleName ?? "Libre"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Autres dépôts</h3>
+        {unmatched.length === 0 ? (
+          <div className="text-xs text-muted-foreground">—</div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {unmatched.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onSelect(s)}
+                className={`rounded-md border px-2 py-2 text-left text-xs shadow-sm ${simpleColorClass(isOccupied(s))}`}
+              >
+                <div className="truncate font-semibold">{s.name || "—"}</div>
+                <div className="truncate text-sm font-bold">
+                  {isOccupied(s)
+                    ? (s.vehicleNames.length > 1
+                        ? s.vehicleNames.join(", ")
+                        : (s.vehicleName ?? "Occupé"))
+                    : "Libre"}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function prettyExtLabel(canonical: string): string {
+  const map: Record<string, string> = {
+    "quimper - thepot 1": "Quimper – Thépôt 1",
+    "quimper - thepot 2": "Quimper – Thépôt 2",
+    "quimper - thepot 3": "Quimper – Thépôt 3",
+    "briec - p. stephan": "Briec – P. Stéphan",
+    "briec - penity": "Briec – Penity",
+    "briec - gougastel": "Briec – Gougastel",
+    "landudal - keriou": "Landudal – Keriou",
+    "cast": "Cast",
+    "tregourez": "Trégourez",
+    "quemeneven": "Quéménéven",
+    "saint-coulitz": "Saint-Coulitz",
+    "saint-goazec": "Saint-Goazec",
+  };
+  return map[canonical] ?? canonical;
+}
+
+function ExtCard({
+  label, spot, rotate, onSelect,
+}: {
+  label: string;
+  spot?: ParkingSpot;
+  rotate?: number;
+  onSelect: (s: ParkingSpot) => void;
+}) {
+  const occ = spot ? isOccupied(spot) : false;
+  const color = spot ? simpleColorClass(occ) : "bg-slate-200 text-slate-500 border-slate-300";
+  return (
+    <button
+      type="button"
+      onClick={() => spot && onSelect(spot)}
+      disabled={!spot}
+      className={`flex h-16 w-52 flex-col items-start justify-between rounded-md border px-2 py-1.5 text-left shadow-sm transition ${spot ? "hover:scale-[1.02]" : "opacity-60"} ${color}`}
+      style={rotate ? { transform: `rotate(${rotate}deg)` } : undefined}
+      title={spot ? `${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}` : label}
+    >
+      <span className="w-full truncate text-xs font-semibold opacity-95">{label}</span>
+      <span className="w-full truncate text-sm font-bold">
+        {spot ? (occ ? (spot.vehicleName ?? "Occupé") : "Libre") : "Non configuré"}
+      </span>
+    </button>
+  );
+}
+
+// ---------- Shared: spot button, plan block, unpositioned list ----------
 function formatPlate(plate: string): string[] {
-  // Split "AA-123-BB" into ["AA-", "123", "-BB"] for stacked display.
   const m = plate.match(/^([A-Za-z]+)[\s-]*(\d+)[\s-]*([A-Za-z]+)$/);
   if (m) return [`${m[1]}-`, m[2], `-${m[3]}`];
   return [plate];
 }
 
 function SpotButton({
-  spot, box, onSelect,
-}: { spot: ParkingSpot; box: Box; onSelect: (s: ParkingSpot) => void }) {
-  const color = spotColorClass(spot);
+  spot, box, onSelect, colorClass, stacked, displayName,
+}: {
+  spot: ParkingSpot;
+  box: Box;
+  onSelect: (s: ParkingSpot) => void;
+  colorClass: string;
+  stacked: boolean;
+  displayName: string;
+}) {
   const occ = isOccupied(spot);
-  const shortLabel = spot.name.replace(/^LESTONAN\s+/i, "");
-  const stacked = usesStackedFormat(spot.name);
   const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
   return (
     <button
       type="button"
       onClick={() => onSelect(spot)}
-      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center text-[10px] font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
+      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${colorClass}`}
       style={{
         left: `${box.left}%`,
         top: `${box.top}%`,
@@ -230,16 +468,16 @@ function SpotButton({
       }}
       title={`${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}`}
     >
-      <div className="w-full truncate text-[10px]">{shortLabel || spot.name}</div>
+      <div className="w-full truncate text-[10px] sm:text-xs">{displayName || spot.name}</div>
       {occ && (
         stacked ? (
-          <div className="mt-0.5 flex w-full flex-col items-center text-[8px] font-bold leading-[1.05]">
+          <div className="mt-0.5 flex w-full flex-col items-center font-bold leading-[1.05] text-[9px] sm:text-[13px]">
             {plateLines.length > 0
               ? plateLines.map((l, i) => <span key={i}>{l}</span>)
               : <span>—</span>}
           </div>
         ) : (
-          <div className="mt-0.5 w-full truncate text-[8px] font-bold leading-[1.05]">
+          <div className="mt-0.5 w-full truncate font-bold leading-[1.05] text-[9px] sm:text-[13px]">
             {spot.vehicleName}
           </div>
         )
@@ -269,36 +507,33 @@ function PlanBlock({
   );
 }
 
-// ---------- Generic depot layout (fallback for Gourvily / Exterieur) ----------
-function GenericDepotMap({
-  spots, onSelect,
-}: { spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
+function UnpositionedList({
+  spots, onSelect, colorFn,
+}: {
+  spots: ParkingSpot[];
+  onSelect: (s: ParkingSpot) => void;
+  colorFn: (s: ParkingSpot) => string;
+}) {
   return (
-    <div
-      className="relative w-full overflow-hidden rounded-lg border bg-slate-50 dark:bg-slate-900/40"
-      style={{ aspectRatio: "16 / 10", minHeight: 360 }}
-    >
-      {spots.map((s) => {
-        const x = Math.max(0, Math.min(100, s.x ?? 50));
-        const y = Math.max(0, Math.min(100, s.y ?? 50));
-        const color = spotColorClass(s);
-        const occ = isOccupied(s);
-        return (
+    <div className="mt-3">
+      <div className="mb-2 text-xs text-muted-foreground">
+        Autres emplacements (sans position dans le plan)
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        {spots.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => onSelect(s)}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-md border px-2 py-1 text-left text-[11px] leading-tight shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary ${color}`}
-            style={{ left: `${x}%`, top: `${y}%`, minWidth: 68, maxWidth: 120 }}
-            title={`${s.name} · ${occ ? (s.vehicleName ?? "Occupé") : "Libre"}`}
+            className={`rounded-md border px-2 py-2 text-left text-xs shadow-sm ${colorFn(s)}`}
           >
             <div className="truncate font-semibold">{s.name || "—"}</div>
-            <div className="truncate opacity-90">
-              {occ ? (s.vehicleName ?? "Occupé") : "Libre"}
+            <div className="truncate text-sm font-bold">
+              {isOccupied(s) ? (s.vehicleName ?? "Occupé") : "Libre"}
             </div>
           </button>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
@@ -454,7 +689,14 @@ function ParkingPage() {
 
               <div className="mt-4 space-y-3 text-sm">
                 <Row label="Statut" value={isOccupied(selected) ? "Occupé" : "Libre"} />
-                <Row label="Véhicule" value={selected.vehicleName ?? "—"} />
+                <Row
+                  label="Véhicule"
+                  value={
+                    selected.vehicleNames.length > 1
+                      ? selected.vehicleNames.join(", ")
+                      : (selected.vehicleName ?? "—")
+                  }
+                />
 
                 <div className="pt-2">
                   <label className="mb-1 block text-xs text-muted-foreground">
@@ -535,10 +777,9 @@ function DepotSection({
         <StatBox label="Surcharge" value={stats.surcharge} tone="orange" />
       </div>
 
-      {depot === "Lestonan"
-        ? <LestonanMap spots={spots} onSelect={onSelect} />
-        : <GenericDepotMap spots={spots} onSelect={onSelect} />
-      }
+      {depot === "Lestonan" && <LestonanMap spots={spots} onSelect={onSelect} />}
+      {depot === "Gourvily" && <GourvilyMap spots={spots} onSelect={onSelect} />}
+      {depot === "Exterieur" && <ExterieurMap spots={spots} onSelect={onSelect} />}
     </>
   );
 }
