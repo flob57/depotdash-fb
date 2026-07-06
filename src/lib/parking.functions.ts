@@ -18,7 +18,10 @@ export type ParkingSpot = {
   type: SpotType;
   vehicleId: string | null;
   vehicleName: string | null;
+  vehicleIds: string[];
+  vehicleNames: string[];
 };
+
 
 export type VehicleOption = { id: string; name: string };
 
