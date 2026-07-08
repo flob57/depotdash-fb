@@ -93,9 +93,24 @@ function lestonanColorClass(spot: ParkingSpot): string {
     : "bg-green-500 text-white border-green-600";
 }
 
-// Simple green/red for Gourvily & Exterieur.
+// Simple green/red for Exterieur.
 function simpleColorClass(occupied: boolean): string {
   return occupied
+    ? "bg-red-500 text-white border-red-600"
+    : "bg-green-500 text-white border-green-600";
+}
+
+// Gourvily: standard spots green/red; VL & Surcharge grey when free,
+// distinct dark-red (rose) when occupied.
+function gourvilyColorClass(spot: ParkingSpot): string {
+  const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
+  const occ = isOccupied(spot);
+  if (t === "VL" || t === "surcharge") {
+    return occ
+      ? "bg-rose-800 text-white border-rose-900"
+      : "bg-slate-300 text-slate-900 border-slate-400";
+  }
+  return occ
     ? "bg-red-500 text-white border-red-600"
     : "bg-green-500 text-white border-green-600";
 }
@@ -109,14 +124,16 @@ const LESTONAN_LAYOUT: Record<string, Box> = {
   "lestonan 2":           { left: 56,  top: 30,  width: 8,  height: 16 },
   "lestonan 4":           { left: 65,  top: 30,  width: 8,  height: 16 },
   "lestonan 5":           { left: 74,  top: 30,  width: 8,  height: 16 },
-  "lestonan mini 1":      { left: 90,  top: 2,   width: 9,  height: 10 },
+  // "Lestonan Mini" (Notion name without number) sits above Lestonan 11.
+  "lestonan mini":        { left: 91,  top: 3,   width: 7,  height: 8 },
+  "lestonan mini 1":      { left: 91,  top: 3,   width: 7,  height: 8 },
   "lestonan 11":          { left: 90,  top: 14,  width: 9,  height: 20 },
   "lestonan 10":          { left: 2,   top: 52,  width: 20, height: 7 },
   "lestonan 9":           { left: 2,   top: 61,  width: 20, height: 7 },
   "lestonan 8":           { left: 2,   top: 70,  width: 20, height: 7 },
   "lestonan 7":           { left: 2,   top: 79,  width: 20, height: 7 },
   "lestonan 6":           { left: 2,   top: 88,  width: 20, height: 7 },
-  "lestonan mini 2":      { left: 26,  top: 88,  width: 14, height: 7 },
+  "lestonan mini 2":      { left: 26,  top: 89,  width: 11, height: 6 },
   "lestonan vl 1":        { left: 78,  top: 55,  width: 16, height: 6, rotate: -18 },
   "lestonan vl 2":        { left: 78,  top: 65,  width: 16, height: 6, rotate: -18 },
   "lestonan surcharge 2": { left: 84,  top: 82,  width: 6,  height: 15 },
@@ -147,7 +164,7 @@ function LestonanMap({
           <PlanBlock left={49} top={38} width={7} height={7} className="bg-white text-neutral-800 border">
             Bureau
           </PlanBlock>
-          <PlanBlock left={74} top={6} width={7} height={9} className="bg-green-700 text-white">
+          <PlanBlock left={74} top={6} width={7} height={9} className="bg-blue-600 text-white">
             GO
           </PlanBlock>
           <PlanBlock left={74} top={16} width={7} height={9} className="bg-sky-300 text-neutral-900">
@@ -179,18 +196,21 @@ function LestonanMap({
 }
 
 // ---------- Gourvily schematic layout ----------
+// Diagonal parking spots (bus bays): narrow-tall rectangles rotated ~-28°
+// so they lean like the depot plan.
+const GOURVILY_SPOT_ANGLE = -28;
 const GOURVILY_LAYOUT: Record<string, Box> = {
-  "gourvily mini":        { left: 4,  top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 1":           { left: 11, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 2":           { left: 18, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 3":           { left: 25, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 4":           { left: 32, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 5":           { left: 39, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 6":           { left: 46, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 7":           { left: 53, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 8":           { left: 60, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 9":           { left: 70, top: 16, width: 12, height: 8,  rotate: -12 },
-  "gourvily 10":          { left: 70, top: 26, width: 12, height: 8,  rotate: -12 },
+  "gourvily mini":        { left: 3,  top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 1":           { left: 10, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 2":           { left: 17, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 3":           { left: 24, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 4":           { left: 31, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 5":           { left: 38, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 6":           { left: 45, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 7":           { left: 52, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 8":           { left: 59, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 9":           { left: 68, top: 15, width: 5, height: 20, rotate: -12 },
+  "gourvily 10":          { left: 75, top: 15, width: 5, height: 20, rotate: -12 },
   "gourvily 11":          { left: 84, top: 34, width: 14, height: 9 },
   "gourvily vl":          { left: 75, top: 78, width: 6,  height: 14 },
   "gourvily surcharge 2": { left: 84, top: 68, width: 12, height: 8 },
@@ -231,8 +251,9 @@ function GourvilyMap({
               spot={spot}
               box={box}
               onSelect={onSelect}
-              colorClass={simpleColorClass(isOccupied(spot))}
+              colorClass={gourvilyColorClass(spot)}
               stacked={false}
+              verticalPlate={box.height > box.width}
               displayName={spot.name.replace(/^GOURVILY\s+/i, "")}
             />
           ))}
@@ -243,7 +264,7 @@ function GourvilyMap({
         <UnpositionedList
           spots={unpositioned}
           onSelect={onSelect}
-          colorFn={(s) => simpleColorClass(isOccupied(s))}
+          colorFn={(s) => gourvilyColorClass(s)}
         />
       )}
     </>
@@ -442,7 +463,7 @@ function formatPlate(plate: string): string[] {
 }
 
 function SpotButton({
-  spot, box, onSelect, colorClass, stacked, displayName,
+  spot, box, onSelect, colorClass, stacked, displayName, verticalPlate = false,
 }: {
   spot: ParkingSpot;
   box: Box;
@@ -450,6 +471,7 @@ function SpotButton({
   colorClass: string;
   stacked: boolean;
   displayName: string;
+  verticalPlate?: boolean;
 }) {
   const occ = isOccupied(spot);
   const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
@@ -457,7 +479,7 @@ function SpotButton({
     <button
       type="button"
       onClick={() => onSelect(spot)}
-      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${colorClass}`}
+      className={`absolute flex ${verticalPlate ? "flex-row" : "flex-col"} items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${colorClass}`}
       style={{
         left: `${box.left}%`,
         top: `${box.top}%`,
@@ -468,19 +490,40 @@ function SpotButton({
       }}
       title={`${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}`}
     >
-      <div className="w-full truncate text-[10px] sm:text-xs">{displayName || spot.name}</div>
-      {occ && (
-        stacked ? (
-          <div className="mt-0.5 flex w-full flex-col items-center font-bold leading-[1.05] text-[9px] sm:text-[13px]">
-            {plateLines.length > 0
-              ? plateLines.map((l, i) => <span key={i}>{l}</span>)
-              : <span>—</span>}
-          </div>
-        ) : (
-          <div className="mt-0.5 w-full truncate font-bold leading-[1.05] text-[9px] sm:text-[13px]">
-            {spot.vehicleName}
-          </div>
-        )
+      {verticalPlate ? (
+        <div className="flex h-full w-full items-center justify-center gap-0.5">
+          <span
+            className="text-[9px] font-semibold"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            {displayName || spot.name}
+          </span>
+          {occ && spot.vehicleName && (
+            <span
+              className="font-bold text-[10px] sm:text-[13px]"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              {spot.vehicleName}
+            </span>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="w-full truncate text-[10px] sm:text-xs">{displayName || spot.name}</div>
+          {occ && (
+            stacked ? (
+              <div className="mt-0.5 flex w-full flex-col items-center font-bold leading-[1.05] text-[9px] sm:text-[13px]">
+                {plateLines.length > 0
+                  ? plateLines.map((l, i) => <span key={i}>{l}</span>)
+                  : <span>—</span>}
+              </div>
+            ) : (
+              <div className="mt-0.5 w-full truncate font-bold leading-[1.05] text-[9px] sm:text-[13px]">
+                {spot.vehicleName}
+              </div>
+            )
+          )}
+        </>
       )}
     </button>
   );
@@ -750,19 +793,35 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+const EXT_QUIMPER_BRIEC_AUTRES = new Set<string>([
+  ...EXTERIEUR_SECTIONS.flatMap((s) => s.spots),
+]);
+
 function DepotSection({
   depot, spots, onSelect,
 }: { depot: Depot; spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
   const stats = useMemo(() => {
-    let total = 0, occ = 0, free = 0, surcharge = 0;
-    for (const s of spots) {
-      total++;
-      if (isOccupied(s)) occ++; else free++;
-      const t = s.type ? normalizeType(s.type) : inferTypeFromName(s.name);
-      if (t === "surcharge") surcharge++;
+    if (depot === "Exterieur") {
+      let total = 0;
+      let atelier = 0;
+      for (const s of spots) {
+        const n = normName(s.name).replace(/[–—]/g, "-").replace(/\s+/g, " ");
+        if (EXT_QUIMPER_BRIEC_AUTRES.has(n) && isOccupied(s)) total++;
+        if (n === COAT_CONQ_KEY) atelier = s.vehicleIds.length;
+      }
+      return { kind: "ext" as const, total, atelier };
     }
-    return { total, occ, free, surcharge };
-  }, [spots]);
+    // Lestonan / Gourvily: fixed capacity of 11 standard bus spots.
+    let occStandard = 0, mini = 0, surcharge = 0;
+    for (const s of spots) {
+      const t = s.type ? normalizeType(s.type) : inferTypeFromName(s.name);
+      const occ = isOccupied(s);
+      if (t === "standard" && occ) occStandard++;
+      if (t === "Mini" && occ) mini++;
+      if (t === "surcharge" && occ) surcharge++;
+    }
+    return { kind: "depot" as const, total: 11, occ: occStandard, mini, surcharge };
+  }, [spots, depot]);
 
   if (spots.length === 0) {
     return <div className="text-sm text-muted-foreground">Aucun emplacement configuré pour ce dépôt.</div>;
@@ -771,11 +830,21 @@ function DepotSection({
   return (
     <>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatBox label="Total" value={stats.total} />
-        <StatBox label="Occupés" value={stats.occ} tone="red" />
-        <StatBox label="Libres" value={stats.free} tone="green" />
-        <StatBox label="Surcharge" value={stats.surcharge} tone="orange" />
+        {stats.kind === "depot" ? (
+          <>
+            <StatBox label="Total" value={stats.total} />
+            <StatBox label="Occupés" value={stats.occ} tone="red" />
+            <StatBox label="Minibus" value={stats.mini} />
+            <StatBox label="Surcharge" value={stats.surcharge} tone="orange" />
+          </>
+        ) : (
+          <>
+            <StatBox label="Total" value={stats.total} tone="red" />
+            <StatBox label="Atelier (Coat-Conq)" value={stats.atelier} />
+          </>
+        )}
       </div>
+
 
       {depot === "Lestonan" && <LestonanMap spots={spots} onSelect={onSelect} />}
       {depot === "Gourvily" && <GourvilyMap spots={spots} onSelect={onSelect} />}
