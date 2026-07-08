@@ -93,9 +93,24 @@ function lestonanColorClass(spot: ParkingSpot): string {
     : "bg-green-500 text-white border-green-600";
 }
 
-// Simple green/red for Gourvily & Exterieur.
+// Simple green/red for Exterieur.
 function simpleColorClass(occupied: boolean): string {
   return occupied
+    ? "bg-red-500 text-white border-red-600"
+    : "bg-green-500 text-white border-green-600";
+}
+
+// Gourvily: standard spots green/red; VL & Surcharge grey when free,
+// distinct dark-red (rose) when occupied.
+function gourvilyColorClass(spot: ParkingSpot): string {
+  const t = spot.type ? normalizeType(spot.type) : inferTypeFromName(spot.name);
+  const occ = isOccupied(spot);
+  if (t === "VL" || t === "surcharge") {
+    return occ
+      ? "bg-rose-800 text-white border-rose-900"
+      : "bg-slate-300 text-slate-900 border-slate-400";
+  }
+  return occ
     ? "bg-red-500 text-white border-red-600"
     : "bg-green-500 text-white border-green-600";
 }
