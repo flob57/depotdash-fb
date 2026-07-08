@@ -463,7 +463,7 @@ function formatPlate(plate: string): string[] {
 }
 
 function SpotButton({
-  spot, box, onSelect, colorClass, stacked, displayName,
+  spot, box, onSelect, colorClass, stacked, displayName, verticalPlate = false,
 }: {
   spot: ParkingSpot;
   box: Box;
@@ -471,6 +471,7 @@ function SpotButton({
   colorClass: string;
   stacked: boolean;
   displayName: string;
+  verticalPlate?: boolean;
 }) {
   const occ = isOccupied(spot);
   const plateLines = occ && spot.vehicleName ? formatPlate(spot.vehicleName) : [];
@@ -478,7 +479,7 @@ function SpotButton({
     <button
       type="button"
       onClick={() => onSelect(spot)}
-      className={`absolute flex flex-col items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${colorClass}`}
+      className={`absolute flex ${verticalPlate ? "flex-row" : "flex-col"} items-center justify-center overflow-hidden rounded-[4px] border px-0.5 text-center font-semibold leading-tight shadow-sm transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-primary ${colorClass}`}
       style={{
         left: `${box.left}%`,
         top: `${box.top}%`,
@@ -489,19 +490,40 @@ function SpotButton({
       }}
       title={`${spot.name} · ${occ ? (spot.vehicleName ?? "Occupé") : "Libre"}`}
     >
-      <div className="w-full truncate text-[10px] sm:text-xs">{displayName || spot.name}</div>
-      {occ && (
-        stacked ? (
-          <div className="mt-0.5 flex w-full flex-col items-center font-bold leading-[1.05] text-[9px] sm:text-[13px]">
-            {plateLines.length > 0
-              ? plateLines.map((l, i) => <span key={i}>{l}</span>)
-              : <span>—</span>}
-          </div>
-        ) : (
-          <div className="mt-0.5 w-full truncate font-bold leading-[1.05] text-[9px] sm:text-[13px]">
-            {spot.vehicleName}
-          </div>
-        )
+      {verticalPlate ? (
+        <div className="flex h-full w-full items-center justify-center gap-0.5">
+          <span
+            className="text-[9px] font-semibold"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            {displayName || spot.name}
+          </span>
+          {occ && spot.vehicleName && (
+            <span
+              className="font-bold text-[10px] sm:text-[13px]"
+              style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+              {spot.vehicleName}
+            </span>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="w-full truncate text-[10px] sm:text-xs">{displayName || spot.name}</div>
+          {occ && (
+            stacked ? (
+              <div className="mt-0.5 flex w-full flex-col items-center font-bold leading-[1.05] text-[9px] sm:text-[13px]">
+                {plateLines.length > 0
+                  ? plateLines.map((l, i) => <span key={i}>{l}</span>)
+                  : <span>—</span>}
+              </div>
+            ) : (
+              <div className="mt-0.5 w-full truncate font-bold leading-[1.05] text-[9px] sm:text-[13px]">
+                {spot.vehicleName}
+              </div>
+            )
+          )}
+        </>
       )}
     </button>
   );
