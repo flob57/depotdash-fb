@@ -793,19 +793,35 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+const EXT_QUIMPER_BRIEC_AUTRES = new Set<string>([
+  ...EXTERIEUR_SECTIONS.flatMap((s) => s.spots),
+]);
+
 function DepotSection({
   depot, spots, onSelect,
 }: { depot: Depot; spots: ParkingSpot[]; onSelect: (s: ParkingSpot) => void }) {
   const stats = useMemo(() => {
-    let total = 0, occ = 0, free = 0, surcharge = 0;
-    for (const s of spots) {
-      total++;
-      if (isOccupied(s)) occ++; else free++;
-      const t = s.type ? normalizeType(s.type) : inferTypeFromName(s.name);
-      if (t === "surcharge") surcharge++;
+    if (depot === "Exterieur") {
+      let total = 0;
+      let atelier = 0;
+      for (const s of spots) {
+        const n = normName(s.name).replace(/[–—]/g, "-").replace(/\s+/g, " ");
+        if (EXT_QUIMPER_BRIEC_AUTRES.has(n) && isOccupied(s)) total++;
+        if (n === COAT_CONQ_KEY) atelier = s.vehicleIds.length;
+      }
+      return { kind: "ext" as const, total, atelier };
     }
-    return { total, occ, free, surcharge };
-  }, [spots]);
+    // Lestonan / Gourvily: fixed capacity of 11 standard bus spots.
+    let occStandard = 0, mini = 0, surcharge = 0;
+    for (const s of spots) {
+      const t = s.type ? normalizeType(s.type) : inferTypeFromName(s.name);
+      const occ = isOccupied(s);
+      if (t === "standard" && occ) occStandard++;
+      if (t === "Mini" && occ) mini++;
+      if (t === "surcharge" && occ) surcharge++;
+    }
+    return { kind: "depot" as const, total: 11, occ: occStandard, mini, surcharge };
+  }, [spots, depot]);
 
   if (spots.length === 0) {
     return <div className="text-sm text-muted-foreground">Aucun emplacement configuré pour ce dépôt.</div>;
@@ -814,11 +830,21 @@ function DepotSection({
   return (
     <>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatBox label="Total" value={stats.total} />
-        <StatBox label="Occupés" value={stats.occ} tone="red" />
-        <StatBox label="Libres" value={stats.free} tone="green" />
-        <StatBox label="Surcharge" value={stats.surcharge} tone="orange" />
+        {stats.kind === "depot" ? (
+          <>
+            <StatBox label="Total" value={stats.total} />
+            <StatBox label="Occupés" value={stats.occ} tone="red" />
+            <StatBox label="Minibus" value={stats.mini} />
+            <StatBox label="Surcharge" value={stats.surcharge} tone="orange" />
+          </>
+        ) : (
+          <>
+            <StatBox label="Total" value={stats.total} tone="red" />
+            <StatBox label="Atelier (Coat-Conq)" value={stats.atelier} />
+          </>
+        )}
       </div>
+
 
       {depot === "Lestonan" && <LestonanMap spots={spots} onSelect={onSelect} />}
       {depot === "Gourvily" && <GourvilyMap spots={spots} onSelect={onSelect} />}
