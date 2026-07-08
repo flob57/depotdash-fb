@@ -164,7 +164,7 @@ function LestonanMap({
           <PlanBlock left={49} top={38} width={7} height={7} className="bg-white text-neutral-800 border">
             Bureau
           </PlanBlock>
-          <PlanBlock left={74} top={6} width={7} height={9} className="bg-green-700 text-white">
+          <PlanBlock left={74} top={6} width={7} height={9} className="bg-blue-600 text-white">
             GO
           </PlanBlock>
           <PlanBlock left={74} top={16} width={7} height={9} className="bg-sky-300 text-neutral-900">
