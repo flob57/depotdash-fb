@@ -264,7 +264,7 @@ function GourvilyMap({
         <UnpositionedList
           spots={unpositioned}
           onSelect={onSelect}
-          colorFn={(s) => simpleColorClass(isOccupied(s))}
+          colorFn={(s) => gourvilyColorClass(s)}
         />
       )}
     </>
