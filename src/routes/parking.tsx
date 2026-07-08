@@ -251,8 +251,9 @@ function GourvilyMap({
               spot={spot}
               box={box}
               onSelect={onSelect}
-              colorClass={simpleColorClass(isOccupied(spot))}
+              colorClass={gourvilyColorClass(spot)}
               stacked={false}
+              verticalPlate={box.height > box.width}
               displayName={spot.name.replace(/^GOURVILY\s+/i, "")}
             />
           ))}
