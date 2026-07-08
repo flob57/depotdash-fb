@@ -196,18 +196,21 @@ function LestonanMap({
 }
 
 // ---------- Gourvily schematic layout ----------
+// Diagonal parking spots (bus bays): narrow-tall rectangles rotated ~-28°
+// so they lean like the depot plan.
+const GOURVILY_SPOT_ANGLE = -28;
 const GOURVILY_LAYOUT: Record<string, Box> = {
-  "gourvily mini":        { left: 4,  top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 1":           { left: 11, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 2":           { left: 18, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 3":           { left: 25, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 4":           { left: 32, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 5":           { left: 39, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 6":           { left: 46, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 7":           { left: 53, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 8":           { left: 60, top: 15, width: 6,  height: 22, rotate: -20 },
-  "gourvily 9":           { left: 70, top: 16, width: 12, height: 8,  rotate: -12 },
-  "gourvily 10":          { left: 70, top: 26, width: 12, height: 8,  rotate: -12 },
+  "gourvily mini":        { left: 3,  top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 1":           { left: 10, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 2":           { left: 17, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 3":           { left: 24, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 4":           { left: 31, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 5":           { left: 38, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 6":           { left: 45, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 7":           { left: 52, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 8":           { left: 59, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
+  "gourvily 9":           { left: 68, top: 15, width: 5, height: 20, rotate: -12 },
+  "gourvily 10":          { left: 75, top: 15, width: 5, height: 20, rotate: -12 },
   "gourvily 11":          { left: 84, top: 34, width: 14, height: 9 },
   "gourvily vl":          { left: 75, top: 78, width: 6,  height: 14 },
   "gourvily surcharge 2": { left: 84, top: 68, width: 12, height: 8 },
