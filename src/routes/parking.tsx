@@ -258,6 +258,30 @@ function GourvilyMap({
               displayName={spot.name.replace(/^GOURVILY\s+/i, "")}
             />
           ))}
+          {Object.entries(GOURVILY_LAYOUT)
+            .filter(([key]) => !positioned.some(p => normName(p.spot.name) === key))
+            .map(([key, box]) => {
+              const label = key.replace(/^gourvily\s+/i, "").toUpperCase();
+              const verticalPlate = box.height > box.width;
+              return (
+                <div
+                  key={`placeholder-${key}`}
+                  className="absolute rounded border border-dashed border-neutral-400 bg-emerald-500/70 text-white text-[9px] sm:text-[11px] font-semibold flex items-center justify-center"
+                  style={{
+                    left: `${box.left}%`,
+                    top: `${box.top}%`,
+                    width: `${box.width}%`,
+                    height: `${box.height}%`,
+                    transform: box.rotate ? `rotate(${box.rotate}deg)` : undefined,
+                    transformOrigin: "center",
+                    writingMode: verticalPlate ? "vertical-rl" : undefined,
+                  }}
+                >
+                  {label}
+                </div>
+              );
+            })}
+
         </div>
       </div>
 
