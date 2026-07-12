@@ -198,7 +198,7 @@ function LestonanMap({
 // ---------- Gourvily schematic layout ----------
 // Diagonal parking spots (bus bays): narrow-tall rectangles rotated ~-28°
 // so they lean like the depot plan.
-const GOURVILY_SPOT_ANGLE = -28;
+const GOURVILY_SPOT_ANGLE = 28;
 const GOURVILY_LAYOUT: Record<string, Box> = {
   "gourvily mini":        { left: 3,  top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
   "gourvily 1":           { left: 10, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
@@ -209,9 +209,10 @@ const GOURVILY_LAYOUT: Record<string, Box> = {
   "gourvily 6":           { left: 45, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
   "gourvily 7":           { left: 52, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
   "gourvily 8":           { left: 59, top: 12, width: 5, height: 22, rotate: GOURVILY_SPOT_ANGLE },
-  "gourvily 9":           { left: 68, top: 15, width: 5, height: 20, rotate: -12 },
-  "gourvily 10":          { left: 75, top: 15, width: 5, height: 20, rotate: -12 },
+  "gourvily 9":           { left: 68, top: 15, width: 5, height: 20, rotate: 12 },
+  "gourvily 10":          { left: 75, top: 15, width: 5, height: 20, rotate: 12 },
   "gourvily 11":          { left: 84, top: 34, width: 14, height: 9 },
+
   "gourvily vl":          { left: 75, top: 78, width: 6,  height: 14 },
   "gourvily surcharge 2": { left: 84, top: 68, width: 12, height: 8 },
   "gourvily surcharge 1": { left: 84, top: 80, width: 12, height: 8 },
@@ -257,6 +258,30 @@ function GourvilyMap({
               displayName={spot.name.replace(/^GOURVILY\s+/i, "")}
             />
           ))}
+          {Object.entries(GOURVILY_LAYOUT)
+            .filter(([key]) => !positioned.some(p => normName(p.spot.name) === key))
+            .map(([key, box]) => {
+              const label = key.replace(/^gourvily\s+/i, "").toUpperCase();
+              const verticalPlate = box.height > box.width;
+              return (
+                <div
+                  key={`placeholder-${key}`}
+                  className="absolute rounded border border-dashed border-neutral-400 bg-emerald-500/70 text-white text-[9px] sm:text-[11px] font-semibold flex items-center justify-center"
+                  style={{
+                    left: `${box.left}%`,
+                    top: `${box.top}%`,
+                    width: `${box.width}%`,
+                    height: `${box.height}%`,
+                    transform: box.rotate ? `rotate(${box.rotate}deg)` : undefined,
+                    transformOrigin: "center",
+                    writingMode: verticalPlate ? "vertical-rl" : undefined,
+                  }}
+                >
+                  {label}
+                </div>
+              );
+            })}
+
         </div>
       </div>
 
