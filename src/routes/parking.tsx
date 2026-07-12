@@ -653,9 +653,10 @@ function ParkingPage() {
       Lestonan: [], Gourvily: [], Exterieur: [],
     };
     for (const s of spots) {
-      const d = normalizeDepot(s.depot);
+      const d = normalizeDepot(s.depot) ?? normalizeDepot(s.name);
       if (d) groups[d].push(s);
     }
+
     return groups;
   }, [spots]);
 
