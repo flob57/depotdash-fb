@@ -1,7 +1,7 @@
 import {
   startOfDay, endOfDay, startOfWeek, endOfWeek,
   startOfMonth, endOfMonth, startOfYear, endOfYear,
-  eachDayOfInterval, isWeekend,
+  eachDayOfInterval, isWeekend, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek,
 } from "date-fns";
 
 export type Shift = {
@@ -96,4 +96,24 @@ export function formatHm(ms: number): string {
 export function formatHmSigned(ms: number): string {
   const sign = ms < 0 ? "-" : "+";
   return sign + formatHm(Math.abs(ms));
+}
+
+
+export function isoWeekKey(d: Date): string {
+  return `${getISOWeekYear(d)}-W${String(getISOWeek(d)).padStart(2, "0")}`;
+}
+
+export function isoWeekRange(key: string): { from: Date; to: Date } {
+  const match = key.match(/^(\\d{4})-W(\\d{2})$/);
+  if (!match) return { from: startOfISOWeek(new Date()), to: endOfISOWeek(new Date()) };
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  const jan4 = new Date(year, 0, 4);
+  const from = startOfISOWeek(new Date(jan4.getTime() + (week - 1) * 7 * 86400000));
+  return { from, to: endOfISOWeek(from) };
+}
+
+export function formatIsoWeek(key: string): string {
+  const { from, to } = isoWeekRange(key);
+  return `Semaine ${key.slice(6)} · ${from.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })} – ${to.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`;
 }
