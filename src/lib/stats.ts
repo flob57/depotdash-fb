@@ -1,7 +1,7 @@
 import {
   startOfDay, endOfDay, startOfWeek, endOfWeek,
   startOfMonth, endOfMonth, startOfYear, endOfYear,
-  eachDayOfInterval, isWeekend, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek,
+  eachDayOfInterval, isWeekend, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek, addWeeks,
 } from "date-fns";
 
 export type Shift = {
@@ -109,7 +109,7 @@ export function isoWeekRange(key: string): { from: Date; to: Date } {
   const year = Number(match[1]);
   const week = Number(match[2]);
   const jan4 = new Date(year, 0, 4);
-  const from = startOfISOWeek(new Date(jan4.getTime() + (week - 1) * 7 * 86400000));
+  const from = startOfISOWeek(addWeeks(jan4, week - 1));
   return { from, to: endOfISOWeek(from) };
 }
 
