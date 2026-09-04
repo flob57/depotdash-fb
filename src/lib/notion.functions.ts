@@ -68,7 +68,7 @@ export const exportDailyTotalsToNotion = createServerFn({ method: "POST" })
 
 // List vehicles (pages) from a Notion database, including the metadata used by the driving-session card.
 function notionKey(value: string): string {
-  return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function propertyText(property: any): string | null {
