@@ -16,6 +16,7 @@ import { DeclaredHoursCard } from "@/components/DeclaredHoursCard";
 import { HomeNotionControls } from "@/components/HomeNotionControls";
 import { WeeklyTasksCard } from "@/components/WeeklyTasksCard";
 import { OvertimeBanner } from "@/components/OvertimeBanner";
+import { VehicleHistoryCard } from "@/components/VehicleHistoryCard";
 import { StartingBalancesDialog } from "@/components/StartingBalancesDialog";
 import {
   ranges, sumShiftsMs, sumDrivingMs, sumKm, dueHoursMs, DAILY_DUE_MS,
@@ -212,6 +213,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
           activeShift={activeShift}
           activeSession={activeSession}
           onChange={refresh}
+          sessions={sessions}
         />
 
         <FuelBanner fillups={fillups} />
@@ -243,6 +245,7 @@ function Dashboard({ userId, email }: { userId: string; email: string }) {
         <DailyTotalsTable shifts={shifts} sessions={sessions} />
         <ShiftsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
         <SessionsTable shifts={shifts} sessions={sessions} onChanged={refresh} />
+        <VehicleHistoryCard sessions={sessions} fillups={fillups} />
         <KmSummaryTable sessions={sessions} />
 
         <p className="text-center text-xs text-muted-foreground">
