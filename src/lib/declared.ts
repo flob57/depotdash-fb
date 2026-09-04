@@ -41,3 +41,11 @@ export function formatMinutes(min: number): string {
   const m = a % 60;
   return `${sign}${h}h${m.toString().padStart(2, "0")}`;
 }
+
+
+export function formatDeclaredSchedule(note: string | null): string | null {
+  if (!note) return null;
+  const ranges = Array.from(note.matchAll(/(?:AM|PM)\s+(\d{1,2}:\d{2})[–-](\d{1,2}:\d{2})/g))
+    .map((m) => `${m[1]}–${m[2]}`);
+  return ranges.length ? ranges.join(" · ") : null;
+}
