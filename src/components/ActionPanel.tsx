@@ -95,12 +95,12 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange, sess
 
   // Load when dialog opens or DB id changes
   useEffect(() => {
-    if (kmDialog === "start" && vehiclesDbId && !vehiclesLoading) {
+    if ((kmDialog === "start" || activeSession) && vehiclesDbId && !vehiclesLoading) {
       void loadVehicles(vehiclesDbId);
     }
     // Refresh the Notion list every time the start dialog opens so newly added vehicles appear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kmDialog, vehiclesDbId]);
+  }, [kmDialog, vehiclesDbId, activeSession]);
 
   const saveSettings = async () => {
     const trimmed = settingsInput.trim();
