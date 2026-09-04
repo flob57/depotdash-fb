@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,19 +14,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { exportShiftsToNotion } from "@/lib/notion.functions";
 import { toast } from "sonner";
 import { Download, Upload } from "lucide-react";
-import { formatHm, ranges, type Shift, type Session } from "@/lib/stats";
+import { formatHm, isoWeekKey, isoWeekRange, formatIsoWeek, type Shift, type Session } from "@/lib/stats";
 import { exportToExcel } from "@/lib/excel";
 import { format } from "date-fns";
 import { RowActions } from "@/components/RowActions";
 import { EditShiftDialog } from "@/components/EditShiftDialog";
 
 type Props = { shifts: Shift[]; sessions: Session[]; onChanged: () => void };
-type Period = "day" | "week" | "month" | "year";
-
 const LS_KEY = "notion_shifts_database_id";
 
 export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
-  const [period, setPeriod] = useState<Period>("week");
+  const [selectedWeek, setSelectedWeek] = useState(() => isoWeekKey(new Date()));
   const [exportOpen, setExportOpen] = useState(false);
   const [dbId, setDbId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,8 +36,14 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
     if (saved) setDbId(saved);
   }, []);
 
+  const weekOptions = useMemo(() => {
+    const keys = new Set<string>([isoWeekKey(new Date())]);
+    shifts.forEach((s) => keys.add(isoWeekKey(new Date(s.on_duty_at))));
+    return Array.from(keys).sort().reverse();
+  }, [shifts]);
+
   const rows = useMemo(() => {
-    const r = ranges()[period];
+    const r = isoWeekRange(selectedWeek);
     const now = Date.now();
     return shifts
       .filter((s) => {
@@ -52,7 +56,7 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
         const durMs = (end ? end.getTime() : now) - start.getTime();
         return { s, start, end, durMs };
       });
-  }, [shifts, period]);
+  }, [shifts, selectedWeek]);
 
   const runExport = async () => {
     const value = dbId.trim();
@@ -63,7 +67,7 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
     localStorage.setItem(LS_KEY, value);
     setBusy(true);
     try {
-      const res = await exportFn({ data: { databaseId: value, period } });
+      const res = await exportFn({ data: { databaseId: value, period: "week" } });
       toast.success(`Exported ${res.exported} shift(s) to Notion${res.skipped ? ` (${res.skipped} skipped)` : ""}`);
       setExportOpen(false);
     } catch (e) {
@@ -78,16 +82,18 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-base">On-duty sessions</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
-          <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
-            <TabsList>
-              <TabsTrigger value="day">Day</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="month">Month</TabsTrigger>
-              <TabsTrigger value="year">Year</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+            <SelectTrigger className="h-9 w-auto min-w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {weekOptions.map((w) => (
+                <SelectItem key={w} value={w}>{formatIsoWeek(w)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" variant="outline"
-            onClick={() => exportToExcel(shifts, sessions, period)}>
+            onClick={() => exportToExcel(shifts, sessions, "week")}>
             <Download className="mr-1.5 h-4 w-4" /> Excel
           </Button>
           <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
@@ -154,7 +160,7 @@ export function ShiftsTable({ shifts, sessions, onChanged }: Props) {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setExportOpen(false)}>Cancel</Button>
             <Button onClick={runExport} disabled={busy}>
-              {busy ? "Exporting…" : `Export ${period}`}
+              {busy ? "Exporting…" : "Export week"}
             </Button>
           </DialogFooter>
         </DialogContent>
