@@ -31,6 +31,7 @@ type Props = {
   activeShift: Shift | null;
   activeSession: Session | null;
   onChange: () => void;
+  sessions: Session[];
 };
 
 function useNow() {
@@ -45,7 +46,7 @@ function useNow() {
 const VEHICLES_DB_KEY = "notion.vehiclesDbId";
 const MANUAL = "__manual__";
 
-export function ActionPanel({ userId, activeShift, activeSession, onChange }: Props) {
+export function ActionPanel({ userId, activeShift, activeSession, onChange, sessions }: Props) {
   const [kmDialog, setKmDialog] = useState<"start" | "stop" | null>(null);
   const [km, setKm] = useState("");
   const [busRef, setBusRef] = useState("");
@@ -58,7 +59,7 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
   // Vehicles
   const fetchVehicles = useServerFn(listVehiclesFromNotion);
   const [vehiclesDbId, setVehiclesDbId] = useState<string>("");
-  const [vehicles, setVehicles] = useState<{ id: string; name: string }[]>([]);
+  const [vehicles, setVehicles] = useState<{ id: string; name: string; registration: string | null; parkNumber: string | null; qubNumber: string | null; coverUrl: string | null }[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsInput, setSettingsInput] = useState("");
@@ -94,9 +95,10 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
 
   // Load when dialog opens or DB id changes
   useEffect(() => {
-    if (kmDialog === "start" && vehiclesDbId && vehicles.length === 0 && !vehiclesLoading) {
+    if (kmDialog === "start" && vehiclesDbId && !vehiclesLoading) {
       void loadVehicles(vehiclesDbId);
     }
+    // Refresh the Notion list every time the start dialog opens so newly added vehicles appear.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kmDialog, vehiclesDbId]);
 
@@ -244,6 +246,20 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
 
   const hasVehiclesDb = !!vehiclesDbId;
   const usingManual = !hasVehiclesDb || busRef === MANUAL;
+  const selectedVehicle = vehicles.find((v) => v.name === busRef) ?? null;
+
+  const lastKnownKm = (vehicleName: string | null): number | null => {
+    if (!vehicleName) return null;
+    const matching = sessions
+      .filter((s) => s.bus_reference === vehicleName && (s.km_end != null || s.km_start != null))
+      .sort((a, b) => new Date(b.start_at).getTime() - new Date(a.start_at).getTime());
+    const latest = matching[0];
+    return latest?.km_end ?? latest?.km_start ?? null;
+  };
+
+  const selectedLastKm = selectedVehicle ? lastKnownKm(selectedVehicle.name) : null;
+  const activeVehicle = activeSession ? vehicles.find((v) => v.name === activeSession.bus_reference) ?? null : null;
+  const activeLastKm = activeSession ? lastKnownKm(activeSession.bus_reference) : null;
 
   return (
     <Card>
@@ -348,6 +364,30 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
             <DialogTitle>{kmDialog === "start" ? "Start driving" : "Stop driving"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {kmDialog === "stop" && activeSession && (
+              <div className="overflow-hidden rounded-xl border bg-secondary/30">
+                {activeVehicle?.coverUrl ? (
+                  <img
+                    src={activeVehicle.coverUrl}
+                    alt={`Photo de couverture Notion — ${activeSession.bus_reference ?? "véhicule"}`}
+                    className="h-28 w-full object-cover"
+                  />
+                ) : null}
+                <div className="space-y-1 p-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="text-base font-semibold">{activeSession.bus_reference ?? "Véhicule"}</div>
+                    <div className="font-mono text-sm text-primary">{formatHm(driveMs)}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>Immatriculation</span><span className="text-right font-medium text-foreground">{activeVehicle?.registration ?? activeSession.bus_reference ?? "—"}</span>
+                    <span>N° de parc</span><span className="text-right font-medium text-foreground">{activeVehicle?.parkNumber ?? "—"}</span>
+                    <span>N° QUB</span><span className="text-right font-medium text-foreground">{activeVehicle?.qubNumber ?? "—"}</span>
+                    <span>Dernier kilométrage</span><span className="text-right font-mono font-medium text-foreground">{activeLastKm != null ? `${activeLastKm} km` : "—"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {kmDialog === "start" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -418,8 +458,33 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                 )}
               </div>
             )}
+            {kmDialog === "start" && selectedVehicle && (
+              <div className="overflow-hidden rounded-xl border bg-secondary/30">
+                {selectedVehicle.coverUrl ? (
+                  <img
+                    src={selectedVehicle.coverUrl}
+                    alt={`Photo de couverture Notion — ${selectedVehicle.name}`}
+                    className="h-32 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-20 items-center justify-center text-xs text-muted-foreground">
+                    Aucune photo de couverture
+                  </div>
+                )}
+                <div className="space-y-1 p-3">
+                  <div className="text-base font-semibold">{selectedVehicle.name}</div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>Immatriculation</span><span className="text-right font-medium text-foreground">{selectedVehicle.registration ?? "—"}</span>
+                    <span>N° de parc</span><span className="text-right font-medium text-foreground">{selectedVehicle.parkNumber ?? "—"}</span>
+                    <span>N° QUB</span><span className="text-right font-medium text-foreground">{selectedVehicle.qubNumber ?? "—"}</span>
+                    <span>Dernier kilométrage</span><span className="text-right font-mono font-medium text-foreground">{selectedLastKm != null ? `${selectedLastKm} km` : "—"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="km">Odometer reading (km)</Label>
+              <Label htmlFor="km">Kilométrage de début (km)</Label>
               <Input
                 id="km"
                 type="number"
@@ -428,9 +493,11 @@ export function ActionPanel({ userId, activeShift, activeSession, onChange }: Pr
                 value={km}
                 onChange={(e) => setKm(e.target.value)}
                 placeholder={
-                  kmDialog === "stop" && activeSession?.km_start != null
-                    ? `≥ ${activeSession.km_start}`
-                    : "e.g. 123456"
+                  kmDialog === "start" && selectedLastKm != null
+                    ? String(selectedLastKm)
+                    : kmDialog === "stop" && activeSession?.km_start != null
+                      ? `≥ ${activeSession.km_start}`
+                      : "e.g. 123456"
                 }
               />
               <p className="text-xs text-muted-foreground">Leave empty to skip.</p>
