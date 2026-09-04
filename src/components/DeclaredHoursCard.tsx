@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, startOfISOWeek, endOfISOWeek, getISOWeek, getISOWeekYear, addWeeks } from "date-fns";
 import { dateKey } from "@/lib/stats";
-import { formatMinutes, type DeclaredHour } from "@/lib/declared";
+import { formatMinutes, formatDeclaredSchedule, type DeclaredHour } from "@/lib/declared";
 import { isHoliday, type SchoolHoliday } from "@/lib/school-context";
 
 type Props = {
@@ -226,10 +226,19 @@ export function DeclaredHoursCard({ userId, declared, schoolHolidays = [], onCha
                   <ul className="divide-y rounded-md border">
                     {filtered.map((d) => (
                       <li key={d.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                        <div>
-                          <span className="font-medium">{format(parseISO(d.work_date), "EEE dd MMM yyyy")}</span>
-                          <span className="ml-2 font-mono">{formatMinutes(d.minutes)}</span>
-                          {d.note && <span className="ml-2 text-muted-foreground">· {d.note}</span>}
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="font-medium">{format(parseISO(d.work_date), "EEE dd MMM yyyy")}</span>
+                            <span className="font-mono">{formatMinutes(d.minutes)}</span>
+                          </div>
+                          {formatDeclaredSchedule(d.note) && (
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              Horaires : <span className="font-mono">{formatDeclaredSchedule(d.note)}</span>
+                            </div>
+                          )}
+                          {d.note && !formatDeclaredSchedule(d.note) && (
+                            <div className="mt-0.5 text-xs text-muted-foreground">· {d.note}</div>
+                          )}
                         </div>
                         <Button variant="ghost" size="sm" disabled={busy} onClick={() => remove(d.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
